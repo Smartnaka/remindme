@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "RemindMe",
+    "slug": "lecture-reminder-app-1elte0d",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "remindme",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon-light.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff",
+      "dark": {
+        "image": "./assets/images/splash-icon-dark.png",
+        "backgroundColor": "#000000"
+      }
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.remindme.remindme",
+      "icon": "./assets/images/ios-light.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "app.remindme.remindme"
+    },
+    "web": {},
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://remindme.com/"
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

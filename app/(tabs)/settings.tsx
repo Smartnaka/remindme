@@ -17,6 +17,8 @@ export default function SettingsScreen() {
     const { settings, updateSettings, colors, toggleTheme } = useSettings();
     const { lectures, updateLecture, clearLectures } = useLectures();
     const [isRescheduling, setIsRescheduling] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [isTestingNotification, setIsTestingNotification] = useState(false);
 
     const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -55,16 +57,31 @@ export default function SettingsScreen() {
         if (Platform.OS !== 'web') {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
-        await syncLecturesToCalendar(lectures, settings.notificationOffset);
+        setIsSyncing(true);
+        try {
+            await syncLecturesToCalendar(lectures, settings.notificationOffset);
+        } catch (error) {
+            console.error('[Settings] Calendar sync error:', error);
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     const handleTestNotification = async () => {
-        if (Platform.OS !== 'web') {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            await sendTestNotification();
-            Alert.alert("Test Sent", "You should receive a notification in 2 seconds.");
-        } else {
-            alert("Test Notification sent!");
+        setIsTestingNotification(true);
+        try {
+            if (Platform.OS !== 'web') {
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                await sendTestNotification();
+                Alert.alert("Test Sent", "You should receive a notification in 2 seconds.");
+            } else {
+                alert("Test Notification sent!");
+            }
+        } catch (error) {
+            console.error('[Settings] Test notification error:', error);
+            Alert.alert("Error", "Failed to send test notification.");
+        } finally {
+            setIsTestingNotification(false);
         }
     };
 
@@ -133,10 +150,16 @@ export default function SettingsScreen() {
                         style={styles.row}
                         onPress={handleTestNotification}
                         activeOpacity={0.7}
+                        disabled={isTestingNotification}
                     >
                         <View style={styles.rowContent}>
                             <Text style={[styles.rowLabel, { color: colors.primary }]}>Send Test Notification</Text>
                         </View>
+                        {isTestingNotification ? (
+                            <Text style={styles.rowValue}>Sending...</Text>
+                        ) : (
+                            <Ionicons name="chevron-forward" size={16} color={colors.textMuted + '80'} />
+                        )}
                     </TouchableOpacity>
 
                     <View style={styles.separator} />
@@ -158,11 +181,16 @@ export default function SettingsScreen() {
                         style={styles.row}
                         onPress={handleCalendarSync}
                         activeOpacity={0.7}
+                        disabled={isSyncing}
                     >
                         <View style={styles.rowContent}>
                             <Text style={styles.rowLabel}>Sync to System Calendar</Text>
                         </View>
-                        <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                        {isSyncing ? (
+                            <Text style={styles.rowValue}>Syncing...</Text>
+                        ) : (
+                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                        )}
                     </TouchableOpacity>
                 </View>
 

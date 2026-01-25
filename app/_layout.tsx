@@ -1,18 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LectureProvider } from "@/contexts/LectureContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ErrorBoundary } from "@/app/components/ErrorBoundary";
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_600SemiBold,
-  Inter_700Bold
-} from '@expo-google-fonts/inter';
-import { View } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,6 +18,25 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Optional font loading - only if package is installed
+// If @expo-google-fonts/inter is not installed, the app will use system fonts
+let fontLoader: (() => [boolean, Error | null]) | null = null;
+
+try {
+  // Dynamic import to avoid errors if package is not installed
+  const fontModule = require('@expo-google-fonts/inter');
+  if (fontModule.useFonts && fontModule.Inter_400Regular) {
+    fontLoader = () => fontModule.useFonts({
+      Inter_400Regular: fontModule.Inter_400Regular,
+      Inter_600SemiBold: fontModule.Inter_600SemiBold,
+      Inter_700Bold: fontModule.Inter_700Bold,
+    });
+  }
+} catch (e) {
+  // Fonts package not installed, will use system fonts
+  console.log('[Layout] Custom fonts not available, using system fonts');
+}
 
 function RootLayoutNav() {
   return (
@@ -47,11 +60,8 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
+  // Only use fonts if package is available
+  const [fontsLoaded] = fontLoader ? fontLoader() : [true]; // If fonts not available, consider them "loaded" (use system fonts)
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
@@ -60,7 +70,11 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#00C896" />
+      </View>
+    );
   }
 
   return (
@@ -79,3 +93,12 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+});

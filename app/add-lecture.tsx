@@ -27,7 +27,7 @@ export default function AddLectureScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { addLecture, updateLecture, getLectureById } = useLectures();
-  const { colors } = useSettings();
+  const { colors, settings } = useSettings();
 
   const isEditing = Boolean(id);
   const existingLecture = isEditing ? getLectureById(id as string) : null;

@@ -238,7 +238,30 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     paddingTop: 20,
-    backdropFilter: 'blur(20px)', // Web only support, but nice to have intention
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textDark,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  returnButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  returnButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.background === '#000000' ? '#000' : '#FFF',
   },
   modalTitle: {
     fontSize: 17,

@@ -75,9 +75,30 @@ export class ErrorBoundary extends Component<Props, State> {
 
 /**
  * Default error fallback UI component
+ * Uses default colors in case SettingsContext is not available
  */
 function ErrorFallback({ error, onReset }: { error: Error | null; onReset: () => void }) {
-  const { colors } = useSettings();
+  // Try to get colors from context, but provide fallback if context isn't available
+  let colors;
+  try {
+    const settings = useSettings();
+    colors = settings.colors;
+  } catch {
+    // If context isn't available, use default light colors
+    colors = {
+      primary: "#00C896",
+      primaryLight: "#E8F8F4",
+      textDark: "#1A1A1A",
+      textMuted: "#8B8B8B",
+      cardBackground: "#F8F9FA",
+      background: "#FFFFFF",
+      success: "#00C896",
+      error: "#FF6B6B",
+      warning: "#FFB946",
+      tint: "#00C896",
+    };
+  }
+  
   const styles = createStyles(colors);
 
   return (
@@ -92,7 +113,7 @@ function ErrorFallback({ error, onReset }: { error: Error | null; onReset: () =>
           We're sorry, but something unexpected happened. The app has encountered an error.
         </Text>
 
-        {__DEV__ && error && (
+        {typeof __DEV__ !== 'undefined' && __DEV__ && error && (
           <View style={styles.errorDetails}>
             <Text style={styles.errorTitle}>Error Details (Dev Only):</Text>
             <Text style={styles.errorText}>{error.toString()}</Text>

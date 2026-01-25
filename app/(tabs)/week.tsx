@@ -10,6 +10,7 @@ import { formatTimeAMPM } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { DayOfWeek } from '@/types/lecture';
+import { ColorTheme } from '@/types/theme';
 
 export default function WeeklyScheduleScreen() {
   const router = useRouter();
@@ -118,7 +119,7 @@ export default function WeeklyScheduleScreen() {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.cardBackground === '#F8F9FA' ? '#F2F2F7' : '#000000', // iOS System Gray 6 equivalent for Light Mode

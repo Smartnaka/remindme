@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '@/constants/colors';
+import { ColorTheme } from '@/types/theme';
 
 const STORAGE_KEY = '@settings';
 
@@ -15,13 +16,11 @@ const defaultSettings: Settings = {
     theme: 'light',
 };
 
-type ColorsType = typeof LightColors;
-
 interface SettingsContextType {
     settings: Settings;
     updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
     isLoading: boolean;
-    colors: ColorsType;
+    colors: ColorTheme;
     toggleTheme: () => Promise<void>;
 }
 

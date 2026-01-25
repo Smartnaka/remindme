@@ -20,6 +20,8 @@ import { DAYS_OF_WEEK, formatTimeAMPM } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { ColorTheme } from '@/types/theme';
+import { validateLecture } from '@/utils/validation';
 
 export default function AddLectureScreen() {
   const router = useRouter();
@@ -99,19 +101,22 @@ export default function AddLectureScreen() {
   };
 
   const handleSave = async () => {
-    if (!courseName.trim()) {
-      if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-      Alert.alert('Missing Information', 'Please enter a course name');
-      return;
-    }
+    // Comprehensive validation
+    const validation = validateLecture(
+      courseName,
+      startTime,
+      endTime,
+      location
+    );
 
-    if (startTime >= endTime) {
+    if (!validation.valid) {
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-      Alert.alert('Invalid Time', 'End time must be after start time');
+      Alert.alert(
+        'Validation Error',
+        validation.errors.join('\n\n')
+      );
       return;
     }
 
@@ -127,7 +132,7 @@ export default function AddLectureScreen() {
           dayOfWeek,
           startTime,
           endTime,
-          location: location.trim(),
+          location: location.trim() || undefined,
         });
       } else {
         await addLecture({
@@ -135,7 +140,7 @@ export default function AddLectureScreen() {
           dayOfWeek: dayOfWeek,
           startTime,
           endTime,
-          location: location.trim(),
+          location: location.trim() || undefined,
         });
       }
       if (Platform.OS !== 'web') {
@@ -146,7 +151,8 @@ export default function AddLectureScreen() {
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-      Alert.alert('Error', 'Failed to save lecture');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save lecture';
+      Alert.alert('Error', errorMessage);
       setIsSaving(false);
     }
   };
@@ -316,7 +322,7 @@ export default function AddLectureScreen() {
             </View>
 
             <Text style={styles.infoText}>
-              Notifications will be sent {15} minutes before class.
+              Notifications will be sent {settings.notificationOffset} minutes before class.
             </Text>
 
             <View style={{ height: 40 }} />
@@ -327,7 +333,7 @@ export default function AddLectureScreen() {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.cardBackground === '#F8F9FA' ? '#F2F2F7' : '#000000',

@@ -10,6 +10,7 @@ import SwipeableLectureRow from '@/components/SwipeableLectureRow';
 import { getCurrentDayOfWeek } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { ColorTheme } from '@/types/theme';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -175,7 +176,7 @@ export default function TodayScreen() {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background, // Should be light gray in future, but keeping existing for now

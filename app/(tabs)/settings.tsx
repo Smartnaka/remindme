@@ -7,6 +7,7 @@ import { syncLecturesToCalendar } from '@/utils/calendar';
 import { useLectures } from '@/contexts/LectureContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { ColorTheme } from '@/types/theme';
 
 import { Switch } from '@/craftrn-ui/components/Switch';
 
@@ -203,7 +204,7 @@ export default function SettingsScreen() {
     );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.cardBackground === '#F8F9FA' ? '#F2F2F7' : '#000000',

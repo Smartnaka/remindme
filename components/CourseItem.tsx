@@ -81,7 +81,9 @@ export default function CourseItem({ lecture, onPress, isNext = false }: CourseI
     );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+import { ColorTheme } from '@/types/theme';
+
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',

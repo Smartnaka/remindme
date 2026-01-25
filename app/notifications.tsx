@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useLectures } from '@/contexts/LectureContext';
 import { getCurrentDayOfWeek } from '@/utils/dateTime';
+import { ColorTheme } from '@/types/theme';
 
 export default function NotificationsScreen() {
     const router = useRouter();
@@ -86,7 +87,7 @@ export default function NotificationsScreen() {
     );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,

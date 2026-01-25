@@ -54,25 +54,38 @@ export const syncLecturesToCalendar = async (lectures: Lecture[], offsetMinutes:
             return;
         }
 
-        // 1. Find or Create our dedicate calendar
+        // 1. Find or Create our dedicated calendar
         const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
         let calendarId = calendars.find(c => c.title === CALENDAR_NAME)?.id;
 
         if (!calendarId) {
             calendarId = await createCalendar();
-        } else {
-            // Clear existing events to prevent duplicates (simple sync strategy)
-            // Note: For a production app, we might check diffs, but for now wiping and re-adding is safer/simpler
-            // However, wiping requires finding all events. 
-            // Let's just create new ones or maybe we should store eventId in lecture?
-            // For this iteration: "Sync" will just add them.
-            // Actually, to avoid duplicates, let's delete the calendar and recreate it? 
-            // Aggressive but ensures cleanliness.
-            await Calendar.deleteCalendarAsync(calendarId);
-            calendarId = await createCalendar();
         }
 
-        // 2. Add Events
+        // 2. Get existing events from our calendar to track what we've created
+        const startDate = new Date();
+        startDate.setFullYear(startDate.getFullYear() - 1); // Look back 1 year
+        const endDate = new Date();
+        endDate.setFullYear(endDate.getFullYear() + 1); // Look ahead 1 year
+
+        const existingEvents = await Calendar.getEventsAsync(
+            [calendarId],
+            startDate,
+            endDate
+        );
+
+        // Create a map of existing event IDs that belong to our app
+        const appEventIds = new Set(
+            existingEvents
+                .filter(event => event.notes?.includes('Created by RemindMe App'))
+                .map(event => event.id)
+        );
+
+        // 3. Sync Events - Update existing or create new
+        const lectureIds = new Set(lectures.map(l => l.id));
+        let createdCount = 0;
+        let updatedCount = 0;
+
         for (const lecture of lectures) {
             const nextDate = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime);
 
@@ -86,21 +99,59 @@ export const syncLecturesToCalendar = async (lectures: Lecture[], offsetMinutes:
                 endDate.setDate(endDate.getDate() + 1);
             }
 
-            await Calendar.createEventAsync(calendarId, {
+            const eventData = {
                 title: lecture.courseName,
                 startDate: nextDate,
                 endDate: endDate,
                 location: lecture.location || 'Unknown Location',
                 notes: 'Created by RemindMe App',
-                alarms: [{ relativeOffset: -offsetMinutes }], // Alarm offsetMinutes before
+                alarms: [{ relativeOffset: -offsetMinutes }],
                 recurrenceRule: {
                     frequency: Calendar.Frequency.WEEKLY,
                     interval: 1,
                 },
-            });
+            };
+
+            // Check if we already have a calendar event for this lecture
+            if (lecture.calendarEventId) {
+                try {
+                    // Try to update existing event
+                    await Calendar.updateEventAsync(lecture.calendarEventId, eventData);
+                    updatedCount++;
+                    appEventIds.delete(lecture.calendarEventId);
+                } catch (error) {
+                    // Event might have been deleted, create a new one
+                    console.log(`[Calendar] Event ${lecture.calendarEventId} not found, creating new one`);
+                    const newEventId = await Calendar.createEventAsync(calendarId, eventData);
+                    // Note: We should update the lecture with new calendarEventId, but that requires
+                    // updating the lecture in the context. For now, we'll just create it.
+                    createdCount++;
+                }
+            } else {
+                // Create new event
+                const eventId = await Calendar.createEventAsync(calendarId, eventData);
+                createdCount++;
+                // Note: Ideally we'd update the lecture with calendarEventId here
+                // This would require passing updateLecture function or returning event IDs
+            }
         }
 
-        Alert.alert("Success", `Synced ${lectures.length} lectures to your "${CALENDAR_NAME}" calendar.`);
+        // 4. Clean up orphaned events (events in calendar but not in our lectures)
+        // Only delete events that we created (have our notes marker)
+        for (const eventId of appEventIds) {
+            try {
+                await Calendar.deleteEventAsync(eventId);
+            } catch (error) {
+                console.error(`[Calendar] Failed to delete event ${eventId}:`, error);
+            }
+        }
+
+        const totalSynced = createdCount + updatedCount;
+
+        Alert.alert(
+            "Success",
+            `Synced ${totalSynced} lecture${totalSynced !== 1 ? 's' : ''} to your "${CALENDAR_NAME}" calendar.`
+        );
 
     } catch (error) {
         console.error('[Calendar] Error syncing:', error);

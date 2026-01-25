@@ -6,6 +6,7 @@ import { useLectures } from '@/contexts/LectureContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAMPM } from '@/utils/dateTime';
+import { ColorTheme } from '@/types/theme';
 
 export default function LectureDetailScreen() {
   const router = useRouter();
@@ -139,7 +140,7 @@ export default function LectureDetailScreen() {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.cardBackground === '#F8F9FA' ? '#F2F2F7' : '#000000',

@@ -1,10 +1,12 @@
+import { ColorTheme } from '@/types/theme';
+
 const primary = "#00C896";
 const primaryLight = "#E8F8F4";
 const textDark = "#1A1A1A";
 const textMuted = "#8B8B8B";
 const cardBackground = "#F8F9FA";
 
-export const LightColors = {
+export const LightColors: ColorTheme = {
   primary: "#00C896",
   primaryLight: "#E8F8F4",
   textDark: "#1A1A1A",
@@ -17,7 +19,7 @@ export const LightColors = {
   tint: "#00C896",
 };
 
-export const DarkColors = {
+export const DarkColors: ColorTheme = {
   primary: "#34C759", // iOS Green (Premium)
   primaryLight: "#1C2C22", // Subtle green tint
   textDark: "#FFFFFF",

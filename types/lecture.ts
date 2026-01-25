@@ -8,6 +8,7 @@ export interface Lecture {
   endTime: string;
   location?: string;
   notificationId?: string;
+  calendarEventId?: string; // Store calendar event ID for sync management
 }
 
 export interface TimeSlot {

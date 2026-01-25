@@ -5,6 +5,7 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAMPM } from '@/utils/dateTime';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ColorTheme } from '@/types/theme';
 
 interface NextLectureCardProps {
     lecture: Lecture;

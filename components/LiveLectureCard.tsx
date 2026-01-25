@@ -4,6 +4,7 @@ import { Lecture } from '@/types/lecture';
 import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAMPM } from '@/utils/dateTime';
+import { ColorTheme } from '@/types/theme';
 
 interface LiveLectureCardProps {
     lecture: Lecture;
@@ -56,7 +57,7 @@ export default function LiveLectureCard({ lecture, onPress }: LiveLectureCardPro
     );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
     container: {
         backgroundColor: colors.primary + '15', // Ultra light green background (15% opacity)
         borderRadius: 24,

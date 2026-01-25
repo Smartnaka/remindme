@@ -18,16 +18,16 @@ export const LightColors = {
 };
 
 export const DarkColors = {
-  primary: "#00ff00", // Neon Green
-  primaryLight: "#003300", // Very dark green background
+  primary: "#34C759", // iOS Green (Premium)
+  primaryLight: "#1C2C22", // Subtle green tint
   textDark: "#FFFFFF",
-  textMuted: "#A1A1A1",
-  cardBackground: "#1C1C1E", // Dark Gray
+  textMuted: "#8E8E93", // iOS System Gray
+  cardBackground: "#1C1C1E", // System Gray 6
   background: "#000000", // Pure Black
-  success: "#00ff00",
-  error: "#FF6B6B",
-  warning: "#FFB946",
-  tint: "#00ff00",
+  success: "#30D158",
+  error: "#FF453A", // iOS Red
+  warning: "#FF9F0A",
+  tint: "#34C759",
 };
 
 export default LightColors; // Default backward compatibility if needed, but we should migrate

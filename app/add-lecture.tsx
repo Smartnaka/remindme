@@ -16,7 +16,7 @@ import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { DayOfWeek } from '@/types/lecture';
-import { DAYS_OF_WEEK } from '@/utils/dateTime';
+import { DAYS_OF_WEEK, formatTimeAMPM } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -175,7 +175,7 @@ export default function AddLectureScreen() {
 
       <View style={styles.customHeader}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color={colors.textDark} />
+          <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isEditing ? 'Edit Lecture' : 'New Lecture'}</Text>
         <TouchableOpacity
@@ -184,7 +184,7 @@ export default function AddLectureScreen() {
           activeOpacity={0.7}
           disabled={isSaving}
         >
-          <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+          <Text style={styles.saveButtonText}>{isSaving ? 'Saving' : 'Save'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -199,127 +199,124 @@ export default function AddLectureScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.section}>
-              <Text style={styles.label}>Course Name</Text>
-              <TextInput
-                style={[styles.input, courseName ? styles.inputFilled : null]}
-                placeholder="e.g., Computer Science 101"
-                placeholderTextColor={colors.textMuted}
-                value={courseName}
-                onChangeText={setCourseName}
-                autoCapitalize="words"
-                autoFocus
-              />
-            </View>
 
-            <View style={styles.section}>
-              <View style={styles.labelContainer}>
-                <Text style={styles.label}>Select Day</Text>
+            <Text style={styles.sectionHeader}>COURSE DETAILS</Text>
+            <View style={styles.groupedList}>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Course Name"
+                  placeholderTextColor={colors.textMuted}
+                  value={courseName}
+                  onChangeText={setCourseName}
+                  autoCapitalize="words"
+                  autoFocus
+                  clearButtonMode="while-editing"
+                />
               </View>
-              <View style={styles.dayGrid}>
-                {DAYS_OF_WEEK.map((day) => (
-                  <TouchableOpacity
-                    key={day}
-                    style={[styles.dayChip, dayOfWeek === day && styles.dayChipActive]}
-                    onPress={() => handleDaySelect(day)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.dayChipText, dayOfWeek === day && styles.dayChipTextActive]}>
-                      {day.slice(0, 3)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.separator} />
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Location (Optional)"
+                  placeholderTextColor={colors.textMuted}
+                  value={location}
+                  onChangeText={setLocation}
+                  autoCapitalize="words"
+                  clearButtonMode="while-editing"
+                />
               </View>
             </View>
 
-            <View style={styles.section}>
-              <Text style={styles.label}>Class Time</Text>
-              <View style={styles.timeRow}>
-                <View style={styles.timeInputContainer}>
-                  <Text style={styles.timeLabel}>Start</Text>
-                  <TouchableOpacity
-                    style={styles.timeInputButton}
-                    onPress={() => setShowStartPicker(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.timeInputText}>{startTime}</Text>
-                  </TouchableOpacity>
-                  {(showStartPicker || (Platform.OS === 'ios' && showStartPicker)) && (
-                    <DateTimePicker
-                      value={timeStringToDate(startTime)}
-                      mode="time"
-                      is24Hour={true}
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={handleStartTimeChange}
-                      textColor={colors.textDark}
-                    />
-                  )}
-                  {/* On iOS, we might want a "Done" button if using spinner layout inside a modal, 
-                      but standard inline/compact might be better. 
-                      However, for simplicity in this stack, let's just toggle visibility or keep it clean.
-                      The current implementation toggles showStartPicker.
-                      For standard iOS spinner, it usually shows inline. 
-                      Let's adjust: if iOS, maybe show it in a modal or just conditionally render below?
-                      Actually, standard practice for iOS spinner in forms is often collapsible or a modal.
-                      Let's stick to conditional rendering. 
-                   */}
-                  {Platform.OS === 'ios' && showStartPicker && (
+            <Text style={styles.sectionHeader}>SCHEDULE</Text>
+            <View style={styles.groupedList}>
+              {/* Day Picker Row */}
+              <View style={styles.paddedRow}>
+                <Text style={styles.rowLabel}>Day</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayScrollContent}>
+                  {DAYS_OF_WEEK.map((day) => (
                     <TouchableOpacity
-                      style={styles.closePickerButton}
-                      onPress={() => setShowStartPicker(false)}
+                      key={day}
+                      style={[styles.dayChip, dayOfWeek === day && styles.dayChipActive]}
+                      onPress={() => handleDaySelect(day)}
+                      activeOpacity={0.7}
                     >
-                      <Text style={styles.closePickerText}>Done</Text>
+                      <Text style={[styles.dayChipText, dayOfWeek === day && styles.dayChipTextActive]}>
+                        {day.slice(0, 3)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.separator} />
+
+              {/* Start Time */}
+              <TouchableOpacity
+                style={styles.pickerRow}
+                onPress={() => setShowStartPicker(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.rowLabel}>Starts</Text>
+                <View style={styles.pickerValueContainer}>
+                  <Text style={styles.pickerValue}>{formatTimeAMPM(startTime)}</Text>
+                </View>
+              </TouchableOpacity>
+              {(showStartPicker || (Platform.OS === 'ios' && showStartPicker)) && (
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={timeStringToDate(startTime)}
+                    mode="time"
+                    is24Hour={false}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleStartTimeChange}
+                    textColor={colors.textDark}
+                    style={styles.datePicker}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity style={styles.pickerDone} onPress={() => setShowStartPicker(false)}>
+                      <Text style={styles.pickerDoneText}>Done</Text>
                     </TouchableOpacity>
                   )}
                 </View>
+              )}
 
-                <Text style={styles.timeSeparator}>—</Text>
+              <View style={styles.separator} />
 
-                <View style={styles.timeInputContainer}>
-                  <Text style={styles.timeLabel}>End</Text>
-                  <TouchableOpacity
-                    style={styles.timeInputButton}
-                    onPress={() => setShowEndPicker(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.timeInputText}>{endTime}</Text>
-                  </TouchableOpacity>
-                  {(showEndPicker || (Platform.OS === 'ios' && showEndPicker)) && (
-                    <DateTimePicker
-                      value={timeStringToDate(endTime)}
-                      mode="time"
-                      is24Hour={true}
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={handleEndTimeChange}
-                      textColor={colors.textDark}
-                    />
-                  )}
-                  {Platform.OS === 'ios' && showEndPicker && (
-                    <TouchableOpacity
-                      style={styles.closePickerButton}
-                      onPress={() => setShowEndPicker(false)}
-                    >
-                      <Text style={styles.closePickerText}>Done</Text>
+              {/* End Time */}
+              <TouchableOpacity
+                style={styles.pickerRow}
+                onPress={() => setShowEndPicker(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.rowLabel}>Ends</Text>
+                <View style={styles.pickerValueContainer}>
+                  <Text style={styles.pickerValue}>{formatTimeAMPM(endTime)}</Text>
+                </View>
+              </TouchableOpacity>
+
+              {(showEndPicker || (Platform.OS === 'ios' && showEndPicker)) && (
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={timeStringToDate(endTime)}
+                    mode="time"
+                    is24Hour={false}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleEndTimeChange}
+                    textColor={colors.textDark}
+                    style={styles.datePicker}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity style={styles.pickerDone} onPress={() => setShowEndPicker(false)}>
+                      <Text style={styles.pickerDoneText}>Done</Text>
                     </TouchableOpacity>
                   )}
                 </View>
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.label}>Location</Text>
-              <TextInput
-                style={[styles.input, location ? styles.inputFilled : null]}
-                placeholder="e.g., Building 4, Room 202"
-                placeholderTextColor={colors.textMuted}
-                value={location}
-                onChangeText={setLocation}
-                autoCapitalize="words"
-              />
+              )}
             </View>
 
             <Text style={styles.infoText}>
-              You'll receive a notification 15 minutes before this lecture starts
+              Notifications will be sent {15} minutes before class.
             </Text>
 
             <View style={{ height: 40 }} />
@@ -333,45 +330,41 @@ export default function AddLectureScreen() {
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground === '#F8F9FA' ? '#F2F2F7' : '#000000',
   },
   customHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: colors.background,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 40 : 12,
+    paddingBottom: 12,
+    backgroundColor: colors.cardBackground, // Modal header style
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBackground,
+    borderBottomColor: colors.textMuted + '20',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 8,
+  },
+  cancelText: {
+    fontSize: 17,
+    color: colors.primary,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '600',
     color: colors.textDark,
   },
   saveButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    padding: 8,
   },
   saveButtonDisabled: {
     opacity: 0.5,
   },
   saveButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.background,
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.primary,
   },
   animatedContainer: {
     flex: 1,
@@ -385,127 +378,109 @@ const createStyles = (colors: any) => StyleSheet.create({
   content: {
     padding: 20,
   },
-  section: {
-    marginBottom: 24,
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
+  sectionHeader: {
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.textDark,
+    color: colors.textMuted,
     marginBottom: 8,
+    marginLeft: 16,
+    marginTop: 16,
+    letterSpacing: -0.2,
   },
-  input: {
+  groupedList: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 14,
-    padding: 18,
-    fontSize: 16,
-    color: colors.textDark,
-    borderWidth: 2,
-    borderColor: colors.cardBackground, // Use card background as border
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  inputFilled: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  dayGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  dayChip: {
+  inputRow: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 24,
     backgroundColor: colors.cardBackground,
-    borderWidth: 2,
-    borderColor: colors.cardBackground,
-    minWidth: 70,
+  },
+  textInput: {
+    fontSize: 17,
+    color: colors.textDark,
+    paddingVertical: 4,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.textMuted + '20',
+    marginLeft: 16,
+  },
+  paddedRow: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  pickerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: colors.cardBackground,
+  },
+  rowLabel: {
+    fontSize: 17,
+    color: colors.textDark,
+  },
+  dayScrollContent: {
+    gap: 8,
+    paddingRight: 16,
+  },
+  dayChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.textMuted + '30',
   },
   dayChipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
-    transform: [{ scale: 1.05 }],
   },
   dayChipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textMuted,
+    color: colors.textDark,
   },
   dayChipTextActive: {
-    color: colors.background,
+    color: '#FFF',
   },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  pickerValueContainer: {
+    backgroundColor: colors.textMuted + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
-  timeInputContainer: {
-    flex: 1,
-  },
-  timeLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textMuted,
-    marginBottom: 8,
-  },
-  timeInputButton: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 14,
-    padding: 18,
-    borderWidth: 2,
-    borderColor: colors.cardBackground,
-    alignItems: 'center',
-  },
-  timeInputText: {
-    fontSize: 20,
-    fontWeight: '700',
+  pickerValue: {
+    fontSize: 17,
     color: colors.textDark,
-  },
-  timeInput: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 14,
-    padding: 18,
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.textDark,
-    borderWidth: 2,
-    borderColor: colors.cardBackground,
-    textAlign: 'center'
-  },
-  closePickerButton: {
-    alignSelf: 'center',
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 8,
-  },
-  closePickerText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  timeSeparator: {
-    fontSize: 18,
-    color: colors.textMuted,
-    marginTop: 24,
     fontWeight: '500',
   },
-  hint: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 6,
-    fontWeight: '400',
+  pickerContainer: {
+    backgroundColor: colors.cardBackground,
+    paddingBottom: 16,
+  },
+  datePicker: {
+    alignSelf: 'center',
+  },
+  pickerDone: {
+    alignItems: 'center',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.textMuted + '20',
+  },
+  pickerDoneText: {
+    fontSize: 17,
+    color: colors.primary,
+    fontWeight: '600',
   },
   infoText: {
     fontSize: 13,
     color: colors.textMuted,
-    lineHeight: 18,
-    fontWeight: '400',
-    marginTop: 8,
+    textAlign: 'center',
+    marginTop: 24,
   },
 });

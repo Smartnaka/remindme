@@ -1,133 +1,140 @@
-import React, { useState, useMemo } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, RefreshControl, Platform } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
 import { useSettings } from '@/contexts/SettingsContext';
-import { DAYS_OF_WEEK, getCurrentDayOfWeek } from '@/utils/dateTime';
-import { formatTimeAMPM } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { DayOfWeek } from '@/types/lecture';
+import { formatTimeAMPM } from '@/utils/dateTime';
 
-export default function WeeklyScheduleScreen() {
+export default function LectureDetailScreen() {
   const router = useRouter();
-  const { lectures } = useLectures();
+  const { id } = useLocalSearchParams();
+  const { getLectureById, deleteLecture } = useLectures();
   const { colors } = useSettings();
-  const [refreshing, setRefreshing] = useState(false);
-  const currentDay = getCurrentDayOfWeek();
 
+  const lecture = useMemo(() => getLectureById(id as string), [id, getLectureById]);
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    setTimeout(() => setRefreshing(false), 1000);
+  if (!lecture) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.textDark} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Lecture not found</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.returnButton}>
+            <Text style={styles.returnButtonText}>Return to Schedule</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // ... (keeping other handlers)
+
+  // Replace handleDelete to just toggle modal
+  const handleDeletePress = () => {
+    setShowDeleteModal(true);
   };
 
-  const handleLecturePress = (id: string) => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    router.push(`/lecture/${id}`);
+  const confirmDelete = async () => {
+    await deleteLecture(lecture.id);
+    setShowDeleteModal(false);
+    router.back();
   };
 
-  const getLecturesForDay = (day: DayOfWeek) => {
-    return lectures
-      .filter(lecture => lecture.dayOfWeek === day)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const handleEdit = () => {
+    router.push({ pathname: '/add-lecture', params: { id: lecture.id } });
   };
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.iconBox}>
-            <Ionicons name="calendar-outline" size={24} color={colors.primary} />
-          </View>
-          <Text style={styles.headerTitle}>Weekly Schedule</Text>
-        </View>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={28} color={colors.primary} />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
+          <Text style={styles.editText}>Edit</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-      >
-        {DAYS_OF_WEEK.map((day) => {
-          const dayLectures = getLecturesForDay(day);
+      <ScrollView contentContainerStyle={styles.content}>
 
-          return (
-            <View key={day} style={styles.daySection}>
-              <View style={[styles.dayHeader, currentDay === day && styles.dayHeaderActive]}>
-                <View style={styles.dayNameContainer}>
-                  <Text style={[styles.dayName, currentDay === day && styles.dayNameActive]}>{day}</Text>
-                  {currentDay === day && (
-                    <View style={styles.todayBadge}>
-                      <Text style={styles.todayText}>Today</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={[styles.countBadge, currentDay === day && styles.countBadgeActive]}>
-                  <Text style={styles.countBadgeText}>{dayLectures.length}</Text>
-                </View>
-              </View>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>{lecture.courseName}</Text>
+          {lecture.location && <Text style={styles.subtitle}>{lecture.location}</Text>}
+        </View>
 
-              {dayLectures.length === 0 ? (
-                <View style={styles.emptyDay}>
-                  <Text style={styles.emptyDayText}>No lectures scheduled</Text>
-                </View>
-              ) : (
-                <View style={styles.lecturesList}>
-                  {dayLectures.map((lecture) => (
-                    <TouchableOpacity
-                      key={lecture.id}
-                      style={styles.lectureItem}
-                      onPress={() => handleLecturePress(lecture.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.accentBar} />
-                      <View style={styles.timeColumn}>
-                        <Text style={styles.timeText}>
-                          {formatTimeAMPM(lecture.startTime)}
-                        </Text>
-                        <Text style={styles.timeSubtext}>
-                          {formatTimeAMPM(lecture.endTime)}
-                        </Text>
-                      </View>
+        <View style={styles.groupedList}>
+          <View style={styles.row}>
+            <Text style={styles.label}>Day</Text>
+            <Text style={styles.value}>{lecture.dayOfWeek}</Text>
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.row}>
+            <Text style={styles.label}>Start Time</Text>
+            <Text style={styles.value}>{formatTimeAMPM(lecture.startTime)}</Text>
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.row}>
+            <Text style={styles.label}>End Time</Text>
+            <Text style={styles.value}>{formatTimeAMPM(lecture.endTime)}</Text>
+          </View>
+        </View>
 
-                      <View style={styles.lectureInfo}>
-                        <Text style={styles.lectureName} numberOfLines={1}>
-                          {lecture.courseName}
-                        </Text>
-                        {lecture.location && (
-                          <Text style={styles.locationText} numberOfLines={1}>
-                            {lecture.location}
-                          </Text>
-                        )}
-                      </View>
-
-                      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          );
-        })}
-
-        <View style={{ height: 40 }} />
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeletePress}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.deleteText}>Delete Lecture</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Custom Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Delete Lecture?</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to remove "{lecture.courseName}"? This cannot be undone.
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setShowDeleteModal(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <View style={styles.modalSeparatorVertical} />
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={confirmDelete}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalDeleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -135,161 +142,141 @@ export default function WeeklyScheduleScreen() {
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground === '#F8F9FA' ? '#F2F2F7' : '#000000',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.background,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textDark,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-  daySection: {
-    marginBottom: 24,
-  },
-  dayHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12,
     backgroundColor: 'transparent',
   },
-  dayHeaderActive: {
-    backgroundColor: colors.primaryLight,
-  },
-  dayNameContainer: {
+  backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
-  dayName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textDark,
+  backButtonText: {
+    fontSize: 17,
+    color: colors.primary,
+    marginLeft: -4,
   },
-  dayNameActive: {
+  editButton: {
+    padding: 8,
+  },
+  editText: {
+    fontSize: 17,
+    fontWeight: '600',
     color: colors.primary,
   },
-  todayBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+  content: {
+    padding: 20,
   },
-  todayText: {
-    color: colors.background,
-    fontSize: 10,
-    fontWeight: '700',
+  titleContainer: {
+    marginBottom: 24,
+    paddingHorizontal: 4,
   },
-  countBadge: {
-    backgroundColor: colors.textMuted,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 28,
-    alignItems: 'center',
-  },
-  countBadgeActive: {
-    backgroundColor: colors.primary,
-  },
-  countBadgeText: {
-    color: colors.background,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  emptyDay: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  emptyDayText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  lecturesList: {
-    gap: 8,
-  },
-  lectureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 14,
-    padding: 16,
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: colors.cardBackground,
-    overflow: 'hidden',
-  },
-  accentBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    backgroundColor: colors.primary,
-  },
-  timeColumn: {
-    minWidth: 70,
-  },
-  timeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textDark,
-    marginBottom: 2,
-  },
-  timeSubtext: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  lectureInfo: {
-    flex: 1,
-  },
-  lectureName: {
-    fontSize: 16,
-    fontWeight: '600',
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
     color: colors.textDark,
     marginBottom: 4,
   },
-  locationText: {
-    fontSize: 13,
+  subtitle: {
+    fontSize: 17,
     color: colors.textMuted,
-    fontWeight: '500',
   },
+  groupedList: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.cardBackground,
+  },
+  label: {
+    fontSize: 16,
+    color: colors.textDark,
+  },
+  value: {
+    fontSize: 16,
+    color: colors.textMuted,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.textMuted + '20',
+    marginLeft: 16,
+  },
+  deleteButton: {
+    backgroundColor: colors.cardBackground,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  deleteText: {
+    color: colors.error,
+    fontWeight: '600',
+    fontSize: 17,
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContainer: {
+    width: 270,
+    backgroundColor: colors.cardBackground === '#000000' ? '#1C1C1E' : '#FFFFFF', // iOS Dialog Color
+    borderRadius: 14,
+    alignItems: 'center',
+    paddingTop: 20,
+    backdropFilter: 'blur(20px)', // Web only support, but nice to have intention
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.textDark,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 13,
+    color: colors.textDark,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    width: '100%',
+    borderTopWidth: 0.5,
+    borderTopColor: colors.textMuted + '40',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSeparatorVertical: {
+    width: 0.5,
+    backgroundColor: colors.textMuted + '40',
+  },
+  modalCancelText: {
+    fontSize: 17,
+    fontWeight: '400',
+    color: colors.primary,
+  },
+  modalDeleteText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.error,
+  }
 });

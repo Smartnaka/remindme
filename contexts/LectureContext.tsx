@@ -32,6 +32,7 @@ interface LectureContextType {
   addLecture: (lecture: Omit<Lecture, 'id' | 'notificationId'>) => Promise<void>;
   updateLecture: (id: string, updates: Partial<Lecture>) => Promise<void>;
   deleteLecture: (id: string) => Promise<void>;
+  clearLectures: () => Promise<void>;
   getLectureById: (id: string) => Lecture | undefined;
   isLoading: boolean;
   isSaving: boolean;
@@ -125,11 +126,26 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     return lectures.find(l => l.id === id);
   };
 
+  const clearLectures = async (): Promise<void> => {
+    try {
+      console.log('[LectureContext] Clearing all lectures...');
+      if (lectures.length > 0) {
+        // Cancel all notifications
+        await Promise.all(lectures.map(l => l.notificationId && cancelNotification(l.notificationId)));
+      }
+      saveMutation.mutate([]);
+      console.log('[LectureContext] Lectures cleared via mutation');
+    } catch (error) {
+      console.error("Failed to clear lectures", error);
+    }
+  };
+
   const value: LectureContextType = {
     lectures,
     addLecture,
     updateLecture,
     deleteLecture,
+    clearLectures,
     getLectureById,
     isLoading: lecturesQuery.isLoading,
     isSaving: saveMutation.isPending,

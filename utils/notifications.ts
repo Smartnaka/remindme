@@ -57,31 +57,16 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
       return null;
     }
 
-    const { hours, minutes } = parseTime(lecture.startTime);
-    const notificationTime = new Date();
-    // Wrap around handled by Date object automatically (e.g. going back to previous day)
-    // determining the day of week for trigger is slightly complex if it wraps days, 
-    // but for simplicity assuming same day for now or trusting expo trigger logic 
-    // actually, if we substract 15 mins from 00:00 it becomes 23:45 of previous day.
-    // The calendar trigger in Expo takes weekday, hour, minute.
-    // If the time shift changes the day, we need to adjust the weekday too.
-
-    // Set arbitrary date to calculate valid hour/minute
-    notificationTime.setHours(hours, minutes, 0, 0);
-    notificationTime.setMinutes(notificationTime.getMinutes() - offsetMinutes);
-
-    let notificationWeekday = getDayNumber(lecture.dayOfWeek);
-
-    // Check if we rolled back to previous day
-    // This simple check works if we assume we are setting it on a hypothetical "today" 
-    // and checking if hours wrapped. 
-    // Improved logic:
-    // Create a date for the "Next Occurrence" of this lecture then subtract offset.
-
+    // Correctly calculate the trigger date by subtracting the offset
+    // We start with the "next occurrence" of the lecture to ensure we have a valid baseline date
     const nextMsg = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime);
-    const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000); // subtract offset in ms
+    const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000);
 
-    const triggerWeekday = triggerDate.getDay() + 1; // getDay is 0-6 (Sun-Sat), we need 1-7
+    // Expo Calendar Trigger requires 1-7 for Sunday-Saturday
+    // triggerDate.getDay() returns 0-6 (Sun-Sat)
+    const triggerWeekday = triggerDate.getDay() + 1;
+
+    console.log(`[Notifications] Scheduling param: Weekday ${triggerWeekday}, Hour ${triggerDate.getHours()}, Minute ${triggerDate.getMinutes()}`);
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -89,8 +74,10 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
         body: `Starts in ${offsetMinutes} minutes${lecture.location ? ` at ${lecture.location}` : ''}`,
         data: { lectureId: lecture.id },
         sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: {
+        channelId: 'default',
         type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
         weekday: triggerWeekday,
         hour: triggerDate.getHours(),
@@ -99,7 +86,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
       },
     });
 
-    console.log(`[Notifications] Scheduled notification for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()} (${offsetMinutes} min before)`);
+    console.log(`[Notifications] Scheduled notification for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()} (Offset: ${offsetMinutes}m)`);
     return notificationId;
   } catch (error) {
     console.error('[Notifications] Error scheduling notification:', error);
@@ -117,6 +104,31 @@ export const cancelNotification = async (notificationId: string): Promise<void> 
     console.log('[Notifications] Cancelled notification:', notificationId);
   } catch (error) {
     console.error('[Notifications] Error cancelling notification:', error);
+  }
+}
+
+
+export const sendTestNotification = async (): Promise<void> => {
+  if (Platform.OS === 'web' || !Notifications) return;
+
+  try {
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) {
+      alert("Permission not granted for notifications");
+      return;
+    }
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Test Notification",
+        body: "This is a test notification from the RemindMe app!",
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      },
+      trigger: { seconds: 2 },
+    });
+  } catch (error) {
+    console.error("Test notification failed", error);
   }
 };
 

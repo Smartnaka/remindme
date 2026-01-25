@@ -20,14 +20,22 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.remindme.remindme",
-      "icon": "./assets/images/ios-light.png"
+      "icon": "./assets/images/ios-light.png",
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "RemindMe needs access to your calendar to sync your lecture schedule.",
+        "NSRemindersUsageDescription": "RemindMe needs access to reminders to set alerts for your lectures."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "app.remindme.remindme"
+      "package": "app.remindme.remindme",
+      "permissions": [
+        "READ_CALENDAR",
+        "WRITE_CALENDAR"
+      ]
     },
     "web": {},
     "plugins": [
@@ -37,10 +45,25 @@
           "origin": "https://remindme.com/"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#ffffff",
+          "sounds": []
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": "https://remindme.com/"
+      },
+      "eas": {
+        "projectId": "01b5e388-b3d0-4b99-adf0-d12e41ac2c1a"
+      }
     }
   }
 }

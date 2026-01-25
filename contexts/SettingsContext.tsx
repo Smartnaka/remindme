@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '@/constants/colors';
 
@@ -26,8 +27,14 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
+
+
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
-    const [settings, setSettings] = useState<Settings>(defaultSettings);
+    const systemColorScheme = useColorScheme();
+    const [settings, setSettings] = useState<Settings>({
+        ...defaultSettings,
+        theme: (systemColorScheme === 'dark' ? 'dark' : 'light')
+    });
     const [isLoading, setIsLoading] = useState(true);
 
     const colors = settings.theme === 'dark' ? DarkColors : LightColors;

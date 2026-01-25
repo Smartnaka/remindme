@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { DAYS_OF_WEEK, getCurrentDayOfWeek } from '@/utils/dateTime';
+import SwipeableLectureRow from '@/components/SwipeableLectureRow';
 import { formatTimeAMPM } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -12,7 +13,7 @@ import { DayOfWeek } from '@/types/lecture';
 
 export default function WeeklyScheduleScreen() {
   const router = useRouter();
-  const { lectures } = useLectures();
+  const { lectures, deleteLecture } = useLectures();
   const { colors } = useSettings();
   const [refreshing, setRefreshing] = useState(false);
   const currentDay = getCurrentDayOfWeek();
@@ -41,9 +42,13 @@ export default function WeeklyScheduleScreen() {
   };
 
   return (
+
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Week</Text>
+        <TouchableOpacity onPress={onRefresh} style={styles.headerIcon}>
+          <Ionicons name="refresh" size={20} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -63,59 +68,46 @@ export default function WeeklyScheduleScreen() {
           const dayLectures = getLecturesForDay(day);
 
           return (
-            <View key={day} style={styles.daySection}>
-              <View style={[styles.dayHeader, currentDay === day && styles.dayHeaderActive]}>
-                <View style={styles.dayNameContainer}>
-                  <Text style={[styles.dayName, currentDay === day && styles.dayNameActive]}>{day}</Text>
-                  {currentDay === day && (
-                    <View style={styles.todayBadge}>
-                      <Text style={styles.todayText}>Today</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={[styles.countBadge, currentDay === day && styles.countBadgeActive]}>
-                  <Text style={styles.countBadgeText}>{dayLectures.length}</Text>
-                </View>
+            <View key={day} style={styles.section}>
+              <View style={styles.sectionHeaderContainer}>
+                <Text style={[styles.sectionHeaderTitle, currentDay === day && styles.currentDayTitle]}>
+                  {day.toUpperCase()}
+                </Text>
+                {currentDay === day && <Text style={styles.todayLabel}>TODAY</Text>}
               </View>
 
-              {dayLectures.length === 0 ? (
-                <View style={styles.emptyDay}>
-                  <Text style={styles.emptyDayText}>No lectures scheduled</Text>
-                </View>
-              ) : (
-                <View style={styles.lecturesList}>
-                  {dayLectures.map((lecture) => (
-                    <TouchableOpacity
-                      key={lecture.id}
-                      style={styles.lectureItem}
-                      onPress={() => handleLecturePress(lecture.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.accentBar} />
-                      <View style={styles.timeColumn}>
-                        <Text style={styles.timeText}>
-                          {formatTimeAMPM(lecture.startTime)}
-                        </Text>
-                        <Text style={styles.timeSubtext}>
-                          {formatTimeAMPM(lecture.endTime)}
-                        </Text>
-                      </View>
-
-                      <View style={styles.lectureInfo}>
-                        <Text style={styles.lectureName} numberOfLines={1}>
-                          {lecture.courseName}
-                        </Text>
-                        {lecture.location && (
-                          <Text style={styles.locationText} numberOfLines={1}>
-                            {lecture.location}
-                          </Text>
-                        )}
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+              <View style={styles.groupedList}>
+                {dayLectures.length === 0 ? (
+                  <View style={styles.emptyRow}>
+                    <Text style={styles.emptyText}>No classes</Text>
+                  </View>
+                ) : (
+                  dayLectures.map((lecture, index) => (
+                    <View key={lecture.id}>
+                      <SwipeableLectureRow onDelete={() => deleteLecture(lecture.id)}>
+                        <TouchableOpacity
+                          style={styles.row}
+                          onPress={() => handleLecturePress(lecture.id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.timeContainer}>
+                            <Text style={styles.startTime}>{formatTimeAMPM(lecture.startTime)}</Text>
+                            <Text style={styles.endTime}>{formatTimeAMPM(lecture.endTime)}</Text>
+                          </View>
+                          <View style={styles.detailsContainer}>
+                            <Text style={styles.lectureTitle}>{lecture.courseName}</Text>
+                            {lecture.location ? (
+                              <Text style={styles.lectureLocation}>{lecture.location}</Text>
+                            ) : null}
+                          </View>
+                          <Ionicons name="chevron-forward" size={16} color={colors.textMuted + '80'} />
+                        </TouchableOpacity>
+                      </SwipeableLectureRow>
+                      {index !== dayLectures.length - 1 && <View style={styles.separator} />}
+                    </View>
+                  ))
+                )}
+              </View>
             </View>
           );
         })}
@@ -129,148 +121,115 @@ export default function WeeklyScheduleScreen() {
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground === '#F8F9FA' ? '#F2F2F7' : '#000000', // iOS System Gray 6 equivalent for Light Mode
   },
   header: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 34,
+    fontWeight: '800',
     color: colors.textDark,
+    letterSpacing: -0.5,
+  },
+  headerIcon: {
+    padding: 8,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 20,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 10,
   },
-  daySection: {
+  section: {
     marginBottom: 24,
   },
-  dayHeader: {
+  sectionHeaderContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-  },
-  dayHeaderActive: {
-    backgroundColor: colors.primaryLight,
-  },
-  dayNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  dayName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textDark,
-  },
-  dayNameActive: {
-    color: colors.primary,
-  },
-  todayBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  todayText: {
-    color: colors.background,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  countBadge: {
-    backgroundColor: colors.textMuted,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 28,
-    alignItems: 'center',
-  },
-  countBadgeActive: {
-    backgroundColor: colors.primary,
-  },
-  countBadgeText: {
-    color: colors.background,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  emptyDay: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  emptyDayText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  lecturesList: {
+    alignItems: 'baseline',
     gap: 8,
+    marginBottom: 8,
+    paddingLeft: 4,
   },
-  lectureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 14,
-    padding: 16,
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: colors.cardBackground, // Subtle border
+  sectionHeaderTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
+    letterSpacing: -0.2,
+  },
+  currentDayTitle: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  todayLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
     overflow: 'hidden',
   },
-  accentBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    backgroundColor: colors.primary,
+  groupedList: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  timeColumn: {
-    minWidth: 70,
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.cardBackground,
   },
-  timeText: {
+  emptyRow: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  emptyText: {
     fontSize: 14,
-    fontWeight: '700',
+    color: colors.textMuted,
+    fontStyle: 'italic',
+  },
+  timeContainer: {
+    width: 70,
+  },
+  startTime: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textDark,
+  },
+  endTime: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  detailsContainer: {
+    flex: 1,
+    paddingHorizontal: 12,
+  },
+  lectureTitle: {
+    fontSize: 16,
+    fontWeight: '500',
     color: colors.textDark,
     marginBottom: 2,
   },
-  timeSubtext: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  lectureInfo: {
-    flex: 1,
-  },
-  lectureName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textDark,
-    marginBottom: 4,
-  },
-  locationText: {
+  lectureLocation: {
     fontSize: 13,
     color: colors.textMuted,
-    fontWeight: '500',
+  },
+  separator: {
+    height: 1, // Hairline
+    backgroundColor: colors.textMuted + '20',
+    marginLeft: 16, // Inset separator
   },
 });

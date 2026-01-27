@@ -10,6 +10,8 @@ import { ErrorBoundary } from "@/app/components/ErrorBoundary";
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { requestNotificationPermissions } from "@/utils/notifications";
 import { useEffect } from "react";
+import NotificationBanner from "@/components/NotificationBanner";
+import { ExamProvider } from "@/contexts/ExamContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -94,7 +96,10 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <SettingsProvider>
               <LectureProvider>
-                <RootLayoutNav />
+                <ExamProvider>
+                  <RootLayoutNav />
+                  <NotificationBanner />
+                </ExamProvider>
               </LectureProvider>
             </SettingsProvider>
           </GestureHandlerRootView>

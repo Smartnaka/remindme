@@ -47,6 +47,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="exams"
+        options={{
+          title: "Exams",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "hourglass" : "hourglass-outline"} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",

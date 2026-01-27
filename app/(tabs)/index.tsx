@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTodayLectures, useLectures } from '@/contexts/LectureContext';
@@ -75,6 +75,11 @@ export default function TodayScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar
+        barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'}
+        backgroundColor="transparent"
+        translucent
+      />
       <SafeAreaView style={styles.headerContainer} edges={['top', 'left', 'right']}>
         <View style={styles.headerContent}>
           <View>
@@ -90,13 +95,7 @@ export default function TodayScreen() {
               <Ionicons name="notifications-outline" size={24} color={colors.primary} />
               {hasUnreadNotifications && <View style={styles.notificationDot} />}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleAddLecture}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="add-circle" size={28} color={colors.primary} />
-            </TouchableOpacity>
+
           </View>
         </View>
       </SafeAreaView>
@@ -111,10 +110,10 @@ export default function TodayScreen() {
             <View style={styles.emptyIconContainer}>
               <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
             </View>
-            <Text style={styles.emptyTitle}>No Classes Today</Text>
-            <Text style={styles.emptySubtitle}>Enjoy your free time!</Text>
+            <Text style={styles.emptyTitle}>No Classes Scheduled</Text>
+            <Text style={styles.emptySubtitle}>You're free for the day! 🎉</Text>
             <TouchableOpacity onPress={handleAddLecture} style={styles.emptyButton}>
-              <Text style={styles.emptyButtonText}>Add Class</Text>
+              <Text style={styles.emptyButtonText}>Add a Class</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -137,10 +136,12 @@ export default function TodayScreen() {
                 return now >= start && now < end;
               });
 
-              // 2. Filter out the live lecture from the upcoming list
-              const upcomingLectures = currentLecture
-                ? todayLectures.filter(l => l.id !== currentLecture.id)
-                : todayLectures;
+              // 2. Filter for strictly upcoming lectures (start time > now)
+              const upcomingLectures = todayLectures.filter(l => {
+                const [startH, startM] = l.startTime.split(':').map(Number);
+                const start = new Date(); start.setHours(startH, startM, 0, 0);
+                return start > now;
+              });
 
               return (
                 <>
@@ -163,11 +164,10 @@ export default function TodayScreen() {
                         {upcomingLectures.map((lecture, index) => {
                           const [endH, endM] = lecture.endTime.split(':').map(Number);
                           const end = new Date(); end.setHours(endH, endM, 0, 0);
-                          const isPast = end < now;
                           const isLast = index === upcomingLectures.length - 1;
 
                           return (
-                            <View key={lecture.id} style={{ opacity: isPast ? 0.6 : 1 }}>
+                            <View key={lecture.id}>
                               <SwipeableLectureRow onDelete={() => {
                                 setLectureToDelete(lecture);
                                 setDeleteModalVisible(true);
@@ -183,6 +183,19 @@ export default function TodayScreen() {
                           );
                         })}
                       </View>
+                    </View>
+                  )}
+                  
+                  {todayLectures.length > 0 && (
+                    <Text style={styles.swipeHint}>Tip: Swipe left to delete a class</Text>
+                  )}
+
+                  {/* All Classes Finished State */}
+                  {!currentLecture && upcomingLectures.length === 0 && todayLectures.length > 0 && (
+                    <View style={styles.allDoneContainer}>
+                      <Ionicons name="checkmark-circle-outline" size={48} color={colors.primary} />
+                      <Text style={styles.allDoneTitle}>All Classes Finished! 🎉</Text>
+                      <Text style={styles.allDoneSubtitle}>You're done for the day.</Text>
                     </View>
                   )}
                 </>
@@ -208,6 +221,16 @@ export default function TodayScreen() {
           setLectureToDelete(null);
         }}
       />
+      
+      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleAddLecture}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={32} color="#FFFFFF" />
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
@@ -327,5 +350,49 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   timelineContainer: {
     paddingBottom: 40,
+  },
+  swipeHint: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 24,
+    opacity: 0.7,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    zIndex: 100,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  allDoneContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    marginTop: 20,
+  },
+  allDoneTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
+    color: colors.textDark,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  allDoneSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    color: colors.textMuted,
   },
 });

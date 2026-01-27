@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings } from '@/contexts/SettingsContext';
 import { sendTestNotification } from '@/utils/notifications';
@@ -94,6 +94,11 @@ export default function SettingsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar
+                barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'}
+                backgroundColor="transparent"
+                translucent
+            />
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Settings</Text>
             </View>
@@ -110,7 +115,7 @@ export default function SettingsScreen() {
                         <View style={styles.rowContent}>
                             <View style={[styles.iconBox, { backgroundColor: colors.textDark }]}>
                                 <Ionicons
-                                    name={settings.themeMode === 'dark' ? 'moon' : (settings.themeMode === 'light' ? 'sunny' : 'phonelink-setup')}
+                                    name={settings.themeMode === 'dark' ? 'moon' : (settings.themeMode === 'light' ? 'sunny' : 'phone-portrait-outline')}
                                     size={16}
                                     color={colors.background}
                                 />
@@ -386,6 +391,11 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         alignItems: 'center',
         marginTop: 32,
         marginBottom: 40,
+    },
+    rowSubtext: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginTop: 2,
     },
     versionText: {
         color: colors.textMuted,

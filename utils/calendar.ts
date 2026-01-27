@@ -10,8 +10,12 @@ export const requestCalendarPermissions = async (): Promise<boolean> => {
 
     const { status } = await Calendar.requestCalendarPermissionsAsync();
     if (status === 'granted') {
-        const { status: reminderStatus } = await Calendar.requestRemindersPermissionsAsync();
-        return reminderStatus === 'granted';
+        // requestRemindersPermissionsAsync is iOS-only
+        if (Platform.OS === 'ios') {
+            const { status: reminderStatus } = await Calendar.requestRemindersPermissionsAsync();
+            return reminderStatus === 'granted';
+        }
+        return true; // Android only needs calendar permission
     }
     return false;
 };
@@ -189,6 +193,17 @@ export const syncLecturesToCalendar = async (lectures: Lecture[], offsetMinutes:
 
     } catch (error) {
         console.error('[Calendar] Error syncing:', error);
-        Alert.alert("Sync Failed", "An error occurred while syncing to calendar.");
+        
+        // Check if it's an Expo Go limitation error
+        const errorMessage = error instanceof Error ? error.message : '';
+        if (errorMessage.includes('not available on android') || errorMessage.includes('getSourcesAsync')) {
+            Alert.alert(
+                "Feature Not Available in Expo Go",
+                "Calendar sync requires a development build and is not available in Expo Go.\n\nTo use this feature, you'll need to build the app with EAS Build or create a development build.",
+                [{ text: "OK" }]
+            );
+        } else {
+            Alert.alert("Sync Failed", "An error occurred while syncing to calendar.");
+        }
     }
 };

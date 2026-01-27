@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -42,6 +42,11 @@ export default function WeeklyScheduleScreen() {
   return (
 
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar
+        barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'}
+        backgroundColor="transparent"
+        translucent
+      />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Week</Text>
       </View>
@@ -66,7 +71,9 @@ export default function WeeklyScheduleScreen() {
               <View style={styles.groupedList}>
                 {dayLectures.length === 0 ? (
                   <View style={styles.emptyRow}>
-                    <Text style={styles.emptyText}>No classes</Text>
+                    <Text style={[styles.emptyText, currentDay === day && styles.freeDayText]}>
+                      {currentDay === day ? "Free Day! 🎉" : "No classes"}
+                    </Text>
                   </View>
                 ) : (
                   dayLectures.map((lecture, index) => (
@@ -205,6 +212,11 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
     fontStyle: 'italic',
+  },
+  freeDayText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontStyle: 'normal',
   },
   timeContainer: {
     width: 70,

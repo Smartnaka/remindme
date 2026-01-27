@@ -40,23 +40,14 @@ export default function SwipeableLectureRow({ children, onDelete }: SwipeableLec
                             if (Platform.OS !== 'web') {
                                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                             }
+                            // Close the row
                             swipeableRef.current?.close();
 
-                            // Slight delay to allow animation to close before alert
+                            // Wait slightly for animation to finish, then trigger the parent's handler
+                            // The parent is now responsible for showing the confirmation modal
                             setTimeout(() => {
-                                Alert.alert(
-                                    "Delete Lecture",
-                                    "Are you sure you want to delete this lecture?",
-                                    [
-                                        { text: "Cancel", style: "cancel" },
-                                        {
-                                            text: "Delete",
-                                            style: "destructive",
-                                            onPress: onDelete
-                                        }
-                                    ]
-                                );
-                            }, 100);
+                                onDelete();
+                            }, 200);
                         }}
                     >
                         <Ionicons name="trash-outline" size={24} color="#FFF" />

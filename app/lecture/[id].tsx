@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -7,6 +7,7 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAMPM } from '@/utils/dateTime';
 import { ColorTheme } from '@/types/theme';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 export default function LectureDetailScreen() {
   const router = useRouter();
@@ -108,34 +109,15 @@ export default function LectureDetailScreen() {
       </ScrollView>
 
       {/* Custom Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Delete Lecture?</Text>
-            <Text style={styles.modalMessage}>
-              Are you sure you want to remove "{lecture.courseName}"? This cannot be undone.
-            </Text>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setShowDeleteModal(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <View style={styles.modalSeparatorVertical} />
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={confirmDelete}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalDeleteText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
+      <ConfirmationModal
+        visible={showDeleteModal}
+        title="Delete Lecture?"
+        message={`Are you sure you want to remove "${lecture.courseName}"? This cannot be undone.`}
+        confirmText="Delete"
+        isDestructive
+        onCancel={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+      />
     </SafeAreaView>
   );
 }
@@ -225,20 +207,6 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontWeight: '600',
     fontSize: 17,
   },
-  modalOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modalContainer: {
-    width: 270,
-    backgroundColor: colors.cardBackground === '#000000' ? '#1C1C1E' : '#FFFFFF', // iOS Dialog Color
-    borderRadius: 14,
-    alignItems: 'center',
-    paddingTop: 20,
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -263,44 +231,4 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontWeight: '600',
     color: colors.background === '#000000' ? '#000' : '#FFF',
   },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.textDark,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  modalMessage: {
-    fontSize: 13,
-    color: colors.textDark,
-    textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 16,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    width: '100%',
-    borderTopWidth: 0.5,
-    borderTopColor: colors.textMuted + '40',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalSeparatorVertical: {
-    width: 0.5,
-    backgroundColor: colors.textMuted + '40',
-  },
-  modalCancelText: {
-    fontSize: 17,
-    fontWeight: '400',
-    color: colors.primary,
-  },
-  modalDeleteText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.error,
-  }
 });

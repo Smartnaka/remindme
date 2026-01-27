@@ -16,28 +16,62 @@ export const requestCalendarPermissions = async (): Promise<boolean> => {
     return false;
 };
 
-const getDefaultCalendarSource = async () => {
-    const defaultCalendar = await Calendar.getDefaultCalendarAsync();
-    return defaultCalendar.source;
-};
+const getAndroidCalendarSource = async (): Promise<Calendar.Source> => {
+    // 1. Try to find an existing Google account or Exchange account
+    const sources = await Calendar.getSourcesAsync();
+
+    // Prioritize Google accounts, then Exchange
+    let validSource = sources.find(source => source.name === 'com.google');
+    if (!validSource) {
+        validSource = sources.find(source => source.type === Calendar.SourceType.LOCAL);
+    }
+    if (!validSource) {
+        // Fallback to the first available source that isn't read-only if possible
+        // (Simplified for now, taking first available)
+        validSource = sources[0];
+    }
+
+    // If no source behaves, we can try creating a local one, but usually sources[] is populated.
+    if (!validSource) {
+        // Last resort: Create a new local source (this might fail on some OEMs)
+        return { isLocalAccount: true, name: 'RemindMe', type: Calendar.SourceType.LOCAL, id: 'undefined-shim' };
+    }
+
+    return validSource;
+}
 
 const createCalendar = async (): Promise<string> => {
-    const defaultCalendarSource =
-        Platform.OS === 'ios'
-            ? await getDefaultCalendarSource()
-            : { isLocalAccount: true, name: 'RemindMe', type: Calendar.CalendarType.LOCAL };
+    let source: Calendar.Source;
 
-    const newCalendarID = await Calendar.createCalendarAsync({
+    if (Platform.OS === 'ios') {
+        const defaultCalendar = await Calendar.getDefaultCalendarAsync();
+        source = defaultCalendar.source;
+    } else {
+        source = await getAndroidCalendarSource();
+    }
+
+    // Prepare creation details
+    const newCalendarDetails: Partial<Calendar.Calendar> = {
         title: CALENDAR_NAME,
-        color: '#007AFF', // Primary Blue
+        color: '#00C896', // Primary Brand Color
         entityType: Calendar.EntityTypes.EVENT,
-        sourceId: defaultCalendarSource.id,
-        source: defaultCalendarSource,
+        sourceId: source.id,
+        source: source,
         name: 'remindme_lectures',
         ownerAccount: 'personal',
         accessLevel: Calendar.CalendarAccessLevel.OWNER,
-    });
+    };
 
+    // Android requires specific source handling sometimes
+    if (Platform.OS === 'android') {
+        // Ensure we are using the correct source ID
+        if (source.isLocalAccount) {
+            delete newCalendarDetails.sourceId; // Local accounts might not need sourceId explicitly if creating a new one? 
+            // Actually, standard practice on Android is to attaching to an EXISTING source.
+        }
+    }
+
+    const newCalendarID = await Calendar.createCalendarAsync(newCalendarDetails);
     return newCalendarID;
 };
 

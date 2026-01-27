@@ -8,8 +8,7 @@ import { useLectures } from '@/contexts/LectureContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ColorTheme } from '@/types/theme';
-
-import { Switch } from '@/craftrn-ui/components/Switch';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 const NOTIFICATION_OPTIONS = [5, 10, 15, 30, 45, 60];
 
@@ -19,6 +18,7 @@ export default function SettingsScreen() {
     const [isRescheduling, setIsRescheduling] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isTestingNotification, setIsTestingNotification] = useState(false);
+    const [clearDataModalVisible, setClearDataModalVisible] = useState(false);
 
     const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -102,18 +102,27 @@ export default function SettingsScreen() {
                 {/* PREFERENCES SECTION */}
                 <SectionHeader title="Preferences" />
                 <View style={styles.groupedList}>
-                    <View style={styles.row}>
+                    <TouchableOpacity
+                        style={styles.row}
+                        onPress={handleToggleTheme}
+                        activeOpacity={0.7}
+                    >
                         <View style={styles.rowContent}>
                             <View style={[styles.iconBox, { backgroundColor: colors.textDark }]}>
-                                <Ionicons name="moon" size={16} color={colors.background} />
+                                <Ionicons
+                                    name={settings.themeMode === 'dark' ? 'moon' : (settings.themeMode === 'light' ? 'sunny' : 'phonelink-setup')}
+                                    size={16}
+                                    color={colors.background}
+                                />
                             </View>
-                            <Text style={styles.rowLabel}>Dark Mode</Text>
+                            <Text style={styles.rowLabel}>Theme</Text>
                         </View>
-                        <Switch
-                            value={settings.theme === 'dark'}
-                            onValueChange={() => handleToggleTheme()}
-                        />
-                    </View>
+                        <View style={styles.rowContent}>
+                            <Text style={styles.rowValue}>
+                                {settings.themeMode.charAt(0).toUpperCase() + settings.themeMode.slice(1)}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* NOTIFICATIONS SECTION */}
@@ -194,28 +203,44 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
                 </View>
 
+                {/* NOTIFICATION DEBUG */}
+                <SectionHeader title="Notification Info" />
+                <View style={styles.groupedList}>
+                    <View style={styles.row}>
+                        <View style={styles.rowContent}>
+                            <Text style={styles.rowLabel}>Total Lectures</Text>
+                        </View>
+                        <Text style={styles.rowValue}>{lectures.length}</Text>
+                    </View>
+
+                    <View style={styles.separator} />
+
+                    <View style={styles.row}>
+                        <View style={styles.rowContent}>
+                            <Text style={styles.rowLabel}>Scheduled Alarms</Text>
+                            <Text style={styles.rowSubtext}>Android exact alarms</Text>
+                        </View>
+                        <Text style={styles.rowValue}>
+                            {lectures.reduce((sum, l) => sum + (l.alarmNotificationIds?.length || 0), 0)}
+                        </Text>
+                    </View>
+
+                    <View style={styles.separator} />
+
+                    <View style={styles.row}>
+                        <View style={styles.rowContent}>
+                            <Text style={styles.rowLabel}>Platform</Text>
+                        </View>
+                        <Text style={styles.rowValue}>{Platform.OS}</Text>
+                    </View>
+                </View>
+
                 {/* DATA SECTION */}
                 <SectionHeader title="Data Management" />
                 <View style={styles.groupedList}>
                     <TouchableOpacity
                         style={styles.row}
-                        onPress={() => {
-                            Alert.alert(
-                                "Clear All Data",
-                                "Are you sure you want to delete all lectures? This cannot be undone.",
-                                [
-                                    { text: "Cancel", style: "cancel" },
-                                    {
-                                        text: "Clear All",
-                                        style: "destructive",
-                                        onPress: async () => {
-                                            await clearLectures();
-                                            Alert.alert("Success", "All data cleared.");
-                                        }
-                                    }
-                                ]
-                            );
-                        }}
+                        onPress={() => setClearDataModalVisible(true)}
                     >
                         <View style={styles.rowContent}>
                             <Text style={[styles.rowLabel, { color: colors.error }]}>Clear All Data</Text>
@@ -228,6 +253,21 @@ export default function SettingsScreen() {
                 </View>
 
             </ScrollView >
+
+            <ConfirmationModal
+                visible={clearDataModalVisible}
+                title="Clear All Data?"
+                message="Are you sure you want to delete all lectures? This cannot be undone."
+                confirmText="Clear All"
+                isDestructive
+                onCancel={() => setClearDataModalVisible(false)}
+                onConfirm={async () => {
+                    await clearLectures();
+                    setClearDataModalVisible(false);
+                    // Optional: Show success feedback via toast or small modal logic, 
+                    // but for now avoiding Alert.alert as requested.
+                }}
+            />
         </SafeAreaView >
     );
 }

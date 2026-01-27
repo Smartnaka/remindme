@@ -22,6 +22,7 @@ import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import { validateLecture } from '@/utils/validation';
+import ColorPicker from '@/components/ColorPicker';
 
 export default function AddLectureScreen() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function AddLectureScreen() {
   const [endTime, setEndTime] = useState(existingLecture?.endTime || '10:30');
 
   const [location, setLocation] = useState(existingLecture?.location || '');
+  const [color, setColor] = useState(existingLecture?.color || '');
   const [isSaving, setIsSaving] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
 
@@ -133,6 +135,7 @@ export default function AddLectureScreen() {
           startTime,
           endTime,
           location: location.trim() || undefined,
+          color: color || undefined,
         });
       } else {
         await addLecture({
@@ -141,6 +144,7 @@ export default function AddLectureScreen() {
           startTime,
           endTime,
           location: location.trim() || undefined,
+          color: color || undefined,
         });
       }
       if (Platform.OS !== 'web') {
@@ -320,6 +324,8 @@ export default function AddLectureScreen() {
                 </View>
               )}
             </View>
+
+            <ColorPicker selectedColor={color} onColorSelect={setColor} />
 
             <Text style={styles.infoText}>
               Notifications will be sent {settings.notificationOffset} minutes before class.

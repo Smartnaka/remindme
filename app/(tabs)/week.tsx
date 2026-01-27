@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, RefreshControl, Platform } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -11,23 +11,20 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { DayOfWeek } from '@/types/lecture';
 import { ColorTheme } from '@/types/theme';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { Lecture } from '@/types/lecture';
 
 export default function WeeklyScheduleScreen() {
   const router = useRouter();
   const { lectures, deleteLecture } = useLectures();
   const { colors } = useSettings();
-  const [refreshing, setRefreshing] = useState(false);
   const currentDay = getCurrentDayOfWeek();
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  // Modal State
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [lectureToDelete, setLectureToDelete] = useState<Lecture | null>(null);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    setTimeout(() => setRefreshing(false), 1000);
-  };
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const handleLecturePress = (id: string) => {
     if (Platform.OS !== 'web') {
@@ -47,23 +44,12 @@ export default function WeeklyScheduleScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Week</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.headerIcon}>
-          <Ionicons name="refresh" size={20} color={colors.primary} />
-        </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
       >
         {DAYS_OF_WEEK.map((day) => {
           const dayLectures = getLecturesForDay(day);
@@ -85,7 +71,10 @@ export default function WeeklyScheduleScreen() {
                 ) : (
                   dayLectures.map((lecture, index) => (
                     <View key={lecture.id}>
-                      <SwipeableLectureRow onDelete={() => deleteLecture(lecture.id)}>
+                      <SwipeableLectureRow onDelete={() => {
+                        setLectureToDelete(lecture);
+                        setDeleteModalVisible(true);
+                      }}>
                         <TouchableOpacity
                           style={styles.row}
                           onPress={() => handleLecturePress(lecture.id)}
@@ -115,7 +104,23 @@ export default function WeeklyScheduleScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+
+      <ConfirmationModal
+        visible={deleteModalVisible}
+        title="Delete Lecture?"
+        message={`Are you sure you want to remove "${lectureToDelete?.courseName}"?`}
+        confirmText="Delete"
+        isDestructive
+        onCancel={() => setDeleteModalVisible(false)}
+        onConfirm={() => {
+          if (lectureToDelete) {
+            deleteLecture(lectureToDelete.id);
+          }
+          setDeleteModalVisible(false);
+          setLectureToDelete(null);
+        }}
+      />
+    </SafeAreaView >
   );
 }
 

@@ -1,12 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import React, { useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LectureProvider } from "@/contexts/LectureContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ErrorBoundary } from "@/app/components/ErrorBoundary";
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { requestNotificationPermissions } from "@/utils/notifications";
+import { useEffect } from "react";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -63,6 +66,12 @@ export default function RootLayout() {
   // Only use fonts if package is available
   const [fontsLoaded] = fontLoader ? fontLoader() : [true]; // If fonts not available, consider them "loaded" (use system fonts)
 
+  useEffect(() => {
+    if (fontsLoaded) {
+      requestNotificationPermissions();
+    }
+  }, [fontsLoaded]);
+
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
       await SplashScreen.hideAsync();
@@ -81,6 +90,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
         <QueryClientProvider client={queryClient}>
+          <StatusBar style="dark" backgroundColor="#ffffff" translucent={false} />
           <GestureHandlerRootView style={{ flex: 1 }}>
             <SettingsProvider>
               <LectureProvider>

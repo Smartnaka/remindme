@@ -8,12 +8,14 @@ const STORAGE_KEY = '@settings';
 
 interface Settings {
     notificationOffset: number; // in minutes
-    theme: 'light' | 'dark';
+    themeMode: 'automatic' | 'light' | 'dark';
+    lastNotificationCheckDate?: string; // ISO date string YYYY-MM-DD
 }
 
 const defaultSettings: Settings = {
     notificationOffset: 15,
-    theme: 'light',
+    themeMode: 'automatic',
+    lastNotificationCheckDate: '',
 };
 
 interface SettingsContextType {
@@ -22,21 +24,21 @@ interface SettingsContextType {
     isLoading: boolean;
     colors: ColorTheme;
     toggleTheme: () => Promise<void>;
+    theme: 'light' | 'dark'; // The actual resolved theme
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-
-
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
     const systemColorScheme = useColorScheme();
-    const [settings, setSettings] = useState<Settings>({
-        ...defaultSettings,
-        theme: (systemColorScheme === 'dark' ? 'dark' : 'light')
-    });
+    const [settings, setSettings] = useState<Settings>(defaultSettings);
     const [isLoading, setIsLoading] = useState(true);
 
-    const colors = settings.theme === 'dark' ? DarkColors : LightColors;
+    const activeTheme = settings.themeMode === 'automatic'
+        ? (systemColorScheme || 'light')
+        : settings.themeMode;
+
+    const colors = activeTheme === 'dark' ? DarkColors : LightColors;
 
     useEffect(() => {
         loadSettings();
@@ -46,8 +48,12 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         try {
             const data = await AsyncStorage.getItem(STORAGE_KEY);
             if (data) {
-                // Merge loaded settings with defaults to handle new keys (like theme)
-                setSettings({ ...defaultSettings, ...JSON.parse(data) });
+                const parsed = JSON.parse(data);
+                // Migrate old "theme" key to new "themeMode" key if exists
+                if (parsed.theme && !parsed.themeMode) {
+                    parsed.themeMode = parsed.theme;
+                }
+                setSettings({ ...defaultSettings, ...parsed });
             }
         } catch (error) {
             console.error('[SettingsContext] Error loading settings:', error);
@@ -67,12 +73,16 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     };
 
     const toggleTheme = async () => {
-        const newTheme = settings.theme === 'light' ? 'dark' : 'light';
-        await updateSettings({ theme: newTheme });
+        // Cycle: Automatic -> Light -> Dark -> Automatic
+        const modes: ('automatic' | 'light' | 'dark')[] = ['automatic', 'light', 'dark'];
+        const currentIndex = modes.indexOf(settings.themeMode);
+        const nextMode = modes[(currentIndex + 1) % modes.length];
+
+        await updateSettings({ themeMode: nextMode });
     }
 
     return (
-        <SettingsContext.Provider value={{ settings, updateSettings, isLoading, colors, toggleTheme }}>
+        <SettingsContext.Provider value={{ settings, updateSettings, isLoading, colors, toggleTheme, theme: activeTheme }}>
             {children}
         </SettingsContext.Provider>
     );

@@ -7,7 +7,9 @@ export interface Lecture {
   startTime: string;
   endTime: string;
   location?: string;
-  notificationId?: string;
+  color?: string; // Hex color code for visual organization
+  notificationId?: string; // Calendar-based notification ID
+  alarmNotificationIds?: string[]; // Alarm-based notification IDs (for 4 weeks)
   calendarEventId?: string; // Store calendar event ID for sync management
 }
 

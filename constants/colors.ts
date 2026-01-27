@@ -34,3 +34,20 @@ export const DarkColors: ColorTheme = {
 
 export default LightColors; // Default backward compatibility if needed, but we should migrate
 
+// Predefined color palette for lectures
+export const LECTURE_COLORS = [
+  { name: 'Red', value: '#FF5757' },
+  { name: 'Orange', value: '#FF9F43' },
+  { name: 'Yellow', value: '#FFC837' },
+  { name: 'Green', value: '#5FD068' },
+  { name: 'Teal', value: '#1DD1A1' },
+  { name: 'Blue', value: '#54A0FF' },
+  { name: 'Purple', value: '#A55EEA' },
+  { name: 'Pink', value: '#FF6B9D' },
+  { name: 'Brown', value: '#A0826D' },
+  { name: 'Gray', value: '#8395A7' },
+  { name: 'Navy', value: '#576574' },
+  { name: 'Mint', value: '#48DBFB' },
+];
+
+export const DEFAULT_LECTURE_COLOR = '#8395A7'; // Gray

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Lecture, DayOfWeek } from '@/types/lecture';
-import { scheduleWeeklyNotification, cancelNotification, requestNotificationPermissions } from '@/utils/notifications';
+import { scheduleWeeklyNotification, cancelNotification, requestNotificationPermissions, scheduleExactAlarmNotifications, cancelMultipleNotifications } from '@/utils/notifications';
 import { getCurrentDayOfWeek } from '@/utils/dateTime';
 
 const STORAGE_KEY = '@lectures';
@@ -80,9 +80,16 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
       id: Date.now().toString(),
     };
 
+    // Schedule calendar-based notification (iOS + Android fallback)
     const notificationId = await scheduleWeeklyNotification(newLecture, settings.notificationOffset);
     if (notificationId) {
       newLecture.notificationId = notificationId;
+    }
+
+    // Schedule alarm-based notifications (Android only, more reliable)
+    const alarmIds = await scheduleExactAlarmNotifications(newLecture, settings.notificationOffset);
+    if (alarmIds.length > 0) {
+      newLecture.alarmNotificationIds = alarmIds;
     }
 
     const updatedLectures = [...lectures, newLecture];
@@ -95,16 +102,28 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
 
     const oldLecture = lectures[lectureIndex];
 
+    // Cancel old calendar notification
     if (oldLecture.notificationId) {
       await cancelNotification(oldLecture.notificationId);
     }
 
+    // Cancel old alarm notifications
+    if (oldLecture.alarmNotificationIds && oldLecture.alarmNotificationIds.length > 0) {
+      await cancelMultipleNotifications(oldLecture.alarmNotificationIds);
+    }
+
     const updatedLecture = { ...oldLecture, ...updates };
 
-    // Use settings.notificationOffset for the reschedule
+    // Reschedule calendar notification
     const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.notificationOffset);
     if (notificationId) {
       updatedLecture.notificationId = notificationId;
+    }
+
+    // Reschedule alarm notifications
+    const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.notificationOffset);
+    if (alarmIds.length > 0) {
+      updatedLecture.alarmNotificationIds = alarmIds;
     }
 
     const updatedLectures = [...lectures];
@@ -114,8 +133,15 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
 
   const deleteLecture = async (id: string): Promise<void> => {
     const lecture = lectures.find(l => l.id === id);
+
+    // Cancel calendar notification
     if (lecture?.notificationId) {
       await cancelNotification(lecture.notificationId);
+    }
+
+    // Cancel alarm notifications
+    if (lecture?.alarmNotificationIds && lecture.alarmNotificationIds.length > 0) {
+      await cancelMultipleNotifications(lecture.alarmNotificationIds);
     }
 
     const updatedLectures = lectures.filter(l => l.id !== id);

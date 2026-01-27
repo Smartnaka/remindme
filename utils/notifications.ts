@@ -21,6 +21,17 @@ if (Platform.OS !== 'web') {
   }
 }
 
+const ensureNotificationChannel = async () => {
+  if (Platform.OS === 'android' && Notifications) {
+    await Notifications.setNotificationChannelAsync('lecture-reminders', {
+      name: 'Lecture Reminders',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#00C896',
+    });
+  }
+};
+
 export const requestNotificationPermissions = async (): Promise<boolean> => {
   if (Platform.OS === 'web' || !Notifications) {
     console.log('[Notifications] Notifications not available, skipping permissions');
@@ -51,6 +62,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
   }
 
   try {
+    await ensureNotificationChannel();
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
       console.log('[Notifications] Permission not granted');
@@ -77,7 +89,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: {
-        channelId: 'default',
+        channelId: 'lecture-reminders',
         type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
         weekday: triggerWeekday,
         hour: triggerDate.getHours(),
@@ -94,6 +106,65 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
   }
 };
 
+// New: Schedule exact-time alarm notifications for the next 4 weeks (Android only)
+export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string[]> => {
+  if (Platform.OS !== 'android' || !Notifications) {
+    console.log('[Alarms] Exact alarms only available on Android, skipping');
+    return [];
+  }
+
+  try {
+    await ensureNotificationChannel();
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) {
+      console.log('[Alarms] Permission not granted');
+      return [];
+    }
+
+    const notificationIds: string[] = [];
+    const now = new Date();
+
+    // Schedule for the next 4 occurrences (4 weeks)
+    for (let week = 0; week < 4; week++) {
+      const nextOccurrence = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime);
+      const triggerDate = new Date(nextOccurrence.getTime() - offsetMinutes * 60000);
+
+      // Add weeks to the trigger date
+      triggerDate.setDate(triggerDate.getDate() + (week * 7));
+
+      // Only schedule if in the future
+      if (triggerDate > now) {
+        const notificationId = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `${lecture.courseName}`,
+            body: `Starts in ${offsetMinutes} minutes${lecture.location ? ` at ${lecture.location}` : ''}`,
+            data: {
+              lectureId: lecture.id,
+              isAlarmBased: true,
+              week: week
+            },
+            sound: true,
+            priority: Notifications.AndroidNotificationPriority.HIGH,
+          },
+          trigger: {
+            channelId: 'lecture-reminders',
+            date: triggerDate,
+          },
+        });
+
+        notificationIds.push(notificationId);
+        console.log(`[Alarms] Scheduled alarm ${week + 1}/4 for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+      }
+    }
+
+    console.log(`[Alarms] Total alarms scheduled: ${notificationIds.length}`);
+    return notificationIds;
+  } catch (error) {
+    console.error('[Alarms] Error scheduling exact alarms:', error);
+    return [];
+  }
+};
+
 export const cancelNotification = async (notificationId: string): Promise<void> => {
   if (Platform.OS === 'web' || !Notifications) {
     return;
@@ -104,6 +175,20 @@ export const cancelNotification = async (notificationId: string): Promise<void> 
     console.log('[Notifications] Cancelled notification:', notificationId);
   } catch (error) {
     console.error('[Notifications] Error cancelling notification:', error);
+  }
+}
+
+// Cancel multiple notifications (for alarm-based system)
+export const cancelMultipleNotifications = async (notificationIds: string[]): Promise<void> => {
+  if (Platform.OS === 'web' || !Notifications) {
+    return;
+  }
+
+  try {
+    await Promise.all(notificationIds.map(id => Notifications.cancelScheduledNotificationAsync(id)));
+    console.log(`[Notifications] Cancelled ${notificationIds.length} notifications`);
+  } catch (error) {
+    console.error('[Notifications] Error cancelling multiple notifications:', error);
   }
 }
 

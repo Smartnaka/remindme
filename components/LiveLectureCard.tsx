@@ -5,6 +5,7 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAMPM } from '@/utils/dateTime';
 import { ColorTheme } from '@/types/theme';
+import { DEFAULT_LECTURE_COLOR } from '@/constants/colors';
 
 interface LiveLectureCardProps {
     lecture: Lecture;
@@ -21,6 +22,9 @@ export default function LiveLectureCard({ lecture, onPress }: LiveLectureCardPro
             onPress={onPress}
             activeOpacity={0.9}
         >
+            {/* Color Accent Bar */}
+            <View style={[styles.colorAccent, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
+
             <View style={styles.header}>
                 <View style={styles.badge}>
                     <Ionicons name="radio-outline" size={14} color="#FFF" style={{ marginRight: 6 }} />
@@ -67,6 +71,15 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         borderColor: colors.primary,
         overflow: 'hidden',
         position: 'relative',
+    },
+    colorAccent: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 5,
+        borderTopLeftRadius: 24,
+        borderBottomLeftRadius: 24,
     },
     header: {
         flexDirection: 'row',

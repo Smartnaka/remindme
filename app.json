@@ -5,22 +5,24 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "remindme",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon-light.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff",
-      "dark": {
-        "image": "./assets/images/splash-icon-dark.png",
-        "backgroundColor": "#000000"
-      }
+      "backgroundColor": "#ffffff"
     },
+    "androidStatusBar": {
+      "backgroundColor": "#ffffff",
+      "translucent": false,
+      "barStyle": "dark-content"
+    },
+    "scheme": "remindme",
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.remindme.remindme",
-      "icon": "./assets/images/ios-light.png",
+      "userInterfaceStyle": "automatic",
+      "icon": "./assets/images/icon.png",
       "infoPlist": {
         "NSCalendarsUsageDescription": "RemindMe needs access to your calendar to sync your lecture schedule.",
         "NSRemindersUsageDescription": "RemindMe needs access to reminders to set alerts for your lectures."
@@ -32,20 +34,35 @@
         "backgroundColor": "#000000"
       },
       "package": "app.remindme.remindme",
+      "userInterfaceStyle": "automatic",
       "permissions": [
         "READ_CALENDAR",
-        "WRITE_CALENDAR"
+        "WRITE_CALENDAR",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM"
       ]
     },
-    "web": {},
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/icon.png"
+    },
     "plugins": [
+      "expo-router",
+      "expo-font",
       [
-        "expo-router",
+        "expo-splash-screen",
         {
-          "origin": "https://remindme.com/"
+          "image": "./assets/images/splash-icon-light.png",
+          "backgroundColor": "#ffffff",
+          "resizeMode": "contain",
+          "imageResizeMode": "contain",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#000000"
+          }
         }
       ],
-      "expo-font",
       [
         "expo-notifications",
         {
@@ -57,6 +74,9 @@
     "experiments": {
       "typedRoutes": true
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "extra": {
       "router": {
         "origin": "https://remindme.com/"

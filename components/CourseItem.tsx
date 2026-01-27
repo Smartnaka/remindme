@@ -4,6 +4,7 @@ import { Lecture } from '@/types/lecture';
 import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAMPM } from '@/utils/dateTime';
+import { DEFAULT_LECTURE_COLOR } from '@/constants/colors';
 
 interface CourseItemProps {
     lecture: Lecture;
@@ -33,6 +34,9 @@ export default function CourseItem({ lecture, onPress, isNext = false }: CourseI
             onPress={onPress}
             activeOpacity={0.7}
         >
+            {/* Color Accent Bar */}
+            <View style={[styles.colorAccent, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
+
             <View style={[styles.iconBox, isNext && styles.iconBoxNext]}>
                 <Ionicons
                     name={getIconName(lecture.courseName)}
@@ -98,6 +102,15 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 10,
         elevation: 2,
+    },
+    colorAccent: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 4,
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 20,
     },
     iconBox: {
         width: 50,

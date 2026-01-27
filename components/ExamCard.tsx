@@ -1,9 +1,12 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Exam } from '@/types/exam';
 import { ColorTheme } from '@/types/theme';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useExams } from '@/contexts/ExamContext';
 import { Ionicons } from '@expo/vector-icons';
+import ConfirmationModal from './ConfirmationModal';
+import * as Haptics from 'expo-haptics';
 
 interface ExamCardProps {
   exam: Exam;
@@ -11,7 +14,10 @@ interface ExamCardProps {
 
 export default function ExamCard({ exam }: ExamCardProps) {
   const { colors } = useSettings();
+  const { deleteExam } = useExams();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   const daysLeft = useMemo(() => {
     const examDate = new Date(exam.date);
@@ -37,27 +43,56 @@ export default function ExamCard({ exam }: ExamCardProps) {
     });
   };
 
+  const handleLongPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    await deleteExam(exam.id);
+    setIsDeleteModalVisible(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
   return (
-    <View style={styles.container}>
+    <>
+      <TouchableOpacity
+        style={styles.container}
+        activeOpacity={0.9}
+        onLongPress={handleLongPress}
+        delayLongPress={500}
+      >
         <View style={styles.leftContent}>
-            <View style={[styles.daysContainer, { backgroundColor: timeLeftColor }]}>
-                <Text style={styles.daysNumber}>{Math.max(0, daysLeft)}</Text>
-                <Text style={styles.daysLabel}>DAYS</Text>
-            </View>
+          <View style={[styles.daysContainer, { backgroundColor: timeLeftColor }]}>
+            <Text style={styles.daysNumber}>{Math.max(0, daysLeft)}</Text>
+            <Text style={styles.daysLabel}>DAYS</Text>
+          </View>
         </View>
-        
+
         <View style={styles.mainContent}>
-            <Text style={styles.courseName}>{exam.courseName}</Text>
-            <Text style={styles.dateText}>
-                <Ionicons name="calendar-outline" size={14} color={colors.textMuted} /> {formatDate(exam.date)}
+          <Text style={styles.courseName}>{exam.courseName}</Text>
+          <Text style={styles.dateText}>
+            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} /> {formatDate(exam.date)}
+          </Text>
+          {exam.location && (
+            <Text style={styles.locationText}>
+              <Ionicons name="location-outline" size={14} color={colors.textMuted} /> {exam.location}
             </Text>
-            {exam.location && (
-                <Text style={styles.locationText}>
-                    <Ionicons name="location-outline" size={14} color={colors.textMuted} /> {exam.location}
-                </Text>
-            )}
+          )}
         </View>
-    </View>
+      </TouchableOpacity>
+
+      <ConfirmationModal
+        visible={isDeleteModalVisible}
+        title="Delete Exam"
+        message={`Are you sure you want to delete the exam for "${exam.courseName}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setIsDeleteModalVisible(false)}
+      />
+    </>
   );
 }
 

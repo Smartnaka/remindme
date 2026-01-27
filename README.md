@@ -1,77 +1,113 @@
-# RemindMe 🎓
+# Lecture Reminder App 🎓
 
-**RemindMe** is a sleek, intelligent lecture scheduling assistant designed to help students never miss a class. Built with React Native and Expo, it combines a beautiful "Apple-style" native aesthetic with robust notification features.
+> **Internal Codename:** RemindMe  
+> **Version:** 1.0.0
 
-![App Icon](./assets/images/icon.png)
+A modern, intuitive mobile application built with **React Native** and **Expo** to help students manage their academic schedules, exams, and assignments. 
+
+**Core Value Proposition:** Never miss a lecture again with a smart hybrid notification system (Calendar + Alarm) that works reliably across iOS and Android.
 
 ## ✨ Features
 
--   **📅 Weekly Schedule**: Visual week view with color-coded classes.
--   **🔔 Smart Notifications**: Alerts 15 minutes before class (configurable).
--   **📆 Calendar Sync**: One-tap sync to system Calendar (iOS/Android) for reliable alarms.
--   **👆 Swipe Actions**: Intuitive swipe-to-delete gestures.
--   **🌑 Dark Mode**: Fully supported "Premium Dark" theme for OLED screens.
--   **⚡ Offline First**: All data is stored locally on your device.
+-   **📅 Smart Scheduling**: Easily add and organize your weekly lecture schedule.
+-   **🔔 Hybrid Reminders**: 
+    -   *iOS:* Uses native local notifications.
+    -   *Android:* Uses exact alarms to bypass battery optimization.
+-   **🎨 Color Coded**: Assign custom colors to courses for quick visual identification.
+-   **📝 Exam Tracking**: Dedicated section to keep track of upcoming exams.
+-   **🌓 Theme System**: 
+    -   `Light` / `Dark` modes.
+    -   `Automatic` mode that syncs with system settings.
+-   **⚡ Haptic UI**: Tactile interactions for saving, errors, and selection events.
 
-## 🛠 Tech Stack
+## 🛠️ Technical Stack
 
--   **Framework**: [React Native](https://reactnative.dev/) + [Expo](https://expo.dev/) (SDK 51)
--   **Routing**: Expo Router (File-based routing)
--   **State Management**: React Context + TanStack Query (React Query)
--   **Storage**: `@react-native-async-storage/async-storage`
--   **Styling**: Native StyleSheet + Custom Design System
--   **Icons**: Ionicons / Lucide React Native
--   **Fonts**: Inter (Google Fonts)
+-   **Framework**: [React Native](https://reactnative.dev/)
+-   **Platform**: [Expo SDK 54](https://expo.dev/) (Managed Workflow)
+-   **Routing**: `expo-router` (File-based navigation)
+-   **State Management**: React Context (`LectureContext`, `SettingsContext`)
+-   **Data Persistence**: `@react-native-async-storage/async-storage`
+-   **Date Handling**: `dayjs`
+-   **Styling**: `StyleSheet` with custom design tokens.
 
-## 🚀 Installation
+## 📂 Project Structure
 
-1.  **Clone the repository**:
+```bash
+/
+├── app/                    # Expo Router pages (screens)
+│   ├── (tabs)/             # Main tab navigation (index, week, exams, settings)
+│   ├── add-lecture.tsx     # Screen for creating/editing lectures
+│   ├── notifications.tsx   # Notification history view
+│   └── ...
+├── components/             # Reusable UI components
+│   ├── ColorPicker.tsx     # Custom color selection grid
+│   ├── LectureCard.tsx     # Display card for individual lectures
+│   └── ...
+├── contexts/               # Global State logic
+│   ├── LectureContext.tsx  # Handles storage, CRUD, and Notification scheduling
+│   └── SettingsContext.tsx # Handles Theme and User Preferences
+├── constants/              # App-wide constants
+│   ├── Colors.ts           # Light/Dark mode color tokens
+│   └── ...
+├── types/                  # TypeScript definitions
+│   ├── lecture.ts          # Data models (Lecture, DayOfWeek)
+│   └── ...
+├── utils/                  # Helper logic
+│   ├── validation.ts       # Input validation rules
+│   └── notifications.ts    # Complex notification scheduling logic
+└── .npmrc                  # Configuration for legacy peer dependencies
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+-   **Node.js**: (LTS version recommended)
+-   **Expo Go**: Installed on your physical device (iOS/Android).
+
+### Installation
+
+1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/yourusername/remindme.git
-    cd remindme
+    git clone <repository-url>
+    cd lecture-reminder-app
     ```
 
-2.  **Install dependencies**:
+2.  **Install dependencies:**
+    > **IMPORTANT:** This project relies on an `.npmrc` file to set `legacy-peer-deps=true`. This is required to resolve a conflict between `React 19` and `lucide-react-native`.
+    
     ```bash
     npm install
-    # or
-    bun install
+    # OR if you prefer to be explicit
+    npm install --legacy-peer-deps
     ```
 
-3.  **Run the app**:
+3.  **Start the server:**
     ```bash
     npx expo start
     ```
+    -   Press `a` to run on Android Emulator.
+    -   Press `i` to run on iOS Simulator.
+    -   Scan the QR code with Expo Go to run on physical device.
 
-4.  **Open on device**:
-    -   Scan the QR code with the **Expo Go** app (Android) or Camera (iOS).
-    -   Press `a` for Android Emulator or `i` for iOS Simulator.
+## 🔧 Scripts
 
-## 📖 Project Structure
+-   `npm start`: specific alias for `expo start`.
+-   `npm run android`: specific alias for `expo start --android`.
+-   `npm run ios`: specific alias for `expo start --ios`.
+-   `npm run web`: specific alias for `expo start --web`.
 
-```bash
-app/
-├── (tabs)/          # Main tab screens (Today, Week, Settings)
-├── lecture/         # Lecture detail screens
-├── _layout.tsx      # Root layout & providers
-└── notifications.tsx # Notification management
-components/          # Reusable UI components (SwipeableLectureRow, CourseItem)
-contexts/            # Global state (LectureContext, SettingsContext)
-constants/           # Design tokens (Colors, Theme)
-utils/               # Logic helpers (DateTime, Notifications, Calendar)
-assets/              # Images and icons
-```
+## 🧪 Troubleshooting
 
-## 🗺 Roadmap
+### 1. `ERESOLVE` or Peer Dependency Error
+If you see an error about `lucide-react-native` and `react@19`:
+-   **Fix:** Ensure the `.npmrc` file exists in the root directory with `legacy-peer-deps=true`.
+-   **Manual Fix:** Run `npm install --legacy-peer-deps`.
 
--   [x] Core Scheduling & Notifications
--   [x] Dark Mode
--   [x] System Calendar Integration
--   [x] Swipe Gestures
--   [ ] Course Color Coding
--   [ ] Assignments & Exam Tracking
--   [ ] Cloud Backup
+### 2. Notifications not firing on Android
+-   **Cause:** Battery optimization often kills background processes.
+-   **Fix:** This app requests `SCHEDULE_EXACT_ALARM` permissions. Ensure you grant it notifications access when prompted on the first launch.
 
----
-
-*Built with ❤️ for students.*
+### 3. "Port already in use"
+-   **Cause:** Another Metro bundler instance is running.
+-   **Fix:** Run `npx expo start --clear` to reset the cache and use a new port.

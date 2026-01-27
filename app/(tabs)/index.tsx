@@ -131,15 +131,27 @@ export default function TodayScreen() {
               const currentLecture = todayLectures.find(l => {
                 const [startH, startM] = l.startTime.split(':').map(Number);
                 const [endH, endM] = l.endTime.split(':').map(Number);
-                const start = new Date(); start.setHours(startH, startM, 0, 0);
-                const end = new Date(); end.setHours(endH, endM, 0, 0);
+
+                const start = new Date();
+                start.setHours(startH, startM, 0, 0);
+
+                const end = new Date();
+                end.setHours(endH, endM, 0, 0);
+
+                // Handle case where lecture spans to next day (rare but possible logic)
+                if (end < start) end.setDate(end.getDate() + 1);
+
                 return now >= start && now < end;
               });
 
               // 2. Filter for strictly upcoming lectures (start time > now)
               const upcomingLectures = todayLectures.filter(l => {
+                // If it's the current lecture, it's not "upcoming"
+                if (currentLecture && l.id === currentLecture.id) return false;
+
                 const [startH, startM] = l.startTime.split(':').map(Number);
-                const start = new Date(); start.setHours(startH, startM, 0, 0);
+                const start = new Date();
+                start.setHours(startH, startM, 0, 0);
                 return start > now;
               });
 
@@ -185,19 +197,12 @@ export default function TodayScreen() {
                       </View>
                     </View>
                   )}
-                  
+
                   {todayLectures.length > 0 && (
                     <Text style={styles.swipeHint}>Tip: Swipe left to delete a class</Text>
                   )}
 
-                  {/* All Classes Finished State */}
-                  {!currentLecture && upcomingLectures.length === 0 && todayLectures.length > 0 && (
-                    <View style={styles.allDoneContainer}>
-                      <Ionicons name="checkmark-circle-outline" size={48} color={colors.primary} />
-                      <Text style={styles.allDoneTitle}>All Classes Finished! 🎉</Text>
-                      <Text style={styles.allDoneSubtitle}>You're done for the day.</Text>
-                    </View>
-                  )}
+
                 </>
               );
             })()}
@@ -221,7 +226,7 @@ export default function TodayScreen() {
           setLectureToDelete(null);
         }}
       />
-      
+
       <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
         <TouchableOpacity
           style={styles.fab}

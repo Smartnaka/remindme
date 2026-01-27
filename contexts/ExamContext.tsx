@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Exam } from '@/types/exam';
 import { useSettings } from './SettingsContext';
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 const EXAM_STORAGE_KEY = '@exams';
 
@@ -53,27 +54,28 @@ export const ExamProvider = ({ children }: { children: React.ReactNode }) => {
       ...examData,
       id: Date.now().toString(),
     };
-    
+
     // Sort implementation
     const updatedExams = [...exams, newExam].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-    
+
     await saveExams(updatedExams);
 
-    // Schedule notification (e.g. 1 day before)
-    // Simple implementation for now
-    const trigger = new Date(newExam.date);
-    trigger.setHours(trigger.getHours() - 24); // 24 hours before
-    
-    if (trigger > new Date()) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Exam Tomorrow! 📝',
-          body: `Good luck on your ${newExam.courseName} exam.`,
-        },
-        trigger,
-      });
+    // Schedule notification (e.g. 1 day before) - only on native platforms
+    if (Platform.OS !== 'web') {
+      const trigger = new Date(newExam.date);
+      trigger.setHours(trigger.getHours() - 24); // 24 hours before
+
+      if (trigger > new Date()) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Exam Tomorrow! 📝',
+            body: `Good luck on your ${newExam.courseName} exam.`,
+          },
+          trigger,
+        });
+      }
     }
   };
 

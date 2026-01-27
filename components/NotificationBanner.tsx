@@ -11,9 +11,10 @@ export default function NotificationBanner() {
   const { settings } = useSettings();
   const { colors } = useSettings();
   const router = useRouter();
-  
+
   const [activeAlert, setActiveAlert] = useState<{ id: string; title: string; time: string; location?: string } | null>(null);
   const translateY = useRef(new Animated.Value(-100)).current;
+  const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const checkUpcomingLectures = () => {
@@ -25,34 +26,64 @@ export default function NotificationBanner() {
         const [hours, minutes] = lecture.startTime.split(':').map(Number);
         const lectureMinutes = hours * 60 + minutes;
         const diff = lectureMinutes - currentMinutes;
-        
-        // Alert if within 15 mins and hasn't started yet
-        return diff > 0 && diff <= 15;
+
+        // Alert if within 5 mins and hasn't started yet (reduced from 15)
+        return diff > 0 && diff <= 5;
       });
 
       if (upcoming) {
         // Only show if different from current active alert
-        if (activeAlert?.id !== upcoming.id) {
-            setActiveAlert({
-            id: upcoming.id,
-            title: upcoming.courseName,
-            time: upcoming.startTime,
-            location: upcoming.location
-          });
-          showBanner();
-        }
+        setActiveAlert(prev => {
+          if (prev?.id !== upcoming.id) {
+            // Clear any existing timer
+            if (dismissTimerRef.current) {
+              clearTimeout(dismissTimerRef.current);
+            }
+
+            // Show banner
+            showBanner();
+
+            // Set new auto-dismiss timer
+            dismissTimerRef.current = setTimeout(() => {
+              hideBanner();
+              dismissTimerRef.current = null;
+            }, 5000);
+
+            return {
+              id: upcoming.id,
+              title: upcoming.courseName,
+              time: upcoming.startTime,
+              location: upcoming.location
+            };
+          }
+          return prev;
+        });
       } else {
-        if (activeAlert) {
-          hideBanner();
-        }
+        setActiveAlert(prev => {
+          if (prev) {
+            // Clear timer if exists
+            if (dismissTimerRef.current) {
+              clearTimeout(dismissTimerRef.current);
+              dismissTimerRef.current = null;
+            }
+            hideBanner();
+          }
+          return null;
+        });
       }
     };
 
     // Check immediately and then every minute
     checkUpcomingLectures();
     const interval = setInterval(checkUpcomingLectures, 60000);
-    return () => clearInterval(interval);
-  }, [todayLectures, activeAlert]);
+
+    return () => {
+      clearInterval(interval);
+      if (dismissTimerRef.current) {
+        clearTimeout(dismissTimerRef.current);
+      }
+    };
+  }, [todayLectures]);
 
   const showBanner = () => {
     Animated.spring(translateY, {
@@ -74,11 +105,11 @@ export default function NotificationBanner() {
 
   return (
     <Animated.View style={[styles.container, { transform: [{ translateY }], backgroundColor: colors.cardBackground }]}>
-      <TouchableOpacity 
-        style={styles.content} 
+      <TouchableOpacity
+        style={styles.content}
         onPress={() => {
-            router.push(`/lecture/${activeAlert.id}`);
-            hideBanner();
+          router.push(`/lecture/${activeAlert.id}`);
+          hideBanner();
         }}
         activeOpacity={0.9}
       >

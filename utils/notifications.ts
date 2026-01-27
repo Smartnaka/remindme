@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
 
@@ -28,6 +28,8 @@ const ensureNotificationChannel = async () => {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#00C896',
+      sound: 'default', // Ensure sound is enabled
+      enableVibrate: true,
     });
   }
 };
@@ -48,6 +50,25 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
     }
 
     console.log('[Notifications] Permission status:', finalStatus);
+
+    // Android 12+ requires explicit permission for exact alarms
+    if (Platform.OS === 'android') {
+      const androidVersion = typeof Platform.Version === 'number' ? Platform.Version : parseInt(String(Platform.Version), 10);
+      if (androidVersion >= 31) {
+        try {
+          // Check if we can schedule exact alarms
+          const canScheduleExactAlarms = await Notifications.getPermissionsAsync();
+          console.log('[Notifications] Android 12+ exact alarm check:', canScheduleExactAlarms);
+
+          // On Android 12+, guide user to enable exact alarms in settings
+          if (finalStatus === 'granted') {
+            console.log('[Notifications] ⚠️ IMPORTANT: On Android 12+, you must manually enable "Alarms & Reminders" permission in app settings for notifications to work when the app is closed.');
+          }
+        } catch (error) {
+          console.log('[Notifications] Could not check exact alarm permission:', error);
+        }
+      }
+    }
     return finalStatus === 'granted';
   } catch (error) {
     console.error('[Notifications] Error requesting permissions:', error);
@@ -70,8 +91,8 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
     }
 
     // Correctly calculate the trigger date by subtracting the offset
-    // We start with the "next occurrence" of the lecture to ensure we have a valid baseline date
-    const nextMsg = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime);
+    // We pass the offset to ensure getDateForNextOccurrence returns a date where (date - offset) is in the future
+    const nextMsg = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
     const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000);
 
     // Expo Calendar Trigger requires 1-7 for Sunday-Saturday
@@ -87,10 +108,12 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
         data: { lectureId: lecture.id },
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
+        sticky: true, // Makes notification persistent (can't swipe away)
+        autoDismiss: false, // Notification stays until manually dismissed or class starts
       },
       trigger: {
         channelId: 'lecture-reminders',
-        type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
         weekday: triggerWeekday,
         hour: triggerDate.getHours(),
         minute: triggerDate.getMinutes(),
@@ -126,7 +149,8 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
 
     // Schedule for the next 4 occurrences (4 weeks)
     for (let week = 0; week < 4; week++) {
-      const nextOccurrence = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime);
+      // Pass offsetMinutes here too so the base date handling remains correct
+      const nextOccurrence = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
       const triggerDate = new Date(nextOccurrence.getTime() - offsetMinutes * 60000);
 
       // Add weeks to the trigger date
@@ -145,9 +169,12 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
             },
             sound: true,
             priority: Notifications.AndroidNotificationPriority.HIGH,
+            sticky: true, // Persistent notification
+            autoDismiss: false, // Can't swipe away
           },
           trigger: {
             channelId: 'lecture-reminders',
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: triggerDate,
           },
         });
@@ -194,26 +221,52 @@ export const cancelMultipleNotifications = async (notificationIds: string[]): Pr
 
 
 export const sendTestNotification = async (): Promise<void> => {
-  if (Platform.OS === 'web' || !Notifications) return;
+  if (Platform.OS === 'web' || !Notifications) {
+    console.log('[Test] Notifications not available on web');
+    return;
+  }
 
   try {
+    console.log('[Test] Requesting notification permissions...');
     const hasPermission = await requestNotificationPermissions();
+
     if (!hasPermission) {
-      alert("Permission not granted for notifications");
+      console.log('[Test] ❌ Permission DENIED');
+      Alert.alert(
+        "Permission Required",
+        "Please enable notifications in your device settings to receive reminders.",
+        [{ text: "OK" }]
+      );
       return;
     }
 
+    console.log('[Test] ✅ Permission granted, scheduling test notification...');
+    await ensureNotificationChannel();
+
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Test Notification",
-        body: "This is a test notification from the RemindMe app!",
+        title: "🔔 Test Notification",
+        body: "This notification will work even when the app is closed!",
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
+        data: { test: true },
       },
       trigger: { seconds: 2 },
     });
+
+    console.log('[Test] ✅ Test notification scheduled for 2 seconds from now');
+    Alert.alert(
+      "Test Scheduled",
+      "You should receive a test notification in 2 seconds. You can close the app and it will still appear!",
+      [{ text: "OK" }]
+    );
   } catch (error) {
-    console.error("Test notification failed", error);
+    console.error('[Test] ❌ Test notification failed:', error);
+    Alert.alert(
+      "Test Failed",
+      `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      [{ text: "OK" }]
+    );
   }
 };
 

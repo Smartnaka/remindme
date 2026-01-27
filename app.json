@@ -36,8 +36,6 @@
       "package": "app.remindme.remindme",
       "userInterfaceStyle": "automatic",
       "permissions": [
-        "READ_CALENDAR",
-        "WRITE_CALENDAR",
         "SCHEDULE_EXACT_ALARM",
         "USE_EXACT_ALARM"
       ]

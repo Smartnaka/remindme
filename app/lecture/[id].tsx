@@ -17,6 +17,7 @@ export default function LectureDetailScreen() {
 
   const lecture = useMemo(() => getLectureById(id as string), [id, getLectureById]);
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   if (!lecture) {
     return (
@@ -36,8 +37,6 @@ export default function LectureDetailScreen() {
       </SafeAreaView>
     );
   }
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // ... (keeping other handlers)
 

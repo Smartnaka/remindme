@@ -125,7 +125,8 @@ export const syncLecturesToCalendar = async (lectures: Lecture[], offsetMinutes:
         let updatedCount = 0;
 
         for (const lecture of lectures) {
-            const nextDate = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime);
+            // Use the improved logic that accounts for offset to ensure we get a valid future date
+            const nextDate = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
 
             // End date calculation
             const [endHours, endMinutes] = lecture.endTime.split(':').map(Number);
@@ -193,7 +194,7 @@ export const syncLecturesToCalendar = async (lectures: Lecture[], offsetMinutes:
 
     } catch (error) {
         console.error('[Calendar] Error syncing:', error);
-        
+
         // Check if it's an Expo Go limitation error
         const errorMessage = error instanceof Error ? error.message : '';
         if (errorMessage.includes('not available on android') || errorMessage.includes('getSourcesAsync')) {

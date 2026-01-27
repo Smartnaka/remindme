@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings } from '@/contexts/SettingsContext';
 import { sendTestNotification } from '@/utils/notifications';
-import { syncLecturesToCalendar } from '@/utils/calendar';
 import { useLectures } from '@/contexts/LectureContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -16,7 +15,6 @@ export default function SettingsScreen() {
     const { settings, updateSettings, colors, toggleTheme } = useSettings();
     const { lectures, updateLecture, clearLectures } = useLectures();
     const [isRescheduling, setIsRescheduling] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
     const [isTestingNotification, setIsTestingNotification] = useState(false);
     const [clearDataModalVisible, setClearDataModalVisible] = useState(false);
 
@@ -50,20 +48,6 @@ export default function SettingsScreen() {
             Alert.alert("Error", "Failed to reschedule notifications.");
         } finally {
             setIsRescheduling(false);
-        }
-    };
-
-    const handleCalendarSync = async () => {
-        if (Platform.OS !== 'web') {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        }
-        setIsSyncing(true);
-        try {
-            await syncLecturesToCalendar(lectures, settings.notificationOffset);
-        } catch (error) {
-            console.error('[Settings] Calendar sync error:', error);
-        } finally {
-            setIsSyncing(false);
         }
     };
 
@@ -187,24 +171,6 @@ export default function SettingsScreen() {
                             <Text style={styles.rowLabel}>Reschedule Notifications</Text>
                         </View>
                         {isRescheduling ? <Text style={styles.rowValue}>Updating...</Text> : <Ionicons name="chevron-forward" size={16} color={colors.textMuted + '80'} />}
-                    </TouchableOpacity>
-
-                    <View style={styles.separator} />
-
-                    <TouchableOpacity
-                        style={styles.row}
-                        onPress={handleCalendarSync}
-                        activeOpacity={0.7}
-                        disabled={isSyncing}
-                    >
-                        <View style={styles.rowContent}>
-                            <Text style={styles.rowLabel}>Sync to System Calendar</Text>
-                        </View>
-                        {isSyncing ? (
-                            <Text style={styles.rowValue}>Syncing...</Text>
-                        ) : (
-                            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                        )}
                     </TouchableOpacity>
                 </View>
 

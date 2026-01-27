@@ -296,77 +296,129 @@ export default function AddLectureScreen() {
               <View style={styles.separator} />
 
               {/* Start Time */}
-              <TouchableOpacity
-                style={styles.pickerRow}
-                onPress={() => setShowStartPicker(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.rowLabel}>Starts</Text>
-                <View style={styles.pickerValueContainer}>
-                  <Text style={styles.pickerValue}>
-                    {formatTimeAMPM(startTime)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              {(showStartPicker ||
-                (Platform.OS === "ios" && showStartPicker)) && (
-                <View style={styles.pickerContainer}>
-                  <DateTimePicker
-                    value={timeStringToDate(startTime)}
-                    mode="time"
-                    is24Hour={false}
-                    display={Platform.OS === "ios" ? "spinner" : "default"}
-                    onChange={handleStartTimeChange}
-                    textColor={colors.textDark}
-                    style={styles.datePicker}
+              {Platform.OS === 'web' ? (
+                <View style={styles.pickerRow}>
+                  <Text style={styles.rowLabel}>Starts</Text>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e: any) => {
+                      setStartTime(e.target.value);
+                      if (Platform.OS !== "web") {
+                        Haptics.selectionAsync();
+                      }
+                    }}
+                    style={{
+                      fontSize: 17,
+                      color: colors.primary,
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      fontFamily: 'Inter_400Regular',
+                    }}
                   />
-                  {Platform.OS === "ios" && (
-                    <TouchableOpacity
-                      style={styles.pickerDone}
-                      onPress={() => setShowStartPicker(false)}
-                    >
-                      <Text style={styles.pickerDoneText}>Done</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.pickerRow}
+                    onPress={() => setShowStartPicker(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.rowLabel}>Starts</Text>
+                    <View style={styles.pickerValueContainer}>
+                      <Text style={styles.pickerValue}>
+                        {formatTimeAMPM(startTime)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  {(showStartPicker ||
+                    (Platform.OS === "ios" && showStartPicker)) && (
+                      <View style={styles.pickerContainer}>
+                        <DateTimePicker
+                          value={timeStringToDate(startTime)}
+                          mode="time"
+                          is24Hour={false}
+                          display={Platform.OS === "ios" ? "spinner" : "default"}
+                          onChange={handleStartTimeChange}
+                          textColor={colors.textDark}
+                          style={styles.datePicker}
+                        />
+                        {Platform.OS === "ios" && (
+                          <TouchableOpacity
+                            style={styles.pickerDone}
+                            onPress={() => setShowStartPicker(false)}
+                          >
+                            <Text style={styles.pickerDoneText}>Done</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+                </>
               )}
 
               <View style={styles.separator} />
 
               {/* End Time */}
-              <TouchableOpacity
-                style={styles.pickerRow}
-                onPress={() => setShowEndPicker(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.rowLabel}>Ends</Text>
-                <View style={styles.pickerValueContainer}>
-                  <Text style={styles.pickerValue}>
-                    {formatTimeAMPM(endTime)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              {(showEndPicker || (Platform.OS === "ios" && showEndPicker)) && (
-                <View style={styles.pickerContainer}>
-                  <DateTimePicker
-                    value={timeStringToDate(endTime)}
-                    mode="time"
-                    is24Hour={false}
-                    display={Platform.OS === "ios" ? "spinner" : "default"}
-                    onChange={handleEndTimeChange}
-                    textColor={colors.textDark}
-                    style={styles.datePicker}
+              {Platform.OS === 'web' ? (
+                <View style={styles.pickerRow}>
+                  <Text style={styles.rowLabel}>Ends</Text>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e: any) => {
+                      setEndTime(e.target.value);
+                      if (Platform.OS !== "web") {
+                        Haptics.selectionAsync();
+                      }
+                    }}
+                    style={{
+                      fontSize: 17,
+                      color: colors.primary,
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      fontFamily: 'Inter_400Regular',
+                    }}
                   />
-                  {Platform.OS === "ios" && (
-                    <TouchableOpacity
-                      style={styles.pickerDone}
-                      onPress={() => setShowEndPicker(false)}
-                    >
-                      <Text style={styles.pickerDoneText}>Done</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.pickerRow}
+                    onPress={() => setShowEndPicker(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.rowLabel}>Ends</Text>
+                    <View style={styles.pickerValueContainer}>
+                      <Text style={styles.pickerValue}>
+                        {formatTimeAMPM(endTime)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {(showEndPicker || (Platform.OS === "ios" && showEndPicker)) && (
+                    <View style={styles.pickerContainer}>
+                      <DateTimePicker
+                        value={timeStringToDate(endTime)}
+                        mode="time"
+                        is24Hour={false}
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={handleEndTimeChange}
+                        textColor={colors.textDark}
+                        style={styles.datePicker}
+                      />
+                      {Platform.OS === "ios" && (
+                        <TouchableOpacity
+                          style={styles.pickerDone}
+                          onPress={() => setShowEndPicker(false)}
+                        >
+                          <Text style={styles.pickerDoneText}>Done</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </>
               )}
             </View>
 

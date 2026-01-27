@@ -11,6 +11,7 @@ interface ExamContextType {
   exams: Exam[];
   addExam: (exam: Omit<Exam, 'id'>) => Promise<void>;
   deleteExam: (id: string) => Promise<void>;
+  clearExams: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -84,8 +85,18 @@ export const ExamProvider = ({ children }: { children: React.ReactNode }) => {
     await saveExams(updatedExams);
   };
 
+  const clearExams = async () => {
+    try {
+      // Clear from storage and state
+      await AsyncStorage.removeItem(EXAM_STORAGE_KEY);
+      setExams([]);
+    } catch (error) {
+      console.error('Failed to clear exams', error);
+    }
+  };
+
   return (
-    <ExamContext.Provider value={{ exams, addExam, deleteExam, isLoading }}>
+    <ExamContext.Provider value={{ exams, addExam, deleteExam, clearExams, isLoading }}>
       {children}
     </ExamContext.Provider>
   );

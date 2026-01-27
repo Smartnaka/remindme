@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings } from '@/contexts/SettingsContext';
 import { sendTestNotification } from '@/utils/notifications';
 import { useLectures } from '@/contexts/LectureContext';
+import { useExams } from '@/contexts/ExamContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ColorTheme } from '@/types/theme';
@@ -14,6 +15,7 @@ const NOTIFICATION_OPTIONS = [5, 10, 15, 30, 45, 60];
 export default function SettingsScreen() {
     const { settings, updateSettings, colors, toggleTheme } = useSettings();
     const { lectures, updateLecture, clearLectures } = useLectures();
+    const { clearExams } = useExams();
     const [isRescheduling, setIsRescheduling] = useState(false);
     const [isTestingNotification, setIsTestingNotification] = useState(false);
     const [clearDataModalVisible, setClearDataModalVisible] = useState(false);
@@ -228,12 +230,13 @@ export default function SettingsScreen() {
             <ConfirmationModal
                 visible={clearDataModalVisible}
                 title="Clear All Data?"
-                message="Are you sure you want to delete all lectures? This cannot be undone."
+                message="Are you sure you want to delete all lectures and exams? This cannot be undone."
                 confirmText="Clear All"
                 isDestructive
                 onCancel={() => setClearDataModalVisible(false)}
                 onConfirm={async () => {
                     await clearLectures();
+                    await clearExams();
                     setClearDataModalVisible(false);
                     // Optional: Show success feedback via toast or small modal logic, 
                     // but for now avoiding Alert.alert as requested.

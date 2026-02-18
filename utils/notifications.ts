@@ -129,6 +129,70 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
   }
 };
 
+export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string[]> => {
+  if (Platform.OS === 'web' || !Notifications) return [];
+
+  try {
+    await ensureNotificationChannel();
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) return [];
+
+    const notificationIds: string[] = [];
+    const recurrence = lecture.recurrence;
+    
+    if (!recurrence || recurrence.type !== 'biweekly') return [];
+
+    const startDate = new Date(recurrence.startDate);
+    const endDate = recurrence.endDate ? new Date(recurrence.endDate) : new Date(new Date().setMonth(new Date().getMonth() + 6));
+    const now = new Date();
+
+    // Align start date to the correct time from lecture.startTime
+    const { hours, minutes } = parseTime(lecture.startTime);
+    startDate.setHours(hours, minutes, 0, 0);
+
+    // Iterate every 2 weeks (14 days)
+    let currentDate = new Date(startDate);
+    
+    // Safety limit: Schedule max 10 occurrences to avoid iOS 64 limit
+    let limit = 0;
+    const MAX_OCCURRENCES = 10;
+
+    while (currentDate <= endDate && limit < MAX_OCCURRENCES) {
+       // Check if this occurrence is in the past
+       // We compare the TRIGGER time (date - offset), not the class time
+       const triggerDate = new Date(currentDate.getTime() - offsetMinutes * 60000);
+
+       if (triggerDate > now) {
+          const notificationId = await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `${lecture.courseName}`,
+              body: `Starts in ${offsetMinutes} minutes${lecture.location ? ` at ${lecture.location}` : ''}`,
+              data: { lectureId: lecture.id, type: 'biweekly-reminder' },
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: {
+              channelId: 'lecture-reminders',
+              type: Notifications.SchedulableTriggerInputTypes.DATE,
+              date: triggerDate,
+            },
+          });
+          notificationIds.push(notificationId);
+          console.log(`[Notifications] Scheduled bi-weekly for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+       }
+
+       // Add 14 days
+       currentDate.setDate(currentDate.getDate() + 14);
+       limit++;
+    }
+
+    return notificationIds;
+  } catch (error) {
+    console.error('[Notifications] Error scheduling bi-weekly:', error);
+    return [];
+  }
+};
+
 // New: Schedule exact-time alarm notifications for the next 4 weeks (Android only)
 export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string[]> => {
   if (Platform.OS !== 'android' || !Notifications) {

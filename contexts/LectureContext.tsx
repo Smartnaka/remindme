@@ -10,7 +10,8 @@ import {
   scheduleExactAlarmNotifications, 
   cancelMultipleNotifications,
   scheduleTwoHourReminder,
-  scheduleDailySummaryNotification
+  scheduleDailySummaryNotification,
+  scheduleBiWeeklyNotifications
 } from '@/utils/notifications';
 import { getCurrentDayOfWeek } from '@/utils/dateTime';
 
@@ -138,25 +139,31 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
       id: Date.now().toString(),
     };
 
-    // 1. Weekly Calendar Reminder
-    const notificationId = await scheduleWeeklyNotification(newLecture, settings.notificationOffset);
-    if (notificationId) newLecture.notificationId = notificationId;
+    // 1. Recurring Reminders
+    if (newLecture.recurrence?.type === 'biweekly') {
+       // Bi-weekly: Schedule individual notifications
+       const biWeeklyIds = await scheduleBiWeeklyNotifications(newLecture, settings.notificationOffset);
+       // We'll store these in alarmNotificationIds for now, or we could add a new field. 
+       // Sticking to alarmNotificationIds as a general "list of scheduled IDs".
+       newLecture.alarmNotificationIds = biWeeklyIds;
+    } else {
+       // Weekly (Standard): Use standard weekly trigger
+       const notificationId = await scheduleWeeklyNotification(newLecture, settings.notificationOffset);
+       if (notificationId) newLecture.notificationId = notificationId;
+    }
 
-    // 2. Exact Alarms (Android)
-    const alarmIds = await scheduleExactAlarmNotifications(newLecture, settings.notificationOffset);
-    if (alarmIds.length > 0) newLecture.alarmNotificationIds = alarmIds;
+    // 2. Exact Alarms (Android) - Only if explicitly requested or if we want to double up?
+    // The previous logic always scheduled alarms. Let's keep it but ONLY for weekly. 
+    // For bi-weekly, we already scheduled "biWeeklyIds" which are functionally similar (individual dates).
+    // So distinct logic:
+    if ((!newLecture.recurrence || newLecture.recurrence.type === 'weekly')) {
+        const alarmIds = await scheduleExactAlarmNotifications(newLecture, settings.notificationOffset);
+        if (alarmIds.length > 0) {
+           newLecture.alarmNotificationIds = [...(newLecture.alarmNotificationIds || []), ...alarmIds];
+        }
+    }
     
     // 3. 2-Hour Reminder
-    // We store this ID in a new field if we want to cancel it later. 
-    // For now, let's just fire and forget or we would need to add 'twoHourNotificationId' to Lecture type.
-    // Given the request didn't specify cancellation management strictly, we'll schedule it.
-    // Ideally we should track it. Let's assume we can just schedule it.
-    // EDIT: To allow cancelling, we probably should track it, but for V1 let's just schedule it.
-    // It repeats weekly, so we definitely need to cancel it on delete.
-    // The scheduleTwoHourReminder returns an ID. We should probably modify Lecture type in a future step to store it?
-    // Or just store it in 'notificationId' if it was a list? 
-    // Current Lecture type has 'notificationId' (string) and 'alarmNotificationIds' (string[]).
-    // Let's stick with specific reminders for now.
     await scheduleTwoHourReminder(newLecture);
 
     const updatedLectures = [...lectures, newLecture];
@@ -179,11 +186,18 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     const updatedLecture = { ...oldLecture, ...updates };
 
     // Reschedule
-    const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.notificationOffset);
-    if (notificationId) updatedLecture.notificationId = notificationId;
-
-    const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.notificationOffset);
-    if (alarmIds.length > 0) updatedLecture.alarmNotificationIds = alarmIds;
+    // Reschedule
+    if (updatedLecture.recurrence?.type === 'biweekly') {
+       const biWeeklyIds = await scheduleBiWeeklyNotifications(updatedLecture, settings.notificationOffset);
+       updatedLecture.alarmNotificationIds = biWeeklyIds;
+       updatedLecture.notificationId = undefined; // Clear weekly ID if switching types
+    } else {
+       const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.notificationOffset);
+       if (notificationId) updatedLecture.notificationId = notificationId;
+       
+       const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.notificationOffset);
+       if (alarmIds.length > 0) updatedLecture.alarmNotificationIds = alarmIds;
+    }
 
     await scheduleTwoHourReminder(updatedLecture);
 

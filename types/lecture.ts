@@ -13,6 +13,14 @@ export interface Lecture {
   notificationId?: string; // Calendar-based notification ID
   alarmNotificationIds?: string[]; // Alarm-based notification IDs (for 4 weeks)
   calendarEventId?: string; // Store calendar event ID for sync management
+  recurrence?: Recurrence; // New recurrence settings
+}
+
+export interface Recurrence {
+  type: 'weekly' | 'biweekly' | 'custom';
+  interval: number; // 1 = weekly, 2 = biweekly
+  startDate: string; // ISO Date of first occurrence
+  endDate?: string; // ISO Date of last occurrence
 }
 
 export interface CourseFile {

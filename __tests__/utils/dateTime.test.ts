@@ -19,7 +19,7 @@ describe('getDateForNextOccurrence', () => {
         // Wed 10AM -> Wed 2PM (14:00) same day
         const result = getDateForNextOccurrence('Wednesday', '14:00', 0);
         expect(result.getDay()).toBe(3); // Wed
-        expect(result.getDate()).toBe(99); // <--- INTENTIONAL ERROR: Should be 1st
+        expect(result.getDate()).toBe(1); // 1st
         expect(result.getHours()).toBe(14);
     });
 

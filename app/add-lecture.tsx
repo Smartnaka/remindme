@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { useLectures } from "@/contexts/LectureContext";
 import { useSettings } from "@/contexts/SettingsContext";
-import { DayOfWeek, CourseFile } from "@/types/lecture";
+import { DayOfWeek, CourseFile, Recurrence } from "@/types/lecture";
 import { DAYS_OF_WEEK, formatTimeAMPM } from "@/utils/dateTime";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -49,6 +49,21 @@ export default function AddLectureScreen() {
     existingLecture?.dayOfWeek || "Monday"
   );
 
+  // Recurrence State
+  const [recurrenceType, setRecurrenceType] = useState<Recurrence['type']>(
+    existingLecture?.recurrence?.type || 'weekly'
+  );
+  const [startDate, setStartDate] = useState<Date>(
+    existingLecture?.recurrence?.startDate 
+      ? new Date(existingLecture.recurrence.startDate) 
+      : new Date()
+  );
+  const [endDate, setEndDate] = useState<Date>(
+    existingLecture?.recurrence?.endDate 
+      ? new Date(existingLecture.recurrence.endDate) 
+      : new Date(new Date().setMonth(new Date().getMonth() + 6)) // Default 6 months
+  );
+
   // Keep strings as the source of truth for the logic
   const [startTime, setStartTime] = useState(
     existingLecture?.startTime || "09:00"
@@ -63,6 +78,8 @@ export default function AddLectureScreen() {
   // Picker states
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -182,6 +199,12 @@ export default function AddLectureScreen() {
         endTime,
         location: location.trim() || undefined,
         color: color || undefined,
+        recurrence: {
+          type: recurrenceType,
+          interval: recurrenceType === 'biweekly' ? 2 : 1,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }
       };
 
       if (isEditing && existingLecture) {
@@ -217,6 +240,95 @@ export default function AddLectureScreen() {
     }
     router.back();
   };
+
+
+  const handleStartDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") setShowStartDatePicker(false);
+    if (selectedDate) setStartDate(selectedDate);
+  };
+
+  const handleEndDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") setShowEndDatePicker(false);
+    if (selectedDate) setEndDate(selectedDate);
+  };
+
+  const RecurrenceSection = () => (
+    <>
+    <Text style={styles.sectionHeader}>RECURRENCE</Text>
+    <View style={styles.groupedList}>
+      {/* Frequency Selector */}
+      <View style={styles.paddedRow}>
+        <Text style={styles.rowLabel}>Repeat</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+           <TouchableOpacity 
+              onPress={() => setRecurrenceType('weekly')}
+              style={[styles.chip, recurrenceType === 'weekly' && styles.chipActive]}
+           >
+              <Text style={[styles.chipText, recurrenceType === 'weekly' && styles.chipTextActive]}>Weekly</Text>
+           </TouchableOpacity>
+           <TouchableOpacity 
+              onPress={() => setRecurrenceType('biweekly')}
+              style={[styles.chip, recurrenceType === 'biweekly' && styles.chipActive]}
+           >
+              <Text style={[styles.chipText, recurrenceType === 'biweekly' && styles.chipTextActive]}>Bi-Weekly</Text>
+           </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.separator} />
+
+      {/* Semester/Validity Dates */}
+      <TouchableOpacity
+        style={styles.pickerRow}
+        onPress={() => setShowStartDatePicker(true)}
+      >
+        <Text style={styles.rowLabel}>First Class</Text>
+        <Text style={styles.pickerValue}>{startDate.toLocaleDateString()}</Text>
+      </TouchableOpacity>
+      
+      {(showStartDatePicker || (Platform.OS === 'ios' && showStartDatePicker)) && (
+         <View style={styles.pickerContainer}>
+            <DateTimePicker
+               value={startDate}
+               mode="date"
+               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+               onChange={handleStartDateChange}
+            />
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity style={styles.pickerDone} onPress={() => setShowStartDatePicker(false)}>
+                 <Text style={styles.pickerDoneText}>Done</Text>
+              </TouchableOpacity>
+            )}
+         </View>
+      )}
+
+      <View style={styles.separator} />
+
+      <TouchableOpacity
+        style={styles.pickerRow}
+        onPress={() => setShowEndDatePicker(true)}
+      >
+        <Text style={styles.rowLabel}>Last Class</Text>
+        <Text style={styles.pickerValue}>{endDate.toLocaleDateString()}</Text>
+      </TouchableOpacity>
+       {(showEndDatePicker || (Platform.OS === 'ios' && showEndDatePicker)) && (
+         <View style={styles.pickerContainer}>
+            <DateTimePicker
+               value={endDate}
+               mode="date"
+               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+               onChange={handleEndDateChange}
+            />
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity style={styles.pickerDone} onPress={() => setShowEndDatePicker(false)}>
+                 <Text style={styles.pickerDoneText}>Done</Text>
+              </TouchableOpacity>
+            )}
+         </View>
+      )}
+    </View>
+    </>
+  );
 
   return (
     <SafeAreaView
@@ -500,6 +612,8 @@ export default function AddLectureScreen() {
               )}
             </View>
 
+            <RecurrenceSection />
+
             <ColorPicker selectedColor={color} onColorSelect={setColor} />
 
             <Text style={styles.infoText}>
@@ -636,6 +750,26 @@ const createStyles = (colors: ColorTheme) =>
     },
     dayChipTextActive: {
       color: "#FFF",
+    },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.textMuted + '30',
+    },
+    chipActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    chipText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.textDark,
+    },
+    chipTextActive: {
+      color: '#FFF',
     },
     pickerValueContainer: {
       backgroundColor: colors.textMuted + "20",

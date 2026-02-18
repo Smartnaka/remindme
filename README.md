@@ -115,3 +115,5 @@ If you see an error about `lucide-react-native` and `react@19`:
 ## 📌 Planning & QA
 
 - See [Proposed Features & Bug Check Guide](./FEATURES_AND_BUG_CHECKLIST.md) for roadmap ideas and a reusable pre-release checklist.
+
+- https://discord.com/invite/czJjHCcA?utm_source=Discord%20Widget&utm_medium=Connect

@@ -8,8 +8,9 @@ import { LectureProvider } from "@/contexts/LectureContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ErrorBoundary } from "@/app/components/ErrorBoundary";
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { requestNotificationPermissions } from "@/utils/notifications";
-import { useEffect } from "react";
+import { requestNotificationPermissions, handleNotificationResponse } from "@/utils/notifications";
+import { useEffect, useRef } from "react";
+import * as Notifications from 'expo-notifications';
 import NotificationBanner from "@/components/NotificationBanner";
 import { ExamProvider } from "@/contexts/ExamContext";
 
@@ -71,6 +72,15 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded) {
       requestNotificationPermissions();
+      
+      // Handle notification responses (Snooze/Dismiss)
+      const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+        handleNotificationResponse(response);
+      });
+
+      return () => {
+        subscription.remove();
+      };
     }
   }, [fontsLoaded]);
 

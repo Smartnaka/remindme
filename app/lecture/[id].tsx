@@ -200,9 +200,18 @@ export default function LectureDetailScreen() {
                                         />
                                     </TouchableOpacity>
                                     <View style={styles.assignmentContent}>
-                                        <Text style={[styles.assignmentTitle, assignment.isCompleted && styles.completedText]}>
-                                            {assignment.title}
-                                        </Text>
+                                        <View style={styles.assignmentHeader}>
+                                            <Text style={[styles.assignmentTitle, assignment.isCompleted && styles.completedText]}>
+                                                {assignment.title}
+                                            </Text>
+                                            {assignment.priority && assignment.priority !== 'medium' && (
+                                                <View style={[styles.priorityBadge, styles[`badge_${assignment.priority}` as keyof typeof styles]]}>
+                                                    <Text style={styles.priorityBadgeText}>
+                                                        {assignment.priority.toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
                                         {assignment.dueDate && (
                                             <Text style={styles.assignmentDate}>
                                                 Due: {new Date(assignment.dueDate).toLocaleDateString()}
@@ -409,5 +418,27 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     },
     deleteAssignmentBtn: {
         padding: 4,
+    },
+    assignmentHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 2,
+    },
+    priorityBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    badge_high: {
+        backgroundColor: '#e74c3c',
+    },
+    badge_low: {
+        backgroundColor: '#3498db',
+    },
+    priorityBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#FFFFFF',
     }
 });

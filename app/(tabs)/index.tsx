@@ -13,11 +13,12 @@ import * as Haptics from 'expo-haptics';
 import { ColorTheme } from '@/types/theme';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { Lecture } from '@/types/lecture';
+import { getUpcomingAssignments } from '@/utils/assignmentUtils';
 
 export default function TodayScreen() {
   const router = useRouter();
   const todayLectures = useTodayLectures();
-  const { lectures, deleteLecture } = useLectures();
+  const { lectures, deleteLecture, assignments } = useLectures();
   const { colors, settings, updateSettings } = useSettings();
   const today = getCurrentDayOfWeek();
   const fabScale = useRef(new Animated.Value(1)).current;
@@ -171,14 +172,15 @@ export default function TodayScreen() {
                   {/* Upcoming Section */}
                   {upcomingLectures.length > 0 && (
                     <View style={styles.sectionContainer}>
-                      <Text style={styles.sectionHeader}>UPCOMING</Text>
+                      <Text style={styles.sectionHeader}>UPCOMING CLASSES</Text>
                       <View style={styles.groupedList}>
                         {upcomingLectures.map((lecture, index) => {
-                          const [endH, endM] = lecture.endTime.split(':').map(Number);
-                          const end = new Date(); end.setHours(endH, endM, 0, 0);
-                          const isLast = index === upcomingLectures.length - 1;
+                           // ... same as before
+                           const [endH, endM] = lecture.endTime.split(':').map(Number);
+                           const end = new Date(); end.setHours(endH, endM, 0, 0);
+                           const isLast = index === upcomingLectures.length - 1;
 
-                          return (
+                           return (
                             <View key={lecture.id}>
                               <SwipeableLectureRow onDelete={() => {
                                 setLectureToDelete(lecture);
@@ -198,11 +200,61 @@ export default function TodayScreen() {
                     </View>
                   )}
 
+                  {/* Upcoming Deadlines Widget */}
+                  {assignments && assignments.length > 0 && (() => {
+                      const upcoming = getUpcomingAssignments(assignments);
+
+                      if (upcoming.length === 0) return null;
+
+                      return (
+                          <View style={styles.sectionContainer}>
+                              <Text style={styles.sectionHeader}>UPCOMING DEADLINES</Text>
+                              <View style={styles.groupedList}>
+                                  {upcoming.map((assignment, index) => {
+                                      // Find course color/name
+                                      const course = lectures.find(l => l.id === assignment.lectureId);
+                                      const isLast = index === upcoming.length - 1;
+                                      
+                                      return (
+                                          <TouchableOpacity 
+                                            key={assignment.id} 
+                                            style={[styles.deadlineCard, styles.groupedItem]}
+                                            onPress={() => router.push(`/lecture/${assignment.lectureId}`)}
+                                          >
+                                              <View style={styles.deadlineRow}>
+                                                  <View style={styles.deadlineInfo}>
+                                                      <View style={styles.deadlineBadgeRow}>
+                                                          {course && (
+                                                              <View style={[styles.miniBadge, { backgroundColor: course.color || colors.primary }]}>
+                                                                  <Text style={styles.miniBadgeText}>{course.courseName}</Text>
+                                                              </View>
+                                                          )}
+                                                          {assignment.priority && assignment.priority !== 'medium' && (
+                                                              <View style={[
+                                                                  styles.priorityDot, 
+                                                                  { backgroundColor: assignment.priority === 'high' ? colors.error : '#3498db' }
+                                                              ]} />
+                                                          )}
+                                                      </View>
+                                                      <Text style={styles.deadlineTitle} numberOfLines={1}>{assignment.title}</Text>
+                                                      <Text style={styles.deadlineDate}>
+                                                          Due {new Date(assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                      </Text>
+                                                  </View>
+                                                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                                              </View>
+                                              {!isLast && <View style={styles.separator} />}
+                                          </TouchableOpacity>
+                                      );
+                                  })}
+                              </View>
+                          </View>
+                      );
+                  })()}
+                  
                   {todayLectures.length > 0 && (
                     <Text style={styles.swipeHint}>Tip: Swipe left to delete a class</Text>
                   )}
-
-
                 </>
               );
             })()}
@@ -400,4 +452,50 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     color: colors.textMuted,
   },
+  groupedItem: {
+      backgroundColor: colors.cardBackground,
+      padding: 16,
+  },
+  deadlineCard: {
+      // styles handled by groupedItem mostly
+  },
+  deadlineRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+  },
+  deadlineInfo: {
+      flex: 1,
+  },
+  deadlineBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+      gap: 6,
+  },
+  miniBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+  },
+  miniBadgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: '#FFFFFF',
+  },
+  priorityDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+  },
+  deadlineTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textDark,
+      marginBottom: 2,
+  },
+  deadlineDate: {
+      fontSize: 12,
+      color: colors.textMuted,
+  }
 });

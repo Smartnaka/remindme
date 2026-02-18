@@ -88,6 +88,7 @@ describe('Notifications Logic', () => {
           // 4. Feb 12 2024, 10:00 AM -> Scheduled
           // 5. Feb 26 2024 -> After End Date (Feb 15) -> NOT Scheduled
           
+          console.log('Scheduled IDs:', ids.length, ids);
           expect(ids).toHaveLength(4);
           expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(4);
 

@@ -6,4 +6,5 @@ export interface Assignment {
   dueDate: string; // ISO String for date and time
   isCompleted: boolean;
   notificationId?: string; // ID for the scheduled reminder
+  priority: 'low' | 'medium' | 'high';
 }

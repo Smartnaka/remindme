@@ -20,6 +20,7 @@ export default function AddAssignmentScreen() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date());
+    const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -47,6 +48,7 @@ export default function AddAssignmentScreen() {
                 description: description.trim(),
                 dueDate: date.toISOString(),
                 isCompleted: false,
+                priority,
             });
             
             if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -99,6 +101,34 @@ export default function AddAssignmentScreen() {
                             multiline
                         />
                     </View>
+
+                    <Text style={styles.label}>PRIORITY</Text>
+                    <View style={styles.priorityContainer}>
+                        {(['low', 'medium', 'high'] as const).map((p) => (
+                            <TouchableOpacity
+                                key={p}
+                                style={[
+                                    styles.priorityChip,
+                                    priority === p && styles[`priorityChip_${p}` as keyof typeof styles],
+                                ]}
+                                onPress={() => {
+                                    if (Platform.OS !== 'web') Haptics.selectionAsync();
+                                    setPriority(p);
+                                }}
+                            >
+                                <Text
+                                    style={[
+                                        styles.priorityText,
+                                        priority === p && styles.priorityTextActive,
+                                    ]}
+                                >
+                                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <View style={{ marginBottom: 24 }} />
 
                     <Text style={styles.label}>DUE DATE</Text>
                     <View style={styles.inputGroup}>
@@ -200,6 +230,41 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         color: colors.textMuted,
         marginBottom: 8,
         marginLeft: 16,
+    },
+    priorityContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        paddingHorizontal: 16,
+    },
+    priorityChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: colors.cardBackground,
+        borderWidth: 1,
+        borderColor: colors.textMuted + '30',
+        minWidth: 80,
+        alignItems: 'center',
+    },
+    priorityChip_low: {
+        backgroundColor: '#3498db', // Blue
+        borderColor: '#3498db',
+    },
+    priorityChip_medium: {
+        backgroundColor: '#f39c12', // Orange
+        borderColor: '#f39c12',
+    },
+    priorityChip_high: {
+        backgroundColor: '#e74c3c', // Red
+        borderColor: '#e74c3c',
+    },
+    priorityText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.textDark,
+    },
+    priorityTextActive: {
+        color: '#ffffff',
     },
     pickerRow: {
         flexDirection: 'row',

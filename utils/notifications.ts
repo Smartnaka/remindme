@@ -1,12 +1,10 @@
 import { Platform, Alert } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
-
-let Notifications: any = null;
+import * as Notifications from 'expo-notifications';
 
 if (Platform.OS !== 'web') {
   try {
-    Notifications = require('expo-notifications');
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
@@ -32,6 +30,32 @@ const ensureNotificationChannel = async () => {
       enableVibrate: true,
     });
   }
+};
+
+const registerNotificationCategories = async () => {
+  if (Platform.OS === 'web' || !Notifications) return;
+
+  await Notifications.setNotificationCategoryAsync('reminder', [
+    {
+      identifier: 'snooze-10',
+      buttonTitle: 'Snooze 10m',
+      options: {
+        opensAppToForeground: false,
+      },
+      textInput: {
+          placeholder: 'Minutes',
+          submitButtonTitle: 'Snooze',
+      },
+    },
+    {
+      identifier: 'dismiss',
+      buttonTitle: 'Dismiss',
+      options: {
+        isDestructive: true,
+        opensAppToForeground: false,
+      },
+    },
+  ]);
 };
 
 export const requestNotificationPermissions = async (): Promise<boolean> => {
@@ -68,6 +92,10 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
           console.log('[Notifications] Could not check exact alarm permission:', error);
         }
       }
+    }
+
+    if (finalStatus === 'granted') {
+      await registerNotificationCategories();
     }
     return finalStatus === 'granted';
   } catch (error) {
@@ -110,6 +138,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
         priority: Notifications.AndroidNotificationPriority.HIGH,
         sticky: true, // Makes notification persistent (can't swipe away)
         autoDismiss: false, // Notification stays until manually dismissed or class starts
+        categoryId: 'reminder',
       },
       trigger: {
         channelId: 'lecture-reminders',
@@ -162,6 +191,8 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
        // We compare the TRIGGER time (date - offset), not the class time
        const triggerDate = new Date(currentDate.getTime() - offsetMinutes * 60000);
 
+       console.log(`[Debug] Now: ${now.toISOString()}, Trigger: ${triggerDate.toISOString()}, Current: ${currentDate.toISOString()}`);
+
        if (triggerDate > now) {
           const notificationId = await Notifications.scheduleNotificationAsync({
             content: {
@@ -170,6 +201,7 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
               data: { lectureId: lecture.id, type: 'biweekly-reminder' },
               sound: true,
               priority: Notifications.AndroidNotificationPriority.HIGH,
+              categoryId: 'reminder',
             },
             trigger: {
               channelId: 'lecture-reminders',
@@ -235,6 +267,7 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
             priority: Notifications.AndroidNotificationPriority.HIGH,
             sticky: true, // Persistent notification
             autoDismiss: false, // Can't swipe away
+            categoryId: 'reminder',
           },
           trigger: {
             channelId: 'lecture-reminders',
@@ -301,6 +334,7 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
         body: `Class starts in 2 hours${lecture.location ? ` at ${lecture.location}` : ''}. Don't forget your materials!`,
         data: { lectureId: lecture.id, type: '2hr-reminder' },
         sound: true,
+        categoryId: 'reminder',
       },
       trigger: {
         channelId: 'lecture-reminders',
@@ -319,14 +353,6 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
   }
 };
 
-// NEW: Schedule Daily Summary
-// This should be called once, or checked on app open. 
-// For simplicity, we can schedule it to run every day at specific time (e.g. 7:00 AM)
-// But to make it dynamic based on that day's lectures, it's complex with just local notifications.
-// A simpler approach: Schedule a daily notification at 7 AM that says "You have X classes today".
-// BUT local notifications can't dynamically count classes at trigger time without background code.
-// SO: We will stick to the requested "every day reminder" 
-// We can schedule a recurring daily notification at 7 AM that just says "Good Morning! Check your schedule for today."
 export const scheduleDailyMorningSummary = async (): Promise<void> => {
    if (Platform.OS === 'web' || !Notifications) return;
 
@@ -418,4 +444,29 @@ const getDayNumber = (dayOfWeek: string): number => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const index = days.findIndex(d => dayOfWeek === d);
   return index === -1 ? 1 : (index === 0 ? 1 : index + 1);
+};
+
+export const handleNotificationResponse = async (response: any) => {
+  const actionIdentifier = response.actionIdentifier;
+  const content = response.notification.request.content;
+
+  if (actionIdentifier === 'snooze-10') {
+    // Schedule a new notification in 10 minutes
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: content.title,
+        body: content.body,
+        data: content.data,
+        sound: true,
+        categoryId: 'reminder',
+      },
+      trigger: {
+        seconds: 60 * 10, // 10 minutes
+      },
+    });
+    console.log('[Notifications] Snoozed notification for 10 minutes');
+  } else if (actionIdentifier === 'dismiss') {
+    // Dismiss action - automatically handled by system usually, but good for tracking
+    console.log('[Notifications] Dismissed notification');
+  }
 };

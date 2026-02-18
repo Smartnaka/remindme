@@ -219,6 +219,86 @@ export const cancelMultipleNotifications = async (notificationIds: string[]): Pr
   }
 }
 
+// NEW: Schedule a reminder 2 hours before the class
+export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string | null> => {
+  if (Platform.OS === 'web' || !Notifications) return null;
+
+  try {
+    // 2 hours = 120 minutes
+    const offsetMinutes = 120;
+    const nextMsg = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
+    const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000);
+     // Expo Calendar Trigger requires 1-7 for Sunday-Saturday
+    const triggerWeekday = triggerDate.getDay() + 1;
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+       content: {
+        title: `Upcoming: ${lecture.courseName}`,
+        body: `Class starts in 2 hours${lecture.location ? ` at ${lecture.location}` : ''}. Don't forget your materials!`,
+        data: { lectureId: lecture.id, type: '2hr-reminder' },
+        sound: true,
+      },
+      trigger: {
+        channelId: 'lecture-reminders',
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: triggerWeekday,
+        hour: triggerDate.getHours(),
+        minute: triggerDate.getMinutes(),
+        repeats: true,
+      },
+    });
+    console.log(`[Notifications] Scheduled 2hr reminder for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
+    return notificationId;
+  } catch (error) {
+    console.error('[Notifications] Error scheduling 2hr reminder:', error);
+    return null;
+  }
+};
+
+// NEW: Schedule Daily Summary
+// This should be called once, or checked on app open. 
+// For simplicity, we can schedule it to run every day at specific time (e.g. 7:00 AM)
+// But to make it dynamic based on that day's lectures, it's complex with just local notifications.
+// A simpler approach: Schedule a daily notification at 7 AM that says "You have X classes today".
+// BUT local notifications can't dynamically count classes at trigger time without background code.
+// SO: We will stick to the requested "everyday reminder" 
+// We can schedule a recurring daily notification at 7 AM that just says "Good Morning! Check your schedule for today."
+export const scheduleDailyMorningSummary = async (): Promise<void> => {
+   if (Platform.OS === 'web' || !Notifications) return;
+
+   // Check if already scheduled (we would need to store the ID, but for now let's just replace)
+   // Ideally we store "daily_summary_id" in settings. 
+   // For now, let's just assume we want to ensure ONE exists.
+   // We'll return the ID so the context can save it.
+   
+   return; // Logic moved to Context to manage ID
+};
+
+export const scheduleDailySummaryNotification = async (timeResult: {hour: number, minute: number} = {hour: 7, minute: 0}): Promise<string | null> => {
+    if (Platform.OS === 'web' || !Notifications) return null;
+
+    try {
+        const notificationId = await Notifications.scheduleNotificationAsync({
+            content: {
+                title: "Good Morning! ☀️",
+                body: "Check your schedule for today's classes and assignments.",
+                sound: true,
+            },
+            trigger: {
+                channelId: 'lecture-reminders',
+                type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                hour: timeResult.hour,
+                minute: timeResult.minute,
+                repeats: true,
+            },
+        });
+        return notificationId;
+    } catch (e) {
+        console.error("Error scheduling daily summary", e);
+        return null;
+    }
+}
+
 
 export const sendTestNotification = async (): Promise<void> => {
   if (Platform.OS === 'web' || !Notifications) {

@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import { useLectures } from "@/contexts/LectureContext";
 import { useSettings } from "@/contexts/SettingsContext";
-import { DayOfWeek } from "@/types/lecture";
+import { DayOfWeek, CourseFile } from "@/types/lecture";
 import { DAYS_OF_WEEK, formatTimeAMPM } from "@/utils/dateTime";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -24,6 +24,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { ColorTheme } from "@/types/theme";
 import { validateLecture } from "@/utils/validation";
 import ColorPicker from "@/components/ColorPicker";
+import * as DocumentPicker from 'expo-document-picker';
 
 export default function AddLectureScreen() {
   const router = useRouter();
@@ -37,6 +38,13 @@ export default function AddLectureScreen() {
   const [courseName, setCourseName] = useState(
     existingLecture?.courseName || ""
   );
+  const [lecturer, setLecturer] = useState(
+    existingLecture?.lecturer || ""
+  );
+  const [files, setFiles] = useState<CourseFile[]>(
+    existingLecture?.files || []
+  );
+
   const [dayOfWeek, setDayOfWeek] = useState<DayOfWeek>(
     existingLecture?.dayOfWeek || "Monday"
   );
@@ -109,6 +117,39 @@ export default function AddLectureScreen() {
     }
   };
 
+  const handlePickDocument = async () => {
+    try {
+      if (Platform.OS !== "web") Haptics.selectionAsync();
+      
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        type: '*/*', // Allow all file types
+      });
+
+      if (result.canceled) return;
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const newFile: CourseFile = {
+          id: Date.now().toString(),
+          name: asset.name,
+          uri: asset.uri,
+          type: asset.mimeType?.includes('image') ? 'image' : 
+                asset.mimeType?.includes('pdf') ? 'pdf' : 'other',
+          mimeType: asset.mimeType
+        };
+        setFiles(prev => [...prev, newFile]);
+      }
+    } catch (err) {
+      Alert.alert("Error", "Failed to pick document");
+    }
+  };
+
+  const removeFile = (fileId: string) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFiles(prev => prev.filter(f => f.id !== fileId));
+  };
+
   const handleSave = async () => {
     // Comprehensive validation
     const validation = validateLecture(
@@ -132,24 +173,21 @@ export default function AddLectureScreen() {
     }
 
     try {
+      const lectureData = {
+        courseName: courseName.trim(),
+        lecturer: lecturer.trim() || undefined,
+        files: files.length > 0 ? files : undefined,
+        dayOfWeek,
+        startTime,
+        endTime,
+        location: location.trim() || undefined,
+        color: color || undefined,
+      };
+
       if (isEditing && existingLecture) {
-        await updateLecture(existingLecture.id, {
-          courseName: courseName.trim(),
-          dayOfWeek,
-          startTime,
-          endTime,
-          location: location.trim() || undefined,
-          color: color || undefined,
-        });
+        await updateLecture(existingLecture.id, lectureData);
       } else {
-        await addLecture({
-          courseName: courseName.trim(),
-          dayOfWeek: dayOfWeek,
-          startTime,
-          endTime,
-          location: location.trim() || undefined,
-          color: color || undefined,
-        });
+        await addLecture(lectureData);
       }
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -250,6 +288,18 @@ export default function AddLectureScreen() {
               <View style={styles.inputRow}>
                 <TextInput
                   style={styles.textInput}
+                  placeholder="Lecturer Name (Optional)"
+                  placeholderTextColor={colors.textMuted}
+                  value={lecturer}
+                  onChangeText={setLecturer}
+                  autoCapitalize="words"
+                  clearButtonMode="while-editing"
+                />
+              </View>
+              <View style={styles.separator} />
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.textInput}
                   placeholder="Location (Optional)"
                   placeholderTextColor={colors.textMuted}
                   value={location}
@@ -259,6 +309,34 @@ export default function AddLectureScreen() {
                 />
               </View>
             </View>
+
+            <Text style={styles.sectionHeader}>FILES & RESOURCES</Text>
+            <View style={styles.groupedList}>
+               {files.map((file, index) => (
+                  <View key={file.id}>
+                    <View style={styles.fileRow}>
+                       <View style={styles.fileIconContainer}>
+                          <Ionicons 
+                            name={file.type === 'image' ? 'image-outline' : file.type === 'pdf' ? 'document-text-outline' : 'document-outline'} 
+                            size={20} 
+                            color={colors.primary} 
+                          />
+                       </View>
+                       <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
+                       <TouchableOpacity onPress={() => removeFile(file.id)} style={styles.deleteFileBtn}>
+                          <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                       </TouchableOpacity>
+                    </View>
+                    {(index < files.length - 1) && <View style={styles.separator} />}
+                  </View>
+               ))}
+               {(files.length > 0) && <View style={styles.separator} />}
+               <TouchableOpacity style={styles.addFileRow} onPress={handlePickDocument}>
+                  <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+                  <Text style={styles.addFileText}>Attach File</Text>
+               </TouchableOpacity>
+            </View>
+
 
             <Text style={styles.sectionHeader}>SCHEDULE</Text>
             <View style={styles.groupedList}>
@@ -495,7 +573,7 @@ const createStyles = (colors: ColorTheme) =>
       color: colors.textMuted,
       marginBottom: 8,
       marginLeft: 16,
-      marginTop: 16,
+      marginTop: 24,
       letterSpacing: -0.2,
     },
     groupedList: {
@@ -594,4 +672,35 @@ const createStyles = (colors: ColorTheme) =>
       textAlign: "center",
       marginTop: 24,
     },
+    // Files Styles
+    addFileRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      gap: 8,
+    },
+    addFileText: {
+       fontSize: 16,
+       fontWeight: '500',
+       color: colors.primary,
+    },
+    fileRow: {
+       flexDirection: 'row',
+       alignItems: 'center',
+       paddingVertical: 12,
+       paddingHorizontal: 16,
+    },
+    fileIconContainer: {
+       marginRight: 12,
+    },
+    fileName: {
+       flex: 1,
+       fontSize: 16,
+       color: colors.textDark,
+    },
+    deleteFileBtn: {
+       padding: 4,
+    }
   });
+

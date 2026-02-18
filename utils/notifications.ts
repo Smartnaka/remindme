@@ -261,7 +261,7 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
 // But to make it dynamic based on that day's lectures, it's complex with just local notifications.
 // A simpler approach: Schedule a daily notification at 7 AM that says "You have X classes today".
 // BUT local notifications can't dynamically count classes at trigger time without background code.
-// SO: We will stick to the requested "everyday reminder" 
+// SO: We will stick to the requested "every day reminder" 
 // We can schedule a recurring daily notification at 7 AM that just says "Good Morning! Check your schedule for today."
 export const scheduleDailyMorningSummary = async (): Promise<void> => {
    if (Platform.OS === 'web' || !Notifications) return;

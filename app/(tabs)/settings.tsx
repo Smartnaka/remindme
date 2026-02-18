@@ -59,9 +59,9 @@ export default function SettingsScreen() {
             if (Platform.OS !== 'web') {
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 await sendTestNotification();
-                Alert.alert("Test Sent", "You should receive a notification in 2 seconds.");
+                // Alert is handled in sendTestNotification
             } else {
-                alert("Test Notification sent!");
+                console.log("Test Notification sent (web)");
             }
         } catch (error) {
             console.error('[Settings] Test notification error:', error);

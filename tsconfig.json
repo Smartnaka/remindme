@@ -6,6 +6,7 @@
     "jsx": "react-native",
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "types": ["jest"],
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "paths": {
@@ -14,6 +15,7 @@
       ]
     }
   },
+  "exclude": ["node_modules", "babel.config.js", "metro.config.js", "jest.config.js"],
   "include": [
     "**/*.ts",
     "**/*.tsx",

@@ -111,3 +111,7 @@ If you see an error about `lucide-react-native` and `react@19`:
 ### 3. "Port already in use"
 -   **Cause:** Another Metro bundler instance is running.
 -   **Fix:** Run `npx expo start --clear` to reset the cache and use a new port.
+
+## 📌 Planning & QA
+
+- See [Proposed Features & Bug Check Guide](./FEATURES_AND_BUG_CHECKLIST.md) for roadmap ideas and a reusable pre-release checklist.

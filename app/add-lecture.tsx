@@ -29,7 +29,7 @@ import * as DocumentPicker from 'expo-document-picker';
 export default function AddLectureScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { addLecture, updateLecture, getLectureById } = useLectures();
+  const { addLecture, updateLecture, getLectureById, lectures } = useLectures();
   const { colors, settings } = useSettings();
 
   const isEditing = Boolean(id);
@@ -189,6 +189,54 @@ export default function AddLectureScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
+    // Smart Conflict Detection — check for overlapping time slots on the same day
+    const timeToMinutes = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const newStart = timeToMinutes(startTime);
+    const newEnd = timeToMinutes(endTime);
+
+    const conflicting = lectures.filter(l => {
+      // Skip the lecture being edited
+      if (isEditing && existingLecture && l.id === existingLecture.id) return false;
+      if (l.dayOfWeek !== dayOfWeek) return false;
+
+      const existingStart = timeToMinutes(l.startTime);
+      const existingEnd = timeToMinutes(l.endTime);
+
+      // Overlap: newStart < existingEnd AND newEnd > existingStart
+      return newStart < existingEnd && newEnd > existingStart;
+    });
+
+    if (conflicting.length > 0) {
+      const names = conflicting.map(l => `• ${l.courseName} (${formatTimeAMPM(l.startTime)} – ${formatTimeAMPM(l.endTime)})`).join('\n');
+      setIsSaving(false);
+
+      return new Promise<void>((resolve) => {
+        Alert.alert(
+          'Schedule Conflict',
+          `This time overlaps with:\n\n${names}\n\nDo you want to save anyway?`,
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+            {
+              text: 'Save Anyway',
+              style: 'destructive',
+              onPress: async () => {
+                setIsSaving(true);
+                await doSave();
+                resolve();
+              },
+            },
+          ]
+        );
+      });
+    }
+
+    await doSave();
+  };
+
+  const doSave = async () => {
     try {
       const lectureData = {
         courseName: courseName.trim(),

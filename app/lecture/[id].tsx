@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, Share } from 'react-native';
+import ConfettiCelebration from '@/components/ConfettiCelebration';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -15,8 +16,9 @@ export default function LectureDetailScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const { getLectureById, deleteLecture, assignments, addAssignment, updateAssignment, deleteAssignment, getAssignmentsByLectureId } = useLectures();
-    const { colors } = useSettings();
+    const { colors, settings } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
+    const [showConfetti, setShowConfetti] = useState(false);
 
     const lecture = getLectureById(id as string);
     const lectureAssignments = getAssignmentsByLectureId(id as string);
@@ -79,8 +81,23 @@ export default function LectureDetailScreen() {
     };
 
     const toggleAssignment = (assignmentId: string, currentStatus: boolean) => {
-        if(Platform.OS !== 'web') Haptics.selectionAsync();
+        const isCompleting = !currentStatus; // true if we're marking as done
+
+        if (Platform.OS !== 'web') {
+            if (isCompleting) {
+                // Celebration haptic!
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } else {
+                Haptics.selectionAsync();
+            }
+        }
+
         updateAssignment(assignmentId, { isCompleted: !currentStatus });
+
+        // Trigger confetti (respects reduce-motion setting)
+        if (isCompleting && !settings.reduceMotion) {
+            setShowConfetti(true);
+        }
     };
 
     return (
@@ -242,6 +259,12 @@ export default function LectureDetailScreen() {
                 <View style={{height: 40}} />
 
              </ScrollView>
+
+            {/* Confetti celebration overlay */}
+            <ConfettiCelebration
+                visible={showConfetti}
+                onComplete={() => setShowConfetti(false)}
+            />
         </SafeAreaView>
     );
 }

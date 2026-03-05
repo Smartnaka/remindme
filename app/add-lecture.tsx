@@ -148,7 +148,7 @@ export default function AddLectureScreen() {
       if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         const newFile: CourseFile = {
-          id: Date.now().toString(),
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           name: asset.name,
           uri: asset.uri,
           type: asset.mimeType?.includes('image') ? 'image' : 

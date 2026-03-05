@@ -96,7 +96,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         alignItems: 'center',
     },
     badgeText: {
-        color: colors.background === '#000000' ? '#000' : '#FFF', // Contrast text
+        color: '#FFF', // Always white — badge bg is always the colored primary
         fontWeight: '700',
         fontSize: 12,
         letterSpacing: 0.5,

@@ -54,7 +54,7 @@ export const ExamProvider = ({ children }: { children: React.ReactNode }) => {
   const addExam = async (examData: Omit<Exam, 'id'>) => {
     const newExam: Exam = {
       ...examData,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     };
 
     // Sort implementation

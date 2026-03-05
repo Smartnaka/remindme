@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { useSettings } from '@/contexts/SettingsContext';
 import { ColorTheme } from '@/types/theme';
@@ -25,7 +25,7 @@ export default function ConfirmationModal({
     isDestructive = false,
 }: ConfirmationModalProps) {
     const { colors } = useSettings();
-    const styles = createStyles(colors);
+    const styles = useMemo(() => createStyles(colors), [colors]);
 
     return (
         <Modal

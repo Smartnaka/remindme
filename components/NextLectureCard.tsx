@@ -25,6 +25,12 @@ export default function NextLectureCard({ lecture, onPress }: NextLectureCardPro
             lectureTime.setHours(hours, minutes, 0, 0);
 
             const diff = lectureTime.getTime() - now.getTime();
+
+            if (diff <= 0) {
+                setTimeUntil('Starting now');
+                return;
+            }
+
             const diffMinutes = Math.floor(diff / 60000);
             const diffHours = Math.floor(diffMinutes / 60);
 

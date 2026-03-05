@@ -148,7 +148,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
   const addLecture = async (lecture: Omit<Lecture, 'id' | 'notificationId'>): Promise<void> => {
     const newLecture: Lecture = {
       ...lecture,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     };
 
     // 1. Recurring Reminders
@@ -286,7 +286,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
   const addAssignment = async (assignment: Omit<Assignment, 'id'>): Promise<void> => {
     const newAssignment: Assignment = {
       ...assignment,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     };
 
     const course = lectures.find(l => l.id === assignment.lectureId);

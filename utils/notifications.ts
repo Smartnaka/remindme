@@ -4,6 +4,10 @@ import { Assignment } from '@/types/assignment';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Conditional logger — only logs in development builds
+const log = __DEV__ ? console.log : () => {};
+
 if (Platform.OS !== 'web') {
   try {
     Notifications.setNotificationHandler({
@@ -16,7 +20,7 @@ if (Platform.OS !== 'web') {
       }),
     });
   } catch (error) {
-    console.log('[Notifications] expo-notifications not available:', error);
+    log('[Notifications] expo-notifications not available:', error);
   }
 }
 
@@ -36,6 +40,12 @@ const ensureNotificationChannel = async () => {
 
 const registerNotificationCategories = async () => {
   if (Platform.OS === 'web' || !Notifications) return;
+
+  // Guard: setNotificationCategoryAsync may not exist in all Expo SDK versions
+  if (typeof Notifications.setNotificationCategoryAsync !== 'function') {
+    log('[Notifications] setNotificationCategoryAsync not available, skipping category registration');
+    return;
+  }
 
   await Notifications.setNotificationCategoryAsync('reminder', [
     {
@@ -62,7 +72,7 @@ const registerNotificationCategories = async () => {
 
 export const requestNotificationPermissions = async (): Promise<boolean> => {
   if (Platform.OS === 'web' || !Notifications) {
-    console.log('[Notifications] Notifications not available, skipping permissions');
+    log('[Notifications] Notifications not available, skipping permissions');
     return true;
   }
 
@@ -75,7 +85,7 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
       finalStatus = status;
     }
 
-    console.log('[Notifications] Permission status:', finalStatus);
+    log('[Notifications] Permission status:', finalStatus);
 
     // Android 12+ requires explicit permission for exact alarms
     if (Platform.OS === 'android') {
@@ -84,14 +94,14 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
         try {
           // Check if we can schedule exact alarms
           const canScheduleExactAlarms = await Notifications.getPermissionsAsync();
-          console.log('[Notifications] Android 12+ exact alarm check:', canScheduleExactAlarms);
+          log('[Notifications] Android 12+ exact alarm check:', canScheduleExactAlarms);
 
           // On Android 12+, guide user to enable exact alarms in settings
           if (finalStatus === 'granted') {
-            console.log('[Notifications] ⚠️ IMPORTANT: On Android 12+, you must manually enable "Alarms & Reminders" permission in app settings for notifications to work when the app is closed.');
+            log('[Notifications] ⚠️ IMPORTANT: On Android 12+, you must manually enable "Alarms & Reminders" permission in app settings for notifications to work when the app is closed.');
           }
         } catch (error) {
-          console.log('[Notifications] Could not check exact alarm permission:', error);
+          log('[Notifications] Could not check exact alarm permission:', error);
         }
       }
     }
@@ -135,6 +145,9 @@ const isNotificationAllowed = async (triggerDate: Date): Promise<boolean> => {
       const startMinutes = startH * 60 + startM;
       const endMinutes = endH * 60 + endM;
 
+      // Guard: if start === end, the range is invalid — don't block
+      if (startMinutes === endMinutes) return true;
+
       if (startMinutes > endMinutes) {
         // Crosses midnight (e.g. 22:00 to 07:00)
         if (triggerMinutes >= startMinutes || triggerMinutes < endMinutes) return false;
@@ -152,7 +165,7 @@ const isNotificationAllowed = async (triggerDate: Date): Promise<boolean> => {
 
 export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string | null> => {
   if (Platform.OS === 'web' || !Notifications) {
-    console.log('[Notifications] Notifications not available, skipping scheduling');
+    log('[Notifications] Notifications not available, skipping scheduling');
     return null;
   }
 
@@ -160,7 +173,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
     await ensureNotificationChannel();
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
-      console.log('[Notifications] Permission not granted');
+      log('[Notifications] Permission not granted');
       return null;
     }
 
@@ -170,7 +183,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
     const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000);
 
     if (!(await isNotificationAllowed(triggerDate))) {
-      console.log('[Notifications] Blocked by Quiet Hours or Semester limits');
+      log('[Notifications] Blocked by Quiet Hours or Semester limits');
       return null;
     }
 
@@ -178,7 +191,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
     // triggerDate.getDay() returns 0-6 (Sun-Sat)
     const triggerWeekday = triggerDate.getDay() + 1;
 
-    console.log(`[Notifications] Scheduling param: Weekday ${triggerWeekday}, Hour ${triggerDate.getHours()}, Minute ${triggerDate.getMinutes()}`);
+    log(`[Notifications] Scheduling param: Weekday ${triggerWeekday}, Hour ${triggerDate.getHours()}, Minute ${triggerDate.getMinutes()}`);
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -200,7 +213,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
       },
     });
 
-    console.log(`[Notifications] Scheduled notification for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()} (Offset: ${offsetMinutes}m)`);
+    log(`[Notifications] Scheduled notification for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()} (Offset: ${offsetMinutes}m)`);
     return notificationId;
   } catch (error) {
     console.error('[Notifications] Error scheduling notification:', error);
@@ -213,26 +226,34 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
   if (Platform.OS === 'web' || !Notifications) return [];
 
   try {
-    console.log('[Debug] Calling ensureNotificationChannel');
+    log('[Debug] Calling ensureNotificationChannel');
     await ensureNotificationChannel();
-    console.log('[Debug] Calling requestNotificationPermissions');
+    log('[Debug] Calling requestNotificationPermissions');
     const hasPermission = await requestNotificationPermissions();
-    console.log('[Debug] hasPermission:', hasPermission);
+    log('[Debug] hasPermission:', hasPermission);
     if (!hasPermission) return [];
 
     const notificationIds: string[] = [];
     const recurrence = lecture.recurrence;
     
-    console.log('[Debug] Check recurrence:', { recurrence: lecture.recurrence, type: lecture.recurrence?.type });
+    log('[Debug] Check recurrence:', { recurrence: lecture.recurrence, type: lecture.recurrence?.type });
 
     if (!recurrence || recurrence.type !== 'biweekly') {
-        console.log('[Debug] Recurrence check failed');
+        log('[Debug] Recurrence check failed');
         return [];
     }
 
     const startDate = new Date(recurrence.startDate);
+    if (isNaN(startDate.getTime())) {
+      console.error('[Notifications] Invalid bi-weekly startDate:', recurrence.startDate);
+      return [];
+    }
     const endDate = recurrence.endDate ? new Date(recurrence.endDate) : new Date(new Date().setMonth(new Date().getMonth() + 6));
     const now = new Date();
+
+    // Pre-read settings once for the entire loop instead of reading per-occurrence
+    const settingsStr = await AsyncStorage.getItem('@settings');
+    const cachedSettings = settingsStr ? JSON.parse(settingsStr) : null;
 
     // Align start date to the correct time from lecture.startTime
     const { hours, minutes } = parseTime(lecture.startTime);
@@ -245,21 +266,21 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
     let limit = 0;
     const MAX_OCCURRENCES = 10;
     
-    console.log('[Debug] Recurrence:', recurrence);
-    console.log(`[Debug] Starting loop. StartDate: ${startDate.toString()} (${startDate.toISOString()})`);
-    console.log(`[Debug] EndDate: ${endDate.toString()} (${endDate.toISOString()})`);
-    console.log(`[Debug] Now: ${now.toString()} (${now.toISOString()})`);
+    log('[Debug] Recurrence:', recurrence);
+    log(`[Debug] Starting loop. StartDate: ${startDate.toString()} (${startDate.toISOString()})`);
+    log(`[Debug] EndDate: ${endDate.toString()} (${endDate.toISOString()})`);
+    log(`[Debug] Now: ${now.toString()} (${now.toISOString()})`);
 
     while (currentDate.getTime() <= endDate.getTime() && limit < MAX_OCCURRENCES) {
        // Check if this occurrence is in the past
        // We compare the TRIGGER time (date - offset), not the class time
        const triggerDate = new Date(currentDate.getTime() - offsetMinutes * 60000);
 
-       console.log(`[Debug] Now: ${now.toISOString()}, Trigger: ${triggerDate.toISOString()}, Current: ${currentDate.toISOString()}`);
+       log(`[Debug] Now: ${now.toISOString()}, Trigger: ${triggerDate.toISOString()}, Current: ${currentDate.toISOString()}`);
 
        if (triggerDate > now) {
           if (!(await isNotificationAllowed(triggerDate))) {
-            console.log(`[Notifications] Bi-weekly occurrence blocked by limits for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+            log(`[Notifications] Bi-weekly occurrence blocked by limits for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
             // Skip this occurrence if not allowed
           } else {
             const notificationId = await Notifications.scheduleNotificationAsync({
@@ -278,7 +299,7 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
               },
             });
             notificationIds.push(notificationId);
-            console.log(`[Notifications] Scheduled bi-weekly for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+            log(`[Notifications] Scheduled bi-weekly for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
           }
        }
 
@@ -297,7 +318,7 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
 // New: Schedule exact-time alarm notifications for the next 4 weeks (Android only)
 export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string[]> => {
   if (Platform.OS !== 'android' || !Notifications) {
-    console.log('[Alarms] Exact alarms only available on Android, skipping');
+    log('[Alarms] Exact alarms only available on Android, skipping');
     return [];
   }
 
@@ -305,7 +326,7 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
     await ensureNotificationChannel();
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
-      console.log('[Alarms] Permission not granted');
+      log('[Alarms] Permission not granted');
       return [];
     }
 
@@ -325,7 +346,7 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
       if (triggerDate > now) {
         // Check bounds
         if (!(await isNotificationAllowed(triggerDate))) {
-          console.log(`[Notifications] Exact alarm occurrence ${week + 1} blocked by limits`);
+          log(`[Notifications] Exact alarm occurrence ${week + 1} blocked by limits`);
           continue; // Skip this occurrence if not allowed
         }
 
@@ -352,11 +373,11 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
         });
 
         notificationIds.push(notificationId);
-        console.log(`[Alarms] Scheduled alarm ${week + 1}/4 for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+        log(`[Alarms] Scheduled alarm ${week + 1}/4 for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
       }
     }
 
-    console.log(`[Alarms] Total alarms scheduled: ${notificationIds.length}`);
+    log(`[Alarms] Total alarms scheduled: ${notificationIds.length}`);
     return notificationIds;
   } catch (error) {
     console.error('[Alarms] Error scheduling exact alarms:', error);
@@ -371,7 +392,7 @@ export const cancelNotification = async (notificationId: string): Promise<void> 
 
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
-    console.log('[Notifications] Cancelled notification:', notificationId);
+    log('[Notifications] Cancelled notification:', notificationId);
   } catch (error) {
     console.error('[Notifications] Error cancelling notification:', error);
   }
@@ -385,7 +406,7 @@ export const cancelMultipleNotifications = async (notificationIds: string[]): Pr
 
   try {
     await Promise.all(notificationIds.map(id => Notifications.cancelScheduledNotificationAsync(id)));
-    console.log(`[Notifications] Cancelled ${notificationIds.length} notifications`);
+    log(`[Notifications] Cancelled ${notificationIds.length} notifications`);
   } catch (error) {
     console.error('[Notifications] Error cancelling multiple notifications:', error);
   }
@@ -419,7 +440,7 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
         minute: triggerDate.getMinutes(),
       },
     });
-    console.log(`[Notifications] Scheduled 2hr reminder for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
+    log(`[Notifications] Scheduled 2hr reminder for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
     return notificationId;
   } catch (error) {
     console.error('[Notifications] Error scheduling 2hr reminder:', error);
@@ -457,7 +478,7 @@ export const manageDailySummaryNotification = async (timeStr: string, existingId
             },
         });
         
-        console.log(`[Notifications] Scheduled daily summary for ${timeStr} with greeting '${greeting}' (ID: ${notificationId})`);
+        log(`[Notifications] Scheduled daily summary for ${timeStr} with greeting '${greeting}' (ID: ${notificationId})`);
         return notificationId;
     } catch (e) {
         console.error("Error scheduling daily summary", e);
@@ -491,7 +512,7 @@ export const scheduleAssignmentNotification = async (assignment: Assignment, cou
                 date: triggerDate,
             },
         });
-        console.log(`[Notifications] Scheduled assignment reminder for ${assignment.title} at ${triggerDate.toLocaleString()}`);
+        log(`[Notifications] Scheduled assignment reminder for ${assignment.title} at ${triggerDate.toLocaleString()}`);
         return notificationId;
      }
      
@@ -505,16 +526,16 @@ export const scheduleAssignmentNotification = async (assignment: Assignment, cou
 
 export const sendTestNotification = async (): Promise<void> => {
   if (Platform.OS === 'web' || !Notifications) {
-    console.log('[Test] Notifications not available on web');
+    log('[Test] Notifications not available on web');
     return;
   }
 
   try {
-    console.log('[Test] Requesting notification permissions...');
+    log('[Test] Requesting notification permissions...');
     const hasPermission = await requestNotificationPermissions();
 
     if (!hasPermission) {
-      console.log('[Test] ❌ Permission DENIED');
+      log('[Test] ❌ Permission DENIED');
       Alert.alert(
         "Permission Required",
         "Please enable notifications in your device settings to receive reminders.",
@@ -523,7 +544,7 @@ export const sendTestNotification = async (): Promise<void> => {
       return;
     }
 
-    console.log('[Test] ✅ Permission granted, scheduling test notification...');
+    log('[Test] ✅ Permission granted, scheduling test notification...');
     await ensureNotificationChannel();
 
     await Notifications.scheduleNotificationAsync({
@@ -540,7 +561,7 @@ export const sendTestNotification = async (): Promise<void> => {
       },
     });
 
-    console.log('[Test] ✅ Test notification scheduled for 2 seconds from now');
+    log('[Test] ✅ Test notification scheduled for 2 seconds from now');
     Alert.alert(
       "Test Scheduled",
       "You should receive a test notification in 2 seconds. You can close the app and it will still appear!",
@@ -559,7 +580,8 @@ export const sendTestNotification = async (): Promise<void> => {
 const getDayNumber = (dayOfWeek: string): number => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const index = days.findIndex(d => dayOfWeek === d);
-  return index === -1 ? 1 : (index === 0 ? 1 : index + 1);
+  if (index === -1) throw new Error(`[Notifications] Invalid dayOfWeek: "${dayOfWeek}"`);
+  return index + 1; // Expo: 1=Sunday ... 7=Saturday
 };
 
 export const handleNotificationResponse = async (response: any) => {
@@ -567,7 +589,12 @@ export const handleNotificationResponse = async (response: any) => {
   const content = response.notification.request.content;
 
   if (actionIdentifier === 'snooze-10') {
-    // Schedule a new notification in 10 minutes
+    // Read custom minutes from user text input, fallback to 10
+    const customMinutes = parseInt(response.userText, 10);
+    const snoozeMinutes = (!isNaN(customMinutes) && customMinutes > 0 && customMinutes <= 120)
+      ? customMinutes
+      : 10;
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title: content.title,
@@ -578,12 +605,11 @@ export const handleNotificationResponse = async (response: any) => {
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 60 * 10, // 10 minutes
+        seconds: 60 * snoozeMinutes,
       },
     });
-    console.log('[Notifications] Snoozed notification for 10 minutes');
+    log(`[Notifications] Snoozed notification for ${snoozeMinutes} minutes`);
   } else if (actionIdentifier === 'dismiss') {
-    // Dismiss action - automatically handled by system usually, but good for tracking
-    console.log('[Notifications] Dismissed notification');
+    log('[Notifications] Dismissed notification');
   }
 };

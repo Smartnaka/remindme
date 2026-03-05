@@ -17,18 +17,8 @@ export const validateCourseName = (courseName: string): { valid: boolean; error?
     return { valid: false, error: 'Course name is required' };
   }
 
-  if (trimmed.length < MIN_COURSE_NAME_LENGTH) {
-    return { valid: false, error: `Course name must be at least ${MIN_COURSE_NAME_LENGTH} character` };
-  }
-
   if (trimmed.length > MAX_COURSE_NAME_LENGTH) {
     return { valid: false, error: `Course name must be less than ${MAX_COURSE_NAME_LENGTH} characters` };
-  }
-
-  // Check for potentially harmful characters (basic sanitization)
-  const harmfulPattern = /[<>{}[\]\\]/;
-  if (harmfulPattern.test(trimmed)) {
-    return { valid: false, error: 'Course name contains invalid characters' };
   }
 
   return { valid: true };
@@ -42,12 +32,6 @@ export const validateLocation = (location: string): { valid: boolean; error?: st
 
   if (trimmed.length > MAX_LOCATION_LENGTH) {
     return { valid: false, error: `Location must be less than ${MAX_LOCATION_LENGTH} characters` };
-  }
-
-  // Basic sanitization for location
-  const harmfulPattern = /[<>{}[\]\\]/;
-  if (harmfulPattern.test(trimmed)) {
-    return { valid: false, error: 'Location contains invalid characters' };
   }
 
   return { valid: true };

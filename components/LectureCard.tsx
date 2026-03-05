@@ -1,10 +1,12 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { formatTimeAMPM, isLectureNow, getNextLectureTime } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Colors from '@/constants/colors';
+import { useSettings } from '@/contexts/SettingsContext';
+import { ColorTheme } from '@/types/theme';
+import { DEFAULT_LECTURE_COLOR } from '@/constants/colors';
 
 interface LectureCardProps {
   lecture: Lecture;
@@ -13,6 +15,8 @@ interface LectureCardProps {
 }
 
 export default function LectureCard({ lecture, onPress, showTimeUntil = false }: LectureCardProps) {
+  const { colors } = useSettings();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isNow = isLectureNow(lecture.startTime, lecture.endTime);
   const timeUntil = showTimeUntil ? getNextLectureTime(lecture.startTime) : '';
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -52,6 +56,9 @@ export default function LectureCard({ lecture, onPress, showTimeUntil = false }:
         onPress={handlePress}
         activeOpacity={0.7}
       >
+        {/* Color accent bar */}
+        <View style={[styles.colorAccent, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
+
         <View style={styles.cardContent}>
           {isNow && (
             <View style={styles.liveBadge}>
@@ -66,30 +73,31 @@ export default function LectureCard({ lecture, onPress, showTimeUntil = false }:
 
           {lecture.location && (
             <View style={styles.infoRow}>
-              <Ionicons name="location-outline" size={16} color={Colors.primary} />
+              <Ionicons name="location-outline" size={16} color={colors.primary} />
               <Text style={styles.infoText}>{lecture.location}</Text>
             </View>
           )}
 
           <View style={styles.infoRow}>
-            <Ionicons name="time-outline" size={16} color={Colors.primary} />
+            <Ionicons name="time-outline" size={16} color={colors.primary} />
             <Text style={styles.infoText}>
               {formatTimeAMPM(lecture.startTime)} - {formatTimeAMPM(lecture.endTime)}
             </Text>
           </View>
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} style={styles.chevron} />
+        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={styles.chevron} />
       </TouchableOpacity>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTheme) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
+    paddingLeft: 20,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -99,13 +107,24 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: colors.textMuted + '15',
+    overflow: 'hidden',
+    position: 'relative',
   },
   liveCard: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
-    shadowColor: Colors.primary,
+    backgroundColor: colors.primary + '15',
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOpacity: 0.2,
+  },
+  colorAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
   cardContent: {
     flex: 1,
@@ -119,26 +138,28 @@ const styles = StyleSheet.create({
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     gap: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFF',
   },
   liveText: {
-    color: Colors.background,
+    color: '#FFF',
     fontSize: 11,
     fontWeight: '700' as const,
     letterSpacing: 0.5,
   },
   nextText: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '600' as const,
     marginBottom: 8,
@@ -146,7 +167,7 @@ const styles = StyleSheet.create({
   courseName: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: Colors.textDark,
+    color: colors.textDark,
     marginBottom: 8,
   },
   infoRow: {
@@ -157,7 +178,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontWeight: '400' as const,
   },
   chevron: {

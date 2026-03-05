@@ -8,6 +8,8 @@ import { Lecture } from '../../types/lecture';
 jest.mock('expo-notifications', () => ({
     scheduleNotificationAsync: jest.fn(() => Promise.resolve('test-notification-id')),
     setNotificationHandler: jest.fn(),
+    setNotificationCategoryAsync: jest.fn(),
+    cancelScheduledNotificationAsync: jest.fn(),
     getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
     requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
     AndroidNotificationPriority: { HIGH: 'high' },

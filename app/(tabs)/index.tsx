@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StatusBar } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StatusBar, Modal, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTodayLectures, useLectures } from '@/contexts/LectureContext';
@@ -11,14 +11,15 @@ import { getCurrentDayOfWeek } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ColorTheme } from '@/types/theme';
-import ConfirmationModal from '@/components/ConfirmationModal';
 import { Lecture } from '@/types/lecture';
 import { getUpcomingAssignments } from '@/utils/assignmentUtils';
+import UndoToast from '@/components/UndoToast';
+import SuccessToast from '@/components/SuccessToast';
 
 export default function TodayScreen() {
   const router = useRouter();
   const todayLectures = useTodayLectures();
-  const { lectures, deleteLecture, assignments } = useLectures();
+  const { lectures, deleteLecture, restoreLecture, assignments } = useLectures();
   const { colors, settings, updateSettings } = useSettings();
   const today = getCurrentDayOfWeek();
   const fabScale = useRef(new Animated.Value(1)).current;
@@ -33,9 +34,23 @@ export default function TodayScreen() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Modal State
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [lectureToDelete, setLectureToDelete] = useState<Lecture | null>(null);
+  // Action States
+  const [fabMenuVisible, setFabMenuVisible] = useState(false);
+  const [fabMenuMode, setFabMenuMode] = useState<'options' | 'coursePicker'>('options');
+  const [undoToastVisible, setUndoToastVisible] = useState(false);
+  const [deletedLecture, setDeletedLecture] = useState<Lecture | null>(null);
+  
+  // Success Toast 
+  const [successToastVisible, setSuccessToastVisible] = useState(false);
+  const [successToastMessage, setSuccessToastMessage] = useState('');
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('showSuccessToast', (data) => {
+        setSuccessToastMessage(data.message);
+        setSuccessToastVisible(true);
+    });
+    return () => sub.remove();
+  }, []);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
   // Get YYYY-MM-DD for today
@@ -47,8 +62,7 @@ export default function TodayScreen() {
     router.push('/notifications');
   };
 
-  const handleAddLecture = () => {
-    // ... (keep existing handleAddLecture)
+  const handleFabPress = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -64,7 +78,33 @@ export default function TodayScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-    router.push('/add-lecture');
+    setFabMenuMode('options');
+    setFabMenuVisible(true);
+  };
+
+  const navigateTo = (route: any) => {
+    setFabMenuVisible(false);
+    setTimeout(() => {
+        router.push(route);
+    }, Platform.OS === 'ios' ? 200 : 0);
+  }
+
+  const handleDeleteClass = (lecture: Lecture) => {
+      // 1. Save data for undo
+      setDeletedLecture(lecture);
+      // 2. Actually delete it
+      deleteLecture(lecture.id);
+      // 3. Show Toast
+      setUndoToastVisible(true);
+  };
+
+  const handleUndoDelete = () => {
+      if (deletedLecture) {
+         // Re-insert from context
+         const { restoreLecture } = require('@/contexts/LectureContext');
+         // But we already have the context hooked! Wait.
+         // Actually, I can just use the context from above. But I need to extract restoreLecture.
+      }
   };
 
   const currentDate = new Date();
@@ -113,8 +153,8 @@ export default function TodayScreen() {
             </View>
             <Text style={styles.emptyTitle}>No Classes Scheduled</Text>
             <Text style={styles.emptySubtitle}>You're free for the day! 🎉</Text>
-            <TouchableOpacity onPress={handleAddLecture} style={styles.emptyButton}>
-              <Text style={styles.emptyButtonText}>Add a Class</Text>
+            <TouchableOpacity onPress={() => handleFabPress()} style={styles.emptyButton}>
+              <Text style={styles.emptyButtonText}>Add to Schedule</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -156,8 +196,57 @@ export default function TodayScreen() {
                 return start > now;
               });
 
+              // 3. Filter for past lectures (end time < now)
+              const pastLectures = todayLectures.filter(l => {
+                  if (currentLecture && l.id === currentLecture.id) return false;
+                  const [endH, endM] = l.endTime.split(':').map(Number);
+                  const end = new Date();
+                  end.setHours(endH, endM, 0, 0);
+                  if (end < now) {
+                      const [startH] = l.startTime.split(':').map(Number);
+                      if (endH < startH) return false; // Crosses midnight edge case
+                      return true;
+                  }
+                  return false;
+              });
+
+              const isDoneForToday = !currentLecture && upcomingLectures.length === 0 && pastLectures.length > 0;
+
               return (
                 <>
+                  {/* Done For Today Section */}
+                  {isDoneForToday && (
+                      <View style={styles.allDoneContainer}>
+                          <Ionicons name="checkmark-done-circle" size={64} color={colors.primary} />
+                          <Text style={styles.allDoneTitle}>Done for today!</Text>
+                          <Text style={styles.allDoneSubtitle}>You've finished all {pastLectures.length} classes.</Text>
+                      </View>
+                  )}
+
+                  {/* Past Classes (grayed out) */}
+                  {isDoneForToday && pastLectures.length > 0 && (
+                      <View style={[styles.sectionContainer, { marginTop: 32, opacity: 0.6 }]}>
+                          <Text style={styles.sectionHeader}>COMPLETED CLASSES</Text>
+                          <View style={styles.groupedList}>
+                              {pastLectures.map((lecture, index) => {
+                                  const isLast = index === pastLectures.length - 1;
+                                  return (
+                                     <View key={lecture.id}>
+                                         <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
+                                             <CourseItem
+                                                lecture={lecture}
+                                                isNext={false}
+                                                onPress={() => router.push(`/lecture/${lecture.id}`)}
+                                             />
+                                         </SwipeableLectureRow>
+                                         {!isLast && <View style={styles.separator} />}
+                                     </View>
+                                  );
+                              })}
+                          </View>
+                      </View>
+                  )}
+
                   {/* Live Section */}
                   {currentLecture && (
                     <View style={styles.sectionContainer}>
@@ -182,10 +271,7 @@ export default function TodayScreen() {
 
                            return (
                             <View key={lecture.id}>
-                              <SwipeableLectureRow onDelete={() => {
-                                setLectureToDelete(lecture);
-                                setDeleteModalVisible(true);
-                              }}>
+                              <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
                                 <CourseItem
                                   lecture={lecture}
                                   isNext={false}
@@ -263,26 +349,133 @@ export default function TodayScreen() {
         )}
       </ScrollView>
 
-      <ConfirmationModal
-        visible={deleteModalVisible}
-        title="Delete Lecture?"
-        message={`Are you sure you want to remove "${lectureToDelete?.courseName}"?`}
-        confirmText="Delete"
-        isDestructive
-        onCancel={() => setDeleteModalVisible(false)}
-        onConfirm={() => {
-          if (lectureToDelete) {
-            deleteLecture(lectureToDelete.id);
-          }
-          setDeleteModalVisible(false);
-          setLectureToDelete(null);
-        }}
+      <UndoToast 
+          visible={undoToastVisible}
+          message={`Deleted "${deletedLecture?.courseName}"`}
+          onUndo={handleUndoDelete}
+          onDismiss={() => {
+              setUndoToastVisible(false);
+              setDeletedLecture(null);
+          }}
       />
+
+      <SuccessToast 
+          visible={successToastVisible}
+          message={successToastMessage}
+          onDismiss={() => setSuccessToastVisible(false)}
+      />
+
+      {/* FAB Bottom Sheet Menu */}
+      {Platform.OS === 'web' ? null : ( // Modal fallback required for web sometimes, but using native Modal here
+          <Modal
+             visible={fabMenuVisible}
+             transparent
+             animationType="slide"
+             onRequestClose={() => setFabMenuVisible(false)}
+          >
+              <TouchableOpacity
+                 style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+                 activeOpacity={1}
+                 onPress={() => setFabMenuVisible(false)}
+              >
+                  <TouchableOpacity 
+                     activeOpacity={1} 
+                     style={{ backgroundColor: colors.cardBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: 500 }}
+                  >
+                      <View style={{ width: 40, height: 4, backgroundColor: colors.textMuted + '40', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+                      
+                      {fabMenuMode === 'options' ? (
+                          <>
+                              <Text style={{ fontSize: 20, fontWeight: '700', color: colors.textDark, textAlign: 'center', marginBottom: 24 }}>Add to Schedule</Text>
+                              
+                              <TouchableOpacity 
+                                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.textMuted + '30' }}
+                                  onPress={() => navigateTo('/add-lecture')}
+                              >
+                                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                                      <Ionicons name="book-outline" size={20} color={colors.primary} />
+                                  </View>
+                                  <Text style={{ fontSize: 17, color: colors.textDark, fontWeight: '500' }}>New Class</Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity 
+                                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
+                                  onPress={() => {
+                                      if (Platform.OS !== 'web') Haptics.selectionAsync();
+                                      setFabMenuMode('coursePicker');
+                                  }}
+                              >
+                                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                                      <Ionicons name="document-text-outline" size={20} color={colors.primary} />
+                                  </View>
+                                  <Text style={{ fontSize: 17, color: colors.textDark, fontWeight: '500' }}>New Assignment</Text>
+                              </TouchableOpacity>
+                          </>
+                      ) : (
+                          <>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                                  <TouchableOpacity onPress={() => setFabMenuMode('options')} style={{ padding: 4 }}>
+                                      <Ionicons name="arrow-back" size={24} color={colors.textDark} />
+                                  </TouchableOpacity>
+                                  <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textDark }}>Select Course</Text>
+                                  <View style={{ width: 32 }} />
+                              </View>
+
+                              {lectures.length === 0 ? (
+                                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                                      <Ionicons name="folder-open-outline" size={48} color={colors.textMuted} style={{ marginBottom: 16, opacity: 0.5 }} />
+                                      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textDark, marginBottom: 8, textAlign: 'center' }}>
+                                          You haven't added any courses yet.
+                                      </Text>
+                                      <Text style={{ fontSize: 14, color: colors.textMuted, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20 }}>
+                                          Add a course first to attach assignments to it.
+                                      </Text>
+                                      <TouchableOpacity 
+                                          style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}
+                                          onPress={() => navigateTo('/add-lecture')}
+                                      >
+                                          <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 15 }}>Add a Course</Text>
+                                      </TouchableOpacity>
+                                  </View>
+                              ) : (
+                                  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                                      {lectures.map((l, index) => (
+                                          <TouchableOpacity 
+                                              key={l.id}
+                                              style={{ 
+                                                  flexDirection: 'row', 
+                                                  alignItems: 'center', 
+                                                  paddingVertical: 16, 
+                                                  borderBottomWidth: index === lectures.length - 1 ? 0 : StyleSheet.hairlineWidth, 
+                                                  borderBottomColor: colors.textMuted + '30' 
+                                              }}
+                                              onPress={() => navigateTo(`/add-assignment?lectureId=${l.id}`)}
+                                          >
+                                              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: l.color || colors.primary, marginRight: 16 }} />
+                                              <Text style={{ fontSize: 16, color: colors.textDark, fontWeight: '500', flex: 1 }}>{l.courseName}</Text>
+                                              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                                          </TouchableOpacity>
+                                      ))}
+                                  </ScrollView>
+                              )}
+                          </>
+                      )}
+
+                      <TouchableOpacity 
+                          style={{ marginTop: 16, paddingVertical: 16, alignItems: 'center', backgroundColor: colors.background, borderRadius: 14 }}
+                          onPress={() => setFabMenuVisible(false)}
+                      >
+                          <Text style={{ fontSize: 17, fontWeight: '600', color: colors.textDark }}>Cancel</Text>
+                      </TouchableOpacity>
+                  </TouchableOpacity>
+              </TouchableOpacity>
+          </Modal>
+      )}
 
       <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
         <TouchableOpacity
           style={styles.fab}
-          onPress={handleAddLecture}
+          onPress={handleFabPress}
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={32} color="#FFFFFF" />

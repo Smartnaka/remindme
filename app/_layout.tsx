@@ -5,7 +5,8 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LectureProvider } from "@/contexts/LectureContext";
-import { SettingsProvider } from "@/contexts/SettingsContext";
+import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
+import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { ErrorBoundary } from "@/app/components/ErrorBoundary";
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { requestNotificationPermissions, handleNotificationResponse } from "@/utils/notifications";
@@ -45,23 +46,43 @@ try {
 }
 
 function RootLayoutNav() {
+  const { theme, colors, settings } = useSettings();
+
+  const navTheme = {
+    ...(theme === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(theme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+      background: colors.background,
+      card: colors.cardBackground,
+      text: colors.textDark,
+      border: 'transparent',
+    },
+  };
+
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="add-lecture"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="lecture/[id]"
-        options={{
-          headerShown: true,
-        }}
-      />
-    </Stack>
+    <ThemeProvider value={navTheme}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.background} translucent={false} />
+      <Stack screenOptions={{ 
+        headerBackTitle: "Back", 
+        contentStyle: { backgroundColor: colors.background },
+        animation: settings.reduceMotion ? 'none' : 'default',
+      }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="add-lecture"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="lecture/[id]"
+          options={{
+            headerShown: true,
+          }}
+        />
+      </Stack>
+    </ThemeProvider>
   );
 }
 
@@ -102,7 +123,6 @@ export default function RootLayout() {
     <ErrorBoundary>
       <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" backgroundColor="#ffffff" translucent={false} />
           <GestureHandlerRootView style={{ flex: 1 }}>
             <SettingsProvider>
               <LectureProvider>

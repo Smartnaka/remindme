@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Platform } from 'react-native';
 import { Lecture, DayOfWeek } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
 import { 
@@ -10,8 +11,9 @@ import {
   scheduleExactAlarmNotifications, 
   cancelMultipleNotifications,
   scheduleTwoHourReminder,
-  scheduleDailySummaryNotification,
-  scheduleBiWeeklyNotifications
+  manageDailySummaryNotification,
+  scheduleBiWeeklyNotifications,
+  scheduleAssignmentNotification
 } from '@/utils/notifications';
 import { getCurrentDayOfWeek } from '@/utils/dateTime';
 
@@ -60,12 +62,14 @@ interface LectureContextType {
   updateLecture: (id: string, updates: Partial<Lecture>) => Promise<void>;
   deleteLecture: (id: string) => Promise<void>;
   clearLectures: () => Promise<void>;
+  restoreLecture: (lecture: Lecture) => Promise<void>;
   getLectureById: (id: string) => Lecture | undefined;
   
   assignments: Assignment[];
   addAssignment: (assignment: Omit<Assignment, 'id'>) => Promise<void>;
   updateAssignment: (id: string, updates: Partial<Assignment>) => Promise<void>;
   deleteAssignment: (id: string) => Promise<void>;
+  clearAssignments: () => Promise<void>;
   getAssignmentsByLectureId: (lectureId: string) => Assignment[];
   
   isLoading: boolean;
@@ -80,7 +84,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
   const queryClient = useQueryClient();
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const { settings } = useSettings();
+  const { settings, updateSettings, isLoading: isSettingsLoading } = useSettings();
 
   // Load Lectures
   const lecturesQuery = useQuery({
@@ -105,11 +109,19 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
   }, [assignmentsQuery.data]);
 
   useEffect(() => {
-    requestNotificationPermissions();
-    // Schedule daily summary if not already scheduled (simplified for now)
-    // In a real app we'd check a persistent flag or ID.
-    scheduleDailySummaryNotification();
-  }, []);
+    if (isSettingsLoading) return; // Wait for settings to load properly
+
+    requestNotificationPermissions().then((hasPermission) => {
+       if (!hasPermission) return;
+       
+       manageDailySummaryNotification(settings.dailySummaryTime, settings.dailySummaryNotificationId)
+         .then(newId => {
+            if (newId && newId !== settings.dailySummaryNotificationId) {
+               updateSettings({ dailySummaryNotificationId: newId });
+            }
+         });
+    });
+  }, [settings.dailySummaryTime, isSettingsLoading, updateSettings]);
 
   const saveLecturesMutation = useMutation({
     mutationFn: async (newLectures: Lecture[]) => {
@@ -142,13 +154,13 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     // 1. Recurring Reminders
     if (newLecture.recurrence?.type === 'biweekly') {
        // Bi-weekly: Schedule individual notifications
-       const biWeeklyIds = await scheduleBiWeeklyNotifications(newLecture, settings.notificationOffset);
+       const biWeeklyIds = await scheduleBiWeeklyNotifications(newLecture, settings.lectureOffset);
        // We'll store these in alarmNotificationIds for now, or we could add a new field. 
        // Sticking to alarmNotificationIds as a general "list of scheduled IDs".
        newLecture.alarmNotificationIds = biWeeklyIds;
     } else {
        // Weekly (Standard): Use standard weekly trigger
-       const notificationId = await scheduleWeeklyNotification(newLecture, settings.notificationOffset);
+       const notificationId = await scheduleWeeklyNotification(newLecture, settings.lectureOffset);
        if (notificationId) newLecture.notificationId = notificationId;
     }
 
@@ -157,14 +169,15 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     // For bi-weekly, we already scheduled "biWeeklyIds" which are functionally similar (individual dates).
     // So distinct logic:
     if ((!newLecture.recurrence || newLecture.recurrence.type === 'weekly')) {
-        const alarmIds = await scheduleExactAlarmNotifications(newLecture, settings.notificationOffset);
+        const alarmIds = await scheduleExactAlarmNotifications(newLecture, settings.lectureOffset);
         if (alarmIds.length > 0) {
            newLecture.alarmNotificationIds = [...(newLecture.alarmNotificationIds || []), ...alarmIds];
         }
     }
     
     // 3. 2-Hour Reminder
-    await scheduleTwoHourReminder(newLecture);
+    const twoHourId = await scheduleTwoHourReminder(newLecture);
+    if (twoHourId) newLecture.twoHourReminderId = twoHourId;
 
     const updatedLectures = [...lectures, newLecture];
     saveLecturesMutation.mutate(updatedLectures);
@@ -179,27 +192,30 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     // Cleanup old notifications
     if (oldLecture.notificationId) await cancelNotification(oldLecture.notificationId);
     if (oldLecture.alarmNotificationIds) await cancelMultipleNotifications(oldLecture.alarmNotificationIds);
-    // Note: We are not cancelling the 2-hour reminder because we didn't store its ID 
-    // This is a known limitation for now unless we add a field. 
-    // TODO: Add 'twoHourReminderId' to Lecture model for better cleanup.
+    if (oldLecture.twoHourReminderId) await cancelNotification(oldLecture.twoHourReminderId);
 
     const updatedLecture = { ...oldLecture, ...updates };
 
     // Reschedule
     // Reschedule
     if (updatedLecture.recurrence?.type === 'biweekly') {
-       const biWeeklyIds = await scheduleBiWeeklyNotifications(updatedLecture, settings.notificationOffset);
+       const biWeeklyIds = await scheduleBiWeeklyNotifications(updatedLecture, settings.lectureOffset);
        updatedLecture.alarmNotificationIds = biWeeklyIds;
        updatedLecture.notificationId = undefined; // Clear weekly ID if switching types
     } else {
-       const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.notificationOffset);
+       const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.lectureOffset);
        if (notificationId) updatedLecture.notificationId = notificationId;
        
-       const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.notificationOffset);
+       const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.lectureOffset);
        if (alarmIds.length > 0) updatedLecture.alarmNotificationIds = alarmIds;
     }
 
-    await scheduleTwoHourReminder(updatedLecture);
+    const twoHourId = await scheduleTwoHourReminder(updatedLecture);
+    if (twoHourId) {
+        updatedLecture.twoHourReminderId = twoHourId;
+    } else {
+        updatedLecture.twoHourReminderId = undefined;
+    }
 
     const updatedLectures = [...lectures];
     updatedLectures[lectureIndex] = updatedLecture;
@@ -211,20 +227,55 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
 
     if (lecture?.notificationId) await cancelNotification(lecture.notificationId);
     if (lecture?.alarmNotificationIds) await cancelMultipleNotifications(lecture.alarmNotificationIds);
+    if (lecture?.twoHourReminderId) await cancelNotification(lecture.twoHourReminderId);
 
     const updatedLectures = lectures.filter(l => l.id !== id);
+    saveLecturesMutation.mutate(updatedLectures);
+  };
+
+  const restoreLecture = async (lectureToRestore: Lecture): Promise<void> => {
+    // Re-schedule alarms
+    const alarmIds: string[] = [];
+    if (lectureToRestore.recurrence) {
+        // We simplified recurrence, so just attempt one
+        const newIds = await scheduleBiWeeklyNotifications(lectureToRestore, settings.lectureOffset);
+        if (newIds.length > 0) alarmIds.push(...newIds);
+    } else {
+        const primaryIds = await scheduleExactAlarmNotifications(lectureToRestore, settings.lectureOffset);
+        if (primaryIds.length > 0) alarmIds.push(...primaryIds);
+    }
+    
+    // Notification logic
+    let notificationId: string | undefined;
+    if (Platform.OS !== 'web') {
+        // Minimal logic, relies on alarm anyway
+    }
+
+    const twoHourId = await scheduleTwoHourReminder(lectureToRestore);
+
+    const Restored: Lecture = {
+        ...lectureToRestore,
+        alarmNotificationIds: alarmIds.length > 0 ? alarmIds : undefined,
+        notificationId: notificationId,
+        twoHourReminderId: twoHourId || undefined,
+    };
+
+    const updatedLectures = [...lectures, Restored];
     saveLecturesMutation.mutate(updatedLectures);
   };
 
   const clearLectures = async (): Promise<void> => {
     try {
       if (lectures.length > 0) {
-        await Promise.all(lectures.map(l => l.notificationId && cancelNotification(l.notificationId)));
+        await Promise.all(lectures.flatMap(l => {
+            const ids = [];
+            if (l.notificationId) ids.push(cancelNotification(l.notificationId));
+            if (l.twoHourReminderId) ids.push(cancelNotification(l.twoHourReminderId));
+            if (l.alarmNotificationIds) ids.push(cancelMultipleNotifications(l.alarmNotificationIds));
+            return ids;
+        }));
       }
       saveLecturesMutation.mutate([]);
-      saveAssignmentsMutation.mutate([]); // Also clear assignments? Maybe better to keep them separate? 
-      // User says "clear lectures", usually implies clearing schedule. Assignments are linked to lectures.
-      // So valid to clear them or orphan them. Let's clear arrays.
     } catch (error) {
       console.error("Failed to clear", error);
     }
@@ -237,6 +288,13 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
       ...assignment,
       id: Date.now().toString(),
     };
+
+    const course = lectures.find(l => l.id === assignment.lectureId);
+    if (course && !assignment.isCompleted) {
+        const notifId = await scheduleAssignmentNotification(newAssignment, course.courseName, settings.assignmentOffset);
+        if (notifId) newAssignment.notificationId = notifId;
+    }
+
     const updatedAssignments = [...assignments, newAssignment];
     saveAssignmentsMutation.mutate(updatedAssignments);
   };
@@ -245,14 +303,49 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     const index = assignments.findIndex(a => a.id === id);
     if (index === -1) return;
 
+    const oldAssignment = assignments[index];
+    if (oldAssignment.notificationId) {
+        await cancelNotification(oldAssignment.notificationId);
+    }
+
     const updatedAssignments = [...assignments];
-    updatedAssignments[index] = { ...assignments[index], ...updates };
+    const updatedAssignment = { ...oldAssignment, ...updates };
+
+    const course = lectures.find(l => l.id === updatedAssignment.lectureId);
+    if (course && !updatedAssignment.isCompleted) {
+        const notifId = await scheduleAssignmentNotification(updatedAssignment, course.courseName, settings.assignmentOffset);
+        if (notifId) {
+           updatedAssignment.notificationId = notifId;
+        } else {
+           updatedAssignment.notificationId = undefined;
+        }
+    } else {
+        updatedAssignment.notificationId = undefined;
+    }
+
+    updatedAssignments[index] = updatedAssignment;
     saveAssignmentsMutation.mutate(updatedAssignments);
   };
 
   const deleteAssignment = async (id: string): Promise<void> => {
+    const assignment = assignments.find(a => a.id === id);
+    if (assignment?.notificationId) {
+        await cancelNotification(assignment.notificationId);
+    }
+
     const updatedAssignments = assignments.filter(a => a.id !== id);
     saveAssignmentsMutation.mutate(updatedAssignments);
+  };
+
+  const clearAssignments = async (): Promise<void> => {
+    try {
+      if (assignments.length > 0) {
+        await Promise.all(assignments.map(a => a.notificationId && cancelNotification(a.notificationId)));
+      }
+      saveAssignmentsMutation.mutate([]);
+    } catch (error) {
+      console.error("Failed to clear assignments", error);
+    }
   };
 
   const getAssignmentsByLectureId = (lectureId: string) => {
@@ -266,12 +359,14 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     updateLecture,
     deleteLecture,
     clearLectures,
+    restoreLecture,
     getLectureById: (id) => lectures.find(l => l.id === id),
     
     assignments,
     addAssignment,
     updateAssignment,
     deleteAssignment,
+    clearAssignments,
     getAssignmentsByLectureId,
 
     isLoading: lecturesQuery.isLoading || assignmentsQuery.isLoading,

@@ -35,10 +35,16 @@ export default function ExamsScreen() {
         {exams.length === 0 ? (
             <View style={styles.emptyState}>
                 <View style={styles.emptyIconContainer}>
-                    <Ionicons name="trophy-outline" size={64} color={colors.textMuted} />
+                    <Ionicons name="document-text-outline" size={64} color={colors.textMuted} />
                 </View>
-                <Text style={styles.emptyTitle}>No Exams Scheduled!</Text>
-                <Text style={styles.emptySubtitle}>Time to relax or get ahead on studying.</Text>
+                <Text style={styles.emptyTitle}>No Exams Added Yet</Text>
+                <Text style={styles.emptySubtitle}>Track your upcoming exams and stay ahead of your studies.</Text>
+                <TouchableOpacity 
+                    style={{ marginTop: 24, backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20 }}
+                    onPress={() => router.push('/add-exam')}
+                >
+                    <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>Add Your First Exam</Text>
+                </TouchableOpacity>
             </View>
         ) : (
             exams.map(exam => (

@@ -13,16 +13,17 @@ import { DayOfWeek } from '@/types/lecture';
 import { ColorTheme } from '@/types/theme';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { Lecture } from '@/types/lecture';
+import UndoToast from '@/components/UndoToast';
 
 export default function WeeklyScheduleScreen() {
   const router = useRouter();
-  const { lectures, deleteLecture } = useLectures();
+  const { lectures, deleteLecture, restoreLecture } = useLectures();
   const { colors } = useSettings();
   const currentDay = getCurrentDayOfWeek();
 
-  // Modal State
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [lectureToDelete, setLectureToDelete] = useState<Lecture | null>(null);
+  // Action States
+  const [undoToastVisible, setUndoToastVisible] = useState(false);
+  const [deletedLecture, setDeletedLecture] = useState<Lecture | null>(null);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -31,6 +32,20 @@ export default function WeeklyScheduleScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     router.push(`/lecture/${id}`);
+  };
+
+  const handleDeleteClass = (lecture: Lecture) => {
+      setDeletedLecture(lecture);
+      deleteLecture(lecture.id);
+      setUndoToastVisible(true);
+  };
+
+  const handleUndoDelete = () => {
+      if (deletedLecture) {
+         restoreLecture(deletedLecture);
+         setUndoToastVisible(false);
+         setDeletedLecture(null);
+      }
   };
 
   const getLecturesForDay = (day: DayOfWeek) => {
@@ -63,7 +78,7 @@ export default function WeeklyScheduleScreen() {
             <View key={day} style={styles.section}>
               <View style={styles.sectionHeaderContainer}>
                 <Text style={[styles.sectionHeaderTitle, currentDay === day && styles.currentDayTitle]}>
-                  {day.toUpperCase()}
+                  {day.toUpperCase()} {dayLectures.length > 0 && `• ${dayLectures.length} ${dayLectures.length === 1 ? 'class' : 'classes'}`}
                 </Text>
                 {currentDay === day && <Text style={styles.todayLabel}>TODAY</Text>}
               </View>
@@ -78,10 +93,7 @@ export default function WeeklyScheduleScreen() {
                 ) : (
                   dayLectures.map((lecture, index) => (
                     <View key={lecture.id}>
-                      <SwipeableLectureRow onDelete={() => {
-                        setLectureToDelete(lecture);
-                        setDeleteModalVisible(true);
-                      }}>
+                      <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
                         <TouchableOpacity
                           style={styles.row}
                           onPress={() => handleLecturePress(lecture.id)}
@@ -112,20 +124,14 @@ export default function WeeklyScheduleScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      <ConfirmationModal
-        visible={deleteModalVisible}
-        title="Delete Lecture?"
-        message={`Are you sure you want to remove "${lectureToDelete?.courseName}"?`}
-        confirmText="Delete"
-        isDestructive
-        onCancel={() => setDeleteModalVisible(false)}
-        onConfirm={() => {
-          if (lectureToDelete) {
-            deleteLecture(lectureToDelete.id);
-          }
-          setDeleteModalVisible(false);
-          setLectureToDelete(null);
-        }}
+      <UndoToast 
+          visible={undoToastVisible}
+          message={`Deleted "${deletedLecture?.courseName}"`}
+          onUndo={handleUndoDelete}
+          onDismiss={() => {
+              setUndoToastVisible(false);
+              setDeletedLecture(null);
+          }}
       />
     </SafeAreaView >
   );

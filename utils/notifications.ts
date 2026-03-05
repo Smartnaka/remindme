@@ -1,8 +1,9 @@
 import { Platform, Alert } from 'react-native';
 import { Lecture } from '@/types/lecture';
+import { Assignment } from '@/types/assignment';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
 import * as Notifications from 'expo-notifications';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 if (Platform.OS !== 'web') {
   try {
     Notifications.setNotificationHandler({
@@ -20,6 +21,7 @@ if (Platform.OS !== 'web') {
 }
 
 const ensureNotificationChannel = async () => {
+  console.log('[Debug] ensureNotificationChannel execution');
   if (Platform.OS === 'android' && Notifications) {
     await Notifications.setNotificationChannelAsync('lecture-reminders', {
       name: 'Lecture Reminders',
@@ -104,6 +106,50 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
   }
 };
 
+const isNotificationAllowed = async (triggerDate: Date): Promise<boolean> => {
+  try {
+    const settingsStr = await AsyncStorage.getItem('@settings');
+    if (!settingsStr) return true;
+    const settings = JSON.parse(settingsStr);
+
+    // Check Semester Limits
+    if (settings.semesterStart) {
+      const semStart = new Date(settings.semesterStart);
+      if (triggerDate < semStart) return false;
+    }
+    if (settings.semesterEnd) {
+      const semEnd = new Date(settings.semesterEnd);
+      semEnd.setHours(23, 59, 59, 999);
+      if (triggerDate > semEnd) return false;
+    }
+
+    // Check Quiet Hours
+    if (settings.quietHoursEnabled && settings.quietHoursStart && settings.quietHoursEnd) {
+      const [startH, startM] = settings.quietHoursStart.split(':').map(Number);
+      const [endH, endM] = settings.quietHoursEnd.split(':').map(Number);
+      
+      const triggerH = triggerDate.getHours();
+      const triggerM = triggerDate.getMinutes();
+
+      const triggerMinutes = triggerH * 60 + triggerM;
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+
+      if (startMinutes > endMinutes) {
+        // Crosses midnight (e.g. 22:00 to 07:00)
+        if (triggerMinutes >= startMinutes || triggerMinutes < endMinutes) return false;
+      } else {
+        // Same day (e.g. 08:00 to 12:00)
+        if (triggerMinutes >= startMinutes && triggerMinutes < endMinutes) return false;
+      }
+    }
+
+    return true;
+  } catch (e) {
+    return true; // fail open
+  }
+};
+
 export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string | null> => {
   if (Platform.OS === 'web' || !Notifications) {
     console.log('[Notifications] Notifications not available, skipping scheduling');
@@ -123,6 +169,11 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
     const nextMsg = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
     const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000);
 
+    if (!(await isNotificationAllowed(triggerDate))) {
+      console.log('[Notifications] Blocked by Quiet Hours or Semester limits');
+      return null;
+    }
+
     // Expo Calendar Trigger requires 1-7 for Sunday-Saturday
     // triggerDate.getDay() returns 0-6 (Sun-Sat)
     const triggerWeekday = triggerDate.getDay() + 1;
@@ -138,7 +189,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
         priority: Notifications.AndroidNotificationPriority.HIGH,
         sticky: true, // Makes notification persistent (can't swipe away)
         autoDismiss: false, // Notification stays until manually dismissed or class starts
-        categoryId: 'reminder',
+        categoryIdentifier: 'reminder',
       },
       trigger: {
         channelId: 'lecture-reminders',
@@ -146,7 +197,6 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
         weekday: triggerWeekday,
         hour: triggerDate.getHours(),
         minute: triggerDate.getMinutes(),
-        repeats: true,
       },
     });
 
@@ -159,17 +209,26 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
 };
 
 export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string[]> => {
+  console.log('[Debug] scheduleBiWeeklyNotifications called', { platform: Platform.OS, hasNotifications: !!Notifications });
   if (Platform.OS === 'web' || !Notifications) return [];
 
   try {
+    console.log('[Debug] Calling ensureNotificationChannel');
     await ensureNotificationChannel();
+    console.log('[Debug] Calling requestNotificationPermissions');
     const hasPermission = await requestNotificationPermissions();
+    console.log('[Debug] hasPermission:', hasPermission);
     if (!hasPermission) return [];
 
     const notificationIds: string[] = [];
     const recurrence = lecture.recurrence;
     
-    if (!recurrence || recurrence.type !== 'biweekly') return [];
+    console.log('[Debug] Check recurrence:', { recurrence: lecture.recurrence, type: lecture.recurrence?.type });
+
+    if (!recurrence || recurrence.type !== 'biweekly') {
+        console.log('[Debug] Recurrence check failed');
+        return [];
+    }
 
     const startDate = new Date(recurrence.startDate);
     const endDate = recurrence.endDate ? new Date(recurrence.endDate) : new Date(new Date().setMonth(new Date().getMonth() + 6));
@@ -185,8 +244,13 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
     // Safety limit: Schedule max 10 occurrences to avoid iOS 64 limit
     let limit = 0;
     const MAX_OCCURRENCES = 10;
+    
+    console.log('[Debug] Recurrence:', recurrence);
+    console.log(`[Debug] Starting loop. StartDate: ${startDate.toString()} (${startDate.toISOString()})`);
+    console.log(`[Debug] EndDate: ${endDate.toString()} (${endDate.toISOString()})`);
+    console.log(`[Debug] Now: ${now.toString()} (${now.toISOString()})`);
 
-    while (currentDate <= endDate && limit < MAX_OCCURRENCES) {
+    while (currentDate.getTime() <= endDate.getTime() && limit < MAX_OCCURRENCES) {
        // Check if this occurrence is in the past
        // We compare the TRIGGER time (date - offset), not the class time
        const triggerDate = new Date(currentDate.getTime() - offsetMinutes * 60000);
@@ -194,23 +258,28 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
        console.log(`[Debug] Now: ${now.toISOString()}, Trigger: ${triggerDate.toISOString()}, Current: ${currentDate.toISOString()}`);
 
        if (triggerDate > now) {
-          const notificationId = await Notifications.scheduleNotificationAsync({
-            content: {
-              title: `${lecture.courseName}`,
-              body: `Starts in ${offsetMinutes} minutes${lecture.location ? ` at ${lecture.location}` : ''}`,
-              data: { lectureId: lecture.id, type: 'biweekly-reminder' },
-              sound: true,
-              priority: Notifications.AndroidNotificationPriority.HIGH,
-              categoryId: 'reminder',
-            },
-            trigger: {
-              channelId: 'lecture-reminders',
-              type: Notifications.SchedulableTriggerInputTypes.DATE,
-              date: triggerDate,
-            },
-          });
-          notificationIds.push(notificationId);
-          console.log(`[Notifications] Scheduled bi-weekly for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+          if (!(await isNotificationAllowed(triggerDate))) {
+            console.log(`[Notifications] Bi-weekly occurrence blocked by limits for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+            // Skip this occurrence if not allowed
+          } else {
+            const notificationId = await Notifications.scheduleNotificationAsync({
+              content: {
+                title: `${lecture.courseName}`,
+                body: `Starts in ${offsetMinutes} minutes${lecture.location ? ` at ${lecture.location}` : ''}`,
+                data: { lectureId: lecture.id, type: 'biweekly-reminder' },
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+                categoryIdentifier: 'reminder',
+              },
+              trigger: {
+                channelId: 'lecture-reminders',
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: triggerDate,
+              },
+            });
+            notificationIds.push(notificationId);
+            console.log(`[Notifications] Scheduled bi-weekly for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+          }
        }
 
        // Add 14 days
@@ -252,8 +321,14 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
       // Add weeks to the trigger date
       triggerDate.setDate(triggerDate.getDate() + (week * 7));
 
-      // Only schedule if in the future
+      // Only schedule if in the future and allowed
       if (triggerDate > now) {
+        // Check bounds
+        if (!(await isNotificationAllowed(triggerDate))) {
+          console.log(`[Notifications] Exact alarm occurrence ${week + 1} blocked by limits`);
+          continue; // Skip this occurrence if not allowed
+        }
+
         const notificationId = await Notifications.scheduleNotificationAsync({
           content: {
             title: `${lecture.courseName}`,
@@ -267,7 +342,7 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
             priority: Notifications.AndroidNotificationPriority.HIGH,
             sticky: true, // Persistent notification
             autoDismiss: false, // Can't swipe away
-            categoryId: 'reminder',
+            categoryIdentifier: 'reminder',
           },
           trigger: {
             channelId: 'lecture-reminders',
@@ -334,7 +409,7 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
         body: `Class starts in 2 hours${lecture.location ? ` at ${lecture.location}` : ''}. Don't forget your materials!`,
         data: { lectureId: lecture.id, type: '2hr-reminder' },
         sound: true,
-        categoryId: 'reminder',
+        categoryIdentifier: 'reminder',
       },
       trigger: {
         channelId: 'lecture-reminders',
@@ -342,7 +417,6 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
         weekday: triggerWeekday,
         hour: triggerDate.getHours(),
         minute: triggerDate.getMinutes(),
-        repeats: true,
       },
     });
     console.log(`[Notifications] Scheduled 2hr reminder for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
@@ -353,41 +427,80 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
   }
 };
 
-export const scheduleDailyMorningSummary = async (): Promise<void> => {
-   if (Platform.OS === 'web' || !Notifications) return;
-
-   // Check if already scheduled (we would need to store the ID, but for now let's just replace)
-   // Ideally we store "daily_summary_id" in settings. 
-   // For now, let's just assume we want to ensure ONE exists.
-   // We'll return the ID so the context can save it.
-   
-   return; // Logic moved to Context to manage ID
-};
-
-export const scheduleDailySummaryNotification = async (timeResult: {hour: number, minute: number} = {hour: 7, minute: 0}): Promise<string | null> => {
+export const manageDailySummaryNotification = async (timeStr: string, existingId?: string): Promise<string | null> => {
     if (Platform.OS === 'web' || !Notifications) return null;
 
     try {
+        if (existingId) {
+            await Notifications.cancelScheduledNotificationAsync(existingId);
+        }
+
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        
+        let greeting = "Hello!";
+        if (hours >= 5 && hours < 12) greeting = "Good Morning! ☀️";
+        else if (hours >= 12 && hours < 17) greeting = "Good Afternoon! 🌤️";
+        else if (hours >= 17 && hours < 21) greeting = "Good Evening! 🌙";
+        else greeting = "Late Night Reminder! 🦉";
+
         const notificationId = await Notifications.scheduleNotificationAsync({
             content: {
-                title: "Good Morning! ☀️",
+                title: greeting,
                 body: "Check your schedule for today's classes and assignments.",
                 sound: true,
             },
             trigger: {
                 channelId: 'lecture-reminders',
                 type: Notifications.SchedulableTriggerInputTypes.DAILY,
-                hour: timeResult.hour,
-                minute: timeResult.minute,
-                repeats: true,
+                hour: hours,
+                minute: minutes || 0,
             },
         });
+        
+        console.log(`[Notifications] Scheduled daily summary for ${timeStr} with greeting '${greeting}' (ID: ${notificationId})`);
         return notificationId;
     } catch (e) {
         console.error("Error scheduling daily summary", e);
-        return null;
+        return existingId || null;
     }
 }
+
+export const scheduleAssignmentNotification = async (assignment: Assignment, courseName: string, offsetMinutes: number = 1440): Promise<string | null> => {
+   if (Platform.OS === 'web' || !Notifications) return null;
+
+   try {
+     const hasPermission = await requestNotificationPermissions();
+     if (!hasPermission) return null;
+
+     const dueDate = new Date(assignment.dueDate);
+     const triggerDate = new Date(dueDate.getTime() - offsetMinutes * 60000);
+     const now = new Date();
+
+     if (triggerDate > now) {
+        const notificationId = await Notifications.scheduleNotificationAsync({
+            content: {
+                title: `Upcoming Assignment: ${courseName}`,
+                body: `'${assignment.title}' is due in ${offsetMinutes >= 1440 ? Math.floor(offsetMinutes / 1440) + ' days' : offsetMinutes + ' minutes'}.`,
+                data: { assignmentId: assignment.id },
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: {
+                channelId: 'lecture-reminders',
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: triggerDate,
+            },
+        });
+        console.log(`[Notifications] Scheduled assignment reminder for ${assignment.title} at ${triggerDate.toLocaleString()}`);
+        return notificationId;
+     }
+     
+     return null;
+   } catch (error) {
+     console.error('[Notifications] Error scheduling assignment notification:', error);
+     return null;
+   }
+};
 
 
 export const sendTestNotification = async (): Promise<void> => {
@@ -421,7 +534,10 @@ export const sendTestNotification = async (): Promise<void> => {
         priority: Notifications.AndroidNotificationPriority.HIGH,
         data: { test: true },
       },
-      trigger: { seconds: 2 },
+      trigger: { 
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 2 
+      },
     });
 
     console.log('[Test] ✅ Test notification scheduled for 2 seconds from now');
@@ -458,9 +574,10 @@ export const handleNotificationResponse = async (response: any) => {
         body: content.body,
         data: content.data,
         sound: true,
-        categoryId: 'reminder',
+        categoryIdentifier: 'reminder',
       },
       trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: 60 * 10, // 10 minutes
       },
     });

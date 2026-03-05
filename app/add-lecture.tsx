@@ -617,7 +617,7 @@ export default function AddLectureScreen() {
             <ColorPicker selectedColor={color} onColorSelect={setColor} />
 
             <Text style={styles.infoText}>
-              Notifications will be sent {settings.notificationOffset} minutes
+              Notifications will be sent {settings.lectureOffset} minutes
               before class.
             </Text>
 

@@ -13,6 +13,7 @@ export default function NotificationBanner() {
   const router = useRouter();
 
   const [activeAlert, setActiveAlert] = useState<{ id: string; title: string; time: string; location?: string } | null>(null);
+  const [snoozedAlerts, setSnoozedAlerts] = useState<Map<string, number>>(new Map());
   const translateY = useRef(new Animated.Value(-100)).current;
   const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -21,8 +22,20 @@ export default function NotificationBanner() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-      // Find a lecture starting soon (within next 15 mins)
+      // Cleanup expired snoozes
+      setSnoozedAlerts(prev => {
+          const nowMs = Date.now();
+          const next = new Map(prev);
+          for (const [id, expiry] of next.entries()) {
+              if (nowMs > expiry) next.delete(id);
+          }
+          return next;
+      });
+
+      // Find a lecture starting soon (within next 15 mins) that isn't snoozed
       const upcoming = todayLectures.find(lecture => {
+        if (snoozedAlerts.has(lecture.id)) return false;
+
         const [hours, minutes] = lecture.startTime.split(':').map(Number);
         const lectureMinutes = hours * 60 + minutes;
         const diff = lectureMinutes - currentMinutes;
@@ -47,7 +60,7 @@ export default function NotificationBanner() {
             dismissTimerRef.current = setTimeout(() => {
               hideBanner();
               dismissTimerRef.current = null;
-            }, 5000);
+            }, 5000) as any;
 
             return {
               id: upcoming.id,
@@ -101,6 +114,17 @@ export default function NotificationBanner() {
     }).start(() => setActiveAlert(null));
   };
 
+  const handleSnooze = () => {
+    if (activeAlert) {
+      setSnoozedAlerts(prev => {
+        const next = new Map(prev);
+        next.set(activeAlert.id, Date.now() + 10 * 60 * 1000); // 10 minutes
+        return next;
+      });
+      hideBanner();
+    }
+  };
+
   if (!activeAlert) return null;
 
   return (
@@ -123,9 +147,14 @@ export default function NotificationBanner() {
             {activeAlert.location ? ` in ${activeAlert.location}` : ''}
           </Text>
         </View>
-        <TouchableOpacity onPress={hideBanner} style={styles.closeButton}>
-          <Ionicons name="close" size={20} color={colors.textMuted} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={handleSnooze} style={[styles.snoozeButton, { backgroundColor: colors.textMuted + '20' }]}>
+              <Text style={[styles.snoozeText, { color: colors.textDark }]}>Snooze</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={hideBanner} style={styles.closeButton}>
+              <Ionicons name="close" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -164,8 +193,17 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 13,
   },
+  snoozeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  snoozeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   closeButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: 6,
   },
 });

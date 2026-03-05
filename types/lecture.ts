@@ -12,6 +12,7 @@ export interface Lecture {
   color?: string; // Hex color code for visual organization
   notificationId?: string; // Calendar-based notification ID
   alarmNotificationIds?: string[]; // Alarm-based notification IDs (for 4 weeks)
+  twoHourReminderId?: string; // ID for the 2-hour prior reminder
   calendarEventId?: string; // Store calendar event ID for sync management
   recurrence?: Recurrence; // New recurrence settings
 }

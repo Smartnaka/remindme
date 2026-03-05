@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Animated, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Animated, StatusBar, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -13,9 +13,11 @@ import { ColorTheme } from '@/types/theme';
 export default function AddAssignmentScreen() {
     const router = useRouter();
     const { lectureId } = useLocalSearchParams();
-    const { addAssignment } = useLectures();
+    const { addAssignment, lectures } = useLectures();
     const { colors } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
+
+    const course = lectures.find(l => l.id === lectureId);
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -52,6 +54,11 @@ export default function AddAssignmentScreen() {
             });
             
             if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            
+            if (course) {
+               DeviceEventEmitter.emit('showSuccessToast', { message: `Added to "${course.courseName}"` });
+            }
+            
             router.back();
         } catch (error) {
             console.error("Failed to save assignment", error);
@@ -82,6 +89,17 @@ export default function AddAssignmentScreen() {
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
                 <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
                     
+                    {course && (
+                        <View style={styles.courseBadgeContainer}>
+                            <View style={[styles.courseBadge, { backgroundColor: course.color || colors.primary + '20' }]}>
+                                <Ionicons name="folder-outline" size={16} color={course.color ? '#FFF' : colors.primary} style={{ marginRight: 6 }} />
+                                <Text style={[styles.courseBadgeText, { color: course.color ? '#FFF' : colors.primary }]}>
+                                    {course.courseName}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+
                     <View style={styles.inputGroup}>
                         <TextInput
                             style={styles.titleInput}
@@ -109,7 +127,7 @@ export default function AddAssignmentScreen() {
                                 key={p}
                                 style={[
                                     styles.priorityChip,
-                                    priority === p && styles[`priorityChip_${p}` as keyof typeof styles],
+                                    priority === p && (styles as any)[`priorityChip_${p}`],
                                 ]}
                                 onPress={() => {
                                     if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -201,6 +219,21 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     saveButtonText: { fontSize: 17, fontWeight: '600', color: colors.primary },
     keyboardView: { flex: 1 },
     content: { padding: 20 },
+    courseBadgeContainer: {
+        flexDirection: 'row',
+        marginBottom: 16,
+    },
+    courseBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    courseBadgeText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
     inputGroup: {
         backgroundColor: colors.cardBackground,
         borderRadius: 12,

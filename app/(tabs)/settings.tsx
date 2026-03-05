@@ -1,74 +1,167 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, StatusBar, Modal, Switch, Linking } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings } from '@/contexts/SettingsContext';
-import { sendTestNotification } from '@/utils/notifications';
 import { useLectures } from '@/contexts/LectureContext';
 import { useExams } from '@/contexts/ExamContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import Constants from 'expo-constants';
 
 const NOTIFICATION_OPTIONS = [5, 10, 15, 30, 45, 60];
+const EXAM_NOTIFICATION_OPTIONS = [15, 30, 60, 120, 1440];
 
 export default function SettingsScreen() {
-    const { settings, updateSettings, colors, toggleTheme } = useSettings();
-    const { lectures, updateLecture, clearLectures } = useLectures();
+    const { settings, updateSettings, colors } = useSettings();
+    const { lectures, clearLectures, clearAssignments } = useLectures();
     const { clearExams } = useExams();
-    const [isRescheduling, setIsRescheduling] = useState(false);
-    const [isTestingNotification, setIsTestingNotification] = useState(false);
-    const [clearDataModalVisible, setClearDataModalVisible] = useState(false);
+    
+    const [clearLecturesModalVisible, setClearLecturesModalVisible] = useState(false);
+    const [clearExamsModalVisible, setClearExamsModalVisible] = useState(false);
+    const [clearAssignmentsModalVisible, setClearAssignmentsModalVisible] = useState(false);
+    const [manageDataModalVisible, setManageDataModalVisible] = useState(false);
+    const [showSummaryPicker, setShowSummaryPicker] = useState(false);
+    
+    // New Pickers State
+    const [showQuietStartPicker, setShowQuietStartPicker] = useState(false);
+    const [showQuietEndPicker, setShowQuietEndPicker] = useState(false);
+    const [showSemesterStartPicker, setShowSemesterStartPicker] = useState(false);
+    const [showSemesterEndPicker, setShowSemesterEndPicker] = useState(false);
+    
+    // Unified Picker Modal State
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [pickerType, setPickerType] = useState<'lecture' | 'assignment' | 'exam' | null>(null);
 
     const styles = useMemo(() => createStyles(colors), [colors]);
 
-    const handleToggleTheme = () => {
-        toggleTheme();
+    const handleOffsetChange = (type: 'lecture' | 'assignment' | 'exam', minutes: number) => {
+        if (type === 'lecture') updateSettings({ lectureOffset: minutes });
+        if (type === 'assignment') updateSettings({ assignmentOffset: minutes });
+        if (type === 'exam') updateSettings({ examOffset: minutes });
     };
 
-    const handleOffsetChange = (minutes: number) => {
-        updateSettings({ notificationOffset: minutes });
+    const handleSummaryTimeChange = (event: any, selectedDate?: Date) => {
+        if (Platform.OS === 'android') setShowSummaryPicker(false);
+        if (selectedDate) {
+            const hours = selectedDate.getHours().toString().padStart(2, '0');
+            const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+            updateSettings({ dailySummaryTime: `${hours}:${minutes}` });
+            if (Platform.OS !== 'web') Haptics.selectionAsync();
+        }
     };
 
-    const handleRescheduleAll = async () => {
-        if (lectures.length === 0) {
-            Alert.alert("No Lectures", "There are no lectures to reschedule.");
-            return;
-        }
+    const handleOpenPicker = (type: 'lecture' | 'assignment' | 'exam') => {
+        setPickerType(type);
+        setPickerVisible(true);
+    };
 
-        setIsRescheduling(true);
-        if (Platform.OS !== 'web') {
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const handleSelectOption = (minutes: number) => {
+        if (pickerType) {
+            handleOffsetChange(pickerType, minutes);
         }
+        setPickerVisible(false);
+        setPickerType(null);
+    };
 
+    const getSummaryDate = () => {
+        const [hours, minutes] = (settings.dailySummaryTime || '18:00').split(':').map(Number);
+        const d = new Date();
+        d.setHours(hours || 18, minutes || 0, 0, 0);
+        return d;
+    };
+
+    const getQuietDate = (timeStr: string) => {
+        const [hours, minutes] = (timeStr || '00:00').split(':').map(Number);
+        const d = new Date();
+        d.setHours(hours || 0, minutes || 0, 0, 0);
+        return d;
+    };
+
+    const getSemesterDate = (dateStr?: string) => {
+        return dateStr ? new Date(dateStr) : new Date();
+    };
+
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return 'Not set';
+        return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const handleQuietStartChange = (event: any, selectedDate?: Date) => {
+        if (Platform.OS === 'android') setShowQuietStartPicker(false);
+        if (selectedDate) {
+            const hours = selectedDate.getHours().toString().padStart(2, '0');
+            const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+            updateSettings({ quietHoursStart: `${hours}:${minutes}` });
+            if (Platform.OS !== 'web') Haptics.selectionAsync();
+        }
+    };
+
+    const handleQuietEndChange = (event: any, selectedDate?: Date) => {
+        if (Platform.OS === 'android') setShowQuietEndPicker(false);
+        if (selectedDate) {
+            const hours = selectedDate.getHours().toString().padStart(2, '0');
+            const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+            updateSettings({ quietHoursEnd: `${hours}:${minutes}` });
+            if (Platform.OS !== 'web') Haptics.selectionAsync();
+        }
+    };
+
+    const handleSemesterStartChange = (event: any, selectedDate?: Date) => {
+        if (Platform.OS === 'android') setShowSemesterStartPicker(false);
+        if (selectedDate) {
+            updateSettings({ semesterStart: selectedDate.toISOString() });
+            if (Platform.OS !== 'web') Haptics.selectionAsync();
+        }
+    };
+
+    const handleSemesterEndChange = (event: any, selectedDate?: Date) => {
+        if (Platform.OS === 'android') setShowSemesterEndPicker(false);
+        if (selectedDate) {
+            updateSettings({ semesterEnd: selectedDate.toISOString() });
+            if (Platform.OS !== 'web') Haptics.selectionAsync();
+        }
+    };
+
+    const handleExportData = async () => {
         try {
-            // Trigger update on all lectures to reschedule notifications with new offset
-            await Promise.all(lectures.map(l => updateLecture(l.id, {})));
-            Alert.alert("Success", "All notifications have been rescheduled.");
-        } catch (error) {
-            console.error("Reschedule error:", error);
-            Alert.alert("Error", "Failed to reschedule notifications.");
-        } finally {
-            setIsRescheduling(false);
-        }
-    };
-
-    const handleTestNotification = async () => {
-        setIsTestingNotification(true);
-        try {
-            if (Platform.OS !== 'web') {
-                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                await sendTestNotification();
-                // Alert is handled in sendTestNotification
+            const keys = ['@settings', '@lectures', '@assignments', '@exams'];
+            const [settingsData, lecturesData, assignmentsData, examsData] = await Promise.all(
+                keys.map(k => AsyncStorage.getItem(k))
+            );
+            
+            const exportPayload = {
+                settings: settingsData ? JSON.parse(settingsData) : {},
+                lectures: lecturesData ? JSON.parse(lecturesData) : [],
+                assignments: assignmentsData ? JSON.parse(assignmentsData) : [],
+                exams: examsData ? JSON.parse(examsData) : [],
+                exportedAt: new Date().toISOString()
+            };
+            
+            const fileUri = `${FileSystem.documentDirectory || ''}RemindMe_Export.json`;
+            await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(exportPayload, null, 2));
+            
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri);
             } else {
-                console.log("Test Notification sent (web)");
+                Alert.alert("Error", "Sharing is not available on this device");
             }
-        } catch (error) {
-            console.error('[Settings] Test notification error:', error);
-            Alert.alert("Error", "Failed to send test notification.");
-        } finally {
-            setIsTestingNotification(false);
+        } catch (e) {
+            console.error("Failed to export data", e);
+            Alert.alert("Export Failed", "Could not export app data.");
         }
+    };
+
+    const formatTime = (timeStr: string) => {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const d = new Date();
+        d.setHours(hours || 18, minutes || 0);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
     const SectionHeader = ({ title, icon }: { title: string; icon?: any }) => (
@@ -77,6 +170,12 @@ export default function SettingsScreen() {
             <Text style={styles.sectionTitle}>{title.toUpperCase()}</Text>
         </View>
     );
+
+    const formatDuration = (minutes: number) => {
+        if (minutes >= 1440) return `${Math.floor(minutes / 1440)} day${minutes >= 2880 ? 's' : ''}`;
+        if (minutes >= 60) return `${Math.floor(minutes / 60)} hour${minutes >= 120 ? 's' : ''}`;
+        return `${minutes} min${minutes !== 1 ? 's' : ''}`;
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -92,120 +191,283 @@ export default function SettingsScreen() {
 
                 {/* PREFERENCES SECTION */}
                 <SectionHeader title="Preferences" />
-                <View style={styles.groupedList}>
-                    <TouchableOpacity
-                        style={styles.row}
-                        onPress={handleToggleTheme}
-                        activeOpacity={0.7}
-                    >
+                <View style={[styles.groupedList, { paddingBottom: 16 }]}>
+                    <View style={styles.columnRow}>
                         <View style={styles.rowContent}>
                             <View style={[styles.iconBox, { backgroundColor: colors.textDark }]}>
-                                <Ionicons
-                                    name={settings.themeMode === 'dark' ? 'moon' : (settings.themeMode === 'light' ? 'sunny' : 'phone-portrait-outline')}
-                                    size={16}
-                                    color={colors.background}
-                                />
+                                <Ionicons name="color-palette-outline" size={16} color={colors.background} />
                             </View>
                             <Text style={styles.rowLabel}>Theme</Text>
                         </View>
-                        <View style={styles.rowContent}>
-                            <Text style={styles.rowValue}>
-                                {settings.themeMode.charAt(0).toUpperCase() + settings.themeMode.slice(1)}
-                            </Text>
+                        
+                        <View style={styles.segmentedControl}>
+                            {(['automatic', 'light', 'dark'] as const).map((mode) => {
+                                const isActive = settings.themeMode === mode;
+                                return (
+                                    <TouchableOpacity
+                                        key={mode}
+                                        style={[
+                                            styles.segmentButton,
+                                            isActive && styles.segmentButtonActive
+                                        ]}
+                                        onPress={() => {
+                                            if (Platform.OS !== 'web') Haptics.selectionAsync();
+                                            updateSettings({ themeMode: mode });
+                                        }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={[
+                                            styles.segmentText,
+                                            isActive && styles.segmentTextActive
+                                        ]}>
+                                            {mode === 'automatic' ? 'System' : mode.charAt(0).toUpperCase() + mode.slice(1)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
+                    </View>
+
+                    <View style={styles.separator} />
+
+                    <View style={styles.row}>
+                        <View style={{ flex: 1 }}>
+                            <View style={styles.rowContent}>
+                                <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                    <Ionicons name="flash-off-outline" size={16} color={colors.primary} />
+                                </View>
+                                <Text style={styles.rowLabel}>Reduce Motion</Text>
+                            </View>
+                            <Text style={[styles.rowSubtext, { marginLeft: 40 }]}>Disables screen transition animations</Text>
+                        </View>
+                        <Switch
+                            value={settings.reduceMotion}
+                            onValueChange={(val) => updateSettings({ reduceMotion: val })}
+                            trackColor={{ false: colors.textMuted + '40', true: colors.primary }}
+                            thumbColor={Platform.OS === 'android' ? '#fff' : undefined}
+                        />
+                    </View>
+                </View>
+
+                {/* ACADEMIC TERM SECTION */}
+                <SectionHeader title="Academic Term" />
+                <Text style={styles.sectionHint}>Notifications are only sent within your semester dates.</Text>
+                <View style={styles.groupedList}>
+                    <TouchableOpacity style={styles.row} onPress={() => setShowSemesterStartPicker(true)}>
+                        <View style={styles.rowContent}>
+                            <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                            </View>
+                            <Text style={styles.rowLabel}>Semester Start</Text>
+                        </View>
+                        <Text style={styles.rowValue}>{formatDate(settings.semesterStart)}</Text>
                     </TouchableOpacity>
+                    {showSemesterStartPicker && (
+                        <View style={{ backgroundColor: colors.cardBackground, paddingBottom: 10 }}>
+                            <DateTimePicker value={getSemesterDate(settings.semesterStart)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleSemesterStartChange} textColor={colors.textDark} style={{ alignSelf: 'center' }} />
+                            {Platform.OS === 'ios' && (
+                                <TouchableOpacity onPress={() => setShowSemesterStartPicker(false)} style={{ alignItems: 'center', padding: 12, borderTopWidth: 1, borderTopColor: colors.textMuted + '20' }}>
+                                    <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 17 }}>Done</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+
+                    <View style={styles.separator} />
+
+                    <TouchableOpacity style={styles.row} onPress={() => setShowSemesterEndPicker(true)}>
+                        <View style={styles.rowContent}>
+                            <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                            </View>
+                            <Text style={styles.rowLabel}>Semester End</Text>
+                        </View>
+                        <Text style={styles.rowValue}>{formatDate(settings.semesterEnd)}</Text>
+                    </TouchableOpacity>
+                    {showSemesterEndPicker && (
+                        <View style={{ backgroundColor: colors.cardBackground, paddingBottom: 10 }}>
+                            <DateTimePicker value={getSemesterDate(settings.semesterEnd)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleSemesterEndChange} textColor={colors.textDark} style={{ alignSelf: 'center' }} />
+                            {Platform.OS === 'ios' && (
+                                <TouchableOpacity onPress={() => setShowSemesterEndPicker(false)} style={{ alignItems: 'center', padding: 12, borderTopWidth: 1, borderTopColor: colors.textMuted + '20' }}>
+                                    <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 17 }}>Done</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
                 </View>
 
                 {/* NOTIFICATIONS SECTION */}
                 <SectionHeader title="Notifications" />
                 <View style={styles.groupedList}>
-                    <View style={styles.columnRow}>
-                        <Text style={styles.rowLabel}>Reminder Time</Text>
-                        <Text style={styles.rowSubLabel}>Notify me before class starts:</Text>
-                        <View style={styles.optionsGrid}>
-                            {NOTIFICATION_OPTIONS.map((minutes) => (
-                                <TouchableOpacity
-                                    key={minutes}
-                                    style={[
-                                        styles.optionButton,
-                                        settings.notificationOffset === minutes && styles.optionButtonActive
-                                    ]}
-                                    onPress={() => handleOffsetChange(minutes)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={[
-                                        styles.optionText,
-                                        settings.notificationOffset === minutes && styles.optionTextActive
-                                    ]}>
-                                        {minutes}m
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    <View style={styles.separator} />
-
+                    
                     <TouchableOpacity
                         style={styles.row}
-                        onPress={handleTestNotification}
+                        onPress={() => handleOpenPicker('lecture')}
                         activeOpacity={0.7}
-                        disabled={isTestingNotification}
                     >
                         <View style={styles.rowContent}>
-                            <Text style={[styles.rowLabel, { color: colors.primary }]}>Send Test Notification</Text>
+                            <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                <Ionicons name="book-outline" size={16} color={colors.primary} />
+                            </View>
+                            <Text style={styles.rowLabel}>Lecture Reminder</Text>
                         </View>
-                        {isTestingNotification ? (
-                            <Text style={styles.rowValue}>Sending...</Text>
-                        ) : (
-                            <Ionicons name="chevron-forward" size={16} color={colors.textMuted + '80'} />
-                        )}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.rowValue}>{formatDuration(settings.lectureOffset)}</Text>
+                            <Ionicons name="chevron-expand" size={16} color={colors.textMuted + '80'} />
+                        </View>
                     </TouchableOpacity>
 
                     <View style={styles.separator} />
 
                     <TouchableOpacity
                         style={styles.row}
-                        onPress={handleRescheduleAll}
-                        disabled={isRescheduling}
+                        onPress={() => handleOpenPicker('assignment')}
+                        activeOpacity={0.7}
                     >
                         <View style={styles.rowContent}>
-                            <Text style={styles.rowLabel}>Reschedule Notifications</Text>
+                            <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                <Ionicons name="clipboard-outline" size={16} color={colors.primary} />
+                            </View>
+                            <Text style={styles.rowLabel}>Assignment Reminder</Text>
                         </View>
-                        {isRescheduling ? <Text style={styles.rowValue}>Updating...</Text> : <Ionicons name="chevron-forward" size={16} color={colors.textMuted + '80'} />}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.rowValue}>{formatDuration(settings.assignmentOffset)}</Text>
+                            <Ionicons name="chevron-expand" size={16} color={colors.textMuted + '80'} />
+                        </View>
                     </TouchableOpacity>
-                </View>
 
-                {/* NOTIFICATION DEBUG */}
-                <SectionHeader title="Notification Info" />
-                <View style={styles.groupedList}>
-                    <View style={styles.row}>
+                    <View style={styles.separator} />
+
+                    <TouchableOpacity
+                        style={styles.row}
+                        onPress={() => handleOpenPicker('exam')}
+                        activeOpacity={0.7}
+                    >
                         <View style={styles.rowContent}>
-                            <Text style={styles.rowLabel}>Total Lectures</Text>
+                            <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                <Ionicons name="school-outline" size={16} color={colors.primary} />
+                            </View>
+                            <Text style={styles.rowLabel}>Exam Reminder</Text>
                         </View>
-                        <Text style={styles.rowValue}>{lectures.length}</Text>
-                    </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.rowValue}>{formatDuration(settings.examOffset)}</Text>
+                            <Ionicons name="chevron-expand" size={16} color={colors.textMuted + '80'} />
+                        </View>
+                    </TouchableOpacity>
 
                     <View style={styles.separator} />
 
                     <View style={styles.row}>
-                        <View style={styles.rowContent}>
-                            <Text style={styles.rowLabel}>Scheduled Alarms</Text>
-                            <Text style={styles.rowSubtext}>Android exact alarms</Text>
+                        <View style={{ flex: 1 }}>
+                            <View style={styles.rowContent}>
+                                <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                    <Ionicons name="moon-outline" size={16} color={colors.primary} />
+                                </View>
+                                <Text style={styles.rowLabel}>Quiet Hours</Text>
+                            </View>
+                            <Text style={[styles.rowSubtext, { marginLeft: 40 }]}>Block notifications during sleep</Text>
                         </View>
-                        <Text style={styles.rowValue}>
-                            {lectures.reduce((sum, l) => sum + (l.alarmNotificationIds?.length || 0), 0)}
-                        </Text>
+                        <Switch
+                            value={settings.quietHoursEnabled}
+                            onValueChange={(val) => updateSettings({ quietHoursEnabled: val })}
+                            trackColor={{ false: colors.textMuted + '40', true: colors.primary }}
+                            thumbColor={Platform.OS === 'android' ? '#fff' : undefined}
+                        />
                     </View>
+
+                    {settings.quietHoursEnabled && (
+                        <>
+                            <View style={styles.separator} />
+                            <TouchableOpacity style={styles.row} onPress={() => setShowQuietStartPicker(true)}>
+                                <View style={styles.rowContent}>
+                                    <Text style={[styles.rowLabel, { marginLeft: 36 }]}>Start Time</Text>
+                                </View>
+                                <Text style={styles.rowValue}>{formatTime(settings.quietHoursStart || '22:00')}</Text>
+                            </TouchableOpacity>
+                            {showQuietStartPicker && (
+                                <View style={{ backgroundColor: colors.cardBackground, paddingBottom: 10 }}>
+                                    <DateTimePicker value={getQuietDate(settings.quietHoursStart || '22:00')} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleQuietStartChange} textColor={colors.textDark} style={{ alignSelf: 'center' }} />
+                                    {Platform.OS === 'ios' && (
+                                        <TouchableOpacity onPress={() => setShowQuietStartPicker(false)} style={{ alignItems: 'center', padding: 12, borderTopWidth: 1, borderTopColor: colors.textMuted + '20' }}>
+                                            <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 17 }}>Done</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
+
+                            <View style={styles.separator} />
+                            <TouchableOpacity style={styles.row} onPress={() => setShowQuietEndPicker(true)}>
+                                <View style={styles.rowContent}>
+                                    <Text style={[styles.rowLabel, { marginLeft: 36 }]}>End Time</Text>
+                                </View>
+                                <Text style={styles.rowValue}>{formatTime(settings.quietHoursEnd || '07:00')}</Text>
+                            </TouchableOpacity>
+                            {showQuietEndPicker && (
+                                <View style={{ backgroundColor: colors.cardBackground, paddingBottom: 10 }}>
+                                    <DateTimePicker value={getQuietDate(settings.quietHoursEnd || '07:00')} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleQuietEndChange} textColor={colors.textDark} style={{ alignSelf: 'center' }} />
+                                    {Platform.OS === 'ios' && (
+                                        <TouchableOpacity onPress={() => setShowQuietEndPicker(false)} style={{ alignItems: 'center', padding: 12, borderTopWidth: 1, borderTopColor: colors.textMuted + '20' }}>
+                                            <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 17 }}>Done</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
+                        </>
+                    )}
 
                     <View style={styles.separator} />
 
                     <View style={styles.row}>
-                        <View style={styles.rowContent}>
-                            <Text style={styles.rowLabel}>Platform</Text>
+                        <View style={{ flex: 1 }}>
+                            <View style={styles.rowContent}>
+                                <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                    <Ionicons name="partly-sunny-outline" size={16} color={colors.primary} />
+                                </View>
+                                <Text style={styles.rowLabel}>Daily Summary</Text>
+                            </View>
+                            <Text style={[styles.rowSubtext, { marginLeft: 40 }]}>Get a daily overview of your schedule</Text>
                         </View>
-                        <Text style={styles.rowValue}>{Platform.OS}</Text>
+                        <Switch
+                            value={settings.dailySummaryEnabled}
+                            onValueChange={(val) => updateSettings({ dailySummaryEnabled: val })}
+                            trackColor={{ false: colors.textMuted + '40', true: colors.primary }}
+                            thumbColor={Platform.OS === 'android' ? '#fff' : undefined}
+                        />
                     </View>
+                    
+                    {settings.dailySummaryEnabled && (
+                        <>
+                            <View style={styles.separator} />
+                            <TouchableOpacity
+                                style={styles.row}
+                                onPress={() => setShowSummaryPicker(true)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.rowContent}>
+                                    <Text style={[styles.rowLabel, { marginLeft: 16 }]}>Summary Time</Text>
+                                </View>
+                                <Text style={styles.rowValue}>{formatTime(settings.dailySummaryTime || '18:00')}</Text>
+                            </TouchableOpacity>
+                            
+                            {showSummaryPicker && (
+                                <View style={{ backgroundColor: colors.cardBackground, paddingBottom: 10 }}>
+                                    <DateTimePicker
+                                        value={getSummaryDate()}
+                                        mode="time"
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        onChange={handleSummaryTimeChange}
+                                        textColor={colors.textDark}
+                                        style={{ alignSelf: 'center' }}
+                                    />
+                                    {Platform.OS === 'ios' && (
+                                        <TouchableOpacity onPress={() => setShowSummaryPicker(false)} style={{ alignItems: 'center', padding: 12, borderTopWidth: 1, borderTopColor: colors.textMuted + '20' }}>
+                                            <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 17 }}>Done</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
+                        </>
+                    )}
                 </View>
 
                 {/* DATA SECTION */}
@@ -213,35 +475,191 @@ export default function SettingsScreen() {
                 <View style={styles.groupedList}>
                     <TouchableOpacity
                         style={styles.row}
-                        onPress={() => setClearDataModalVisible(true)}
+                        onPress={() => setManageDataModalVisible(true)}
                     >
                         <View style={styles.rowContent}>
-                            <Text style={[styles.rowLabel, { color: colors.error }]}>Clear All Data</Text>
+                            <View style={[styles.iconBox, { backgroundColor: colors.error + '15' }]}>
+                                <Ionicons name="trash-outline" size={16} color={colors.error} />
+                            </View>
+                            <Text style={[styles.rowLabel, { color: colors.error }]}>Manage App Data</Text>
                         </View>
+                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted + '80'} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* SUPPORT SECTION */}
+                <SectionHeader title="Support & About" />
+                <View style={styles.groupedList}>
+                    <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:support@remindme.app')}>
+                        <View style={styles.rowContent}>
+                            <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                <Ionicons name="bug-outline" size={16} color={colors.primary} />
+                            </View>
+                            <Text style={styles.rowLabel}>Feedback & Bug Report</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted + '80'} />
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.infoSection}>
-                    <Text style={styles.versionText}>Lectures App v1.2.0</Text>
+                    <Text style={styles.versionText}>Lectures App v{Constants.expoConfig?.version || '1.0.0'}</Text>
                 </View>
 
             </ScrollView >
 
+            <Modal
+                visible={pickerVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setPickerVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setPickerVisible(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalDragIndicator} />
+                        <Text style={styles.modalTitle}>
+                            {pickerType === 'lecture' ? 'Lecture Reminder' : 
+                             pickerType === 'assignment' ? 'Assignment Reminder' : 
+                             'Exam Reminder'}
+                        </Text>
+                        <Text style={styles.modalMessage}>Choose when to be notified.</Text>
+                        
+                        {(pickerType === 'exam' ? EXAM_NOTIFICATION_OPTIONS : NOTIFICATION_OPTIONS).map((minutes, index, array) => {
+                            const isSelected = 
+                                (pickerType === 'lecture' && settings.lectureOffset === minutes) ||
+                                (pickerType === 'assignment' && settings.assignmentOffset === minutes) ||
+                                (pickerType === 'exam' && settings.examOffset === minutes);
+
+                            return (
+                                <TouchableOpacity 
+                                    key={`${pickerType}-${minutes}`}
+                                    style={[
+                                        styles.modalActionRow, 
+                                        { justifyContent: 'space-between' },
+                                        index === array.length - 1 && { borderBottomWidth: 0 }
+                                    ]}
+                                    onPress={() => handleSelectOption(minutes)}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                        <Ionicons name="time-outline" size={22} color={colors.textMuted} />
+                                        <Text style={[styles.modalActionText, { color: colors.textDark, fontSize: 16 }, isSelected && { fontWeight: '600', color: colors.primary }]}>
+                                            {formatDuration(minutes)} {pickerType === 'exam' ? 'before' : 'before'}
+                                        </Text>
+                                    </View>
+                                    {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
+                                </TouchableOpacity>
+                            );
+                        })}
+                        
+                        <TouchableOpacity 
+                            style={styles.modalCancelButton}
+                            onPress={() => setPickerVisible(false)}
+                        >
+                            <Text style={styles.modalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
             <ConfirmationModal
-                visible={clearDataModalVisible}
-                title="Clear All Data?"
-                message="Are you sure you want to delete all lectures and exams? This cannot be undone."
-                confirmText="Clear All"
+                visible={clearLecturesModalVisible}
+                title="Clear Lectures?"
+                message="Are you sure you want to delete all lectures? This cannot be undone."
+                confirmText="Clear Lectures"
                 isDestructive
-                onCancel={() => setClearDataModalVisible(false)}
+                onCancel={() => setClearLecturesModalVisible(false)}
                 onConfirm={async () => {
                     await clearLectures();
-                    await clearExams();
-                    setClearDataModalVisible(false);
-                    // Optional: Show success feedback via toast or small modal logic, 
-                    // but for now avoiding Alert.alert as requested.
+                    setClearLecturesModalVisible(false);
                 }}
             />
+
+            <ConfirmationModal
+                visible={clearExamsModalVisible}
+                title="Clear Exams?"
+                message="Are you sure you want to delete all exams? This cannot be undone."
+                confirmText="Clear Exams"
+                isDestructive
+                onCancel={() => setClearExamsModalVisible(false)}
+                onConfirm={async () => {
+                    await clearExams();
+                    setClearExamsModalVisible(false);
+                }}
+            />
+
+            <ConfirmationModal
+                visible={clearAssignmentsModalVisible}
+                title="Clear Assignments?"
+                message="Are you sure you want to delete all assignments? This cannot be undone."
+                confirmText="Clear Assignments"
+                isDestructive
+                onCancel={() => setClearAssignmentsModalVisible(false)}
+                onConfirm={async () => {
+                    await clearAssignments?.();
+                    setClearAssignmentsModalVisible(false);
+                }}
+            />
+
+            <Modal
+                visible={manageDataModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setManageDataModalVisible(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.modalOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setManageDataModalVisible(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalDragIndicator} />
+                        <Text style={styles.modalTitle}>Manage App Data</Text>
+                        <Text style={styles.modalMessage}>Choose the data you want to delete. This will open a confirmation dialog.</Text>
+                        
+                        <TouchableOpacity 
+                            style={styles.modalActionRow}
+                            onPress={() => { setManageDataModalVisible(false); setTimeout(handleExportData, 300); }}
+                        >
+                            <Ionicons name="download-outline" size={22} color={colors.primary} />
+                            <Text style={[styles.modalActionText, { color: colors.primary }]}>Export App Data (JSON)</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={styles.modalActionRow}
+                            onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearLecturesModalVisible(true), 300); }}
+                        >
+                            <Ionicons name="book-outline" size={22} color={colors.error} />
+                            <Text style={styles.modalActionText}>Clear All Lectures</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                            style={styles.modalActionRow}
+                            onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearAssignmentsModalVisible(true), 300); }}
+                        >
+                            <Ionicons name="clipboard-outline" size={22} color={colors.error} />
+                            <Text style={styles.modalActionText}>Clear All Assignments</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[styles.modalActionRow, { borderBottomWidth: 0 }]}
+                            onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearExamsModalVisible(true), 300); }}
+                        >
+                            <Ionicons name="document-text-outline" size={22} color={colors.error} />
+                            <Text style={styles.modalActionText}>Clear All Exams</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                            style={styles.modalCancelButton}
+                            onPress={() => setManageDataModalVisible(false)}
+                        >
+                            <Text style={styles.modalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </SafeAreaView >
     );
 }
@@ -279,6 +697,13 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         fontWeight: '600',
         color: colors.textMuted,
         letterSpacing: -0.2,
+    },
+    sectionHint: {
+        fontSize: 13,
+        color: colors.textMuted,
+        paddingHorizontal: 16,
+        marginBottom: 6,
+        marginTop: -4,
     },
     groupedList: {
         backgroundColor: colors.cardBackground,
@@ -356,6 +781,37 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     optionTextActive: {
         color: colors.background === '#000000' ? '#000' : '#FFF',
     },
+    segmentedControl: {
+        flexDirection: 'row',
+        backgroundColor: colors.background,
+        borderRadius: 8,
+        padding: 4,
+        marginTop: 16,
+    },
+    segmentButton: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 6,
+    },
+    segmentButtonActive: {
+        backgroundColor: colors.cardBackground,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    segmentText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.textMuted,
+    },
+    segmentTextActive: {
+        color: colors.textDark,
+        fontWeight: '600',
+    },
     infoSection: {
         alignItems: 'center',
         marginTop: 32,
@@ -369,5 +825,63 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     versionText: {
         color: colors.textMuted,
         fontSize: 13,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: colors.cardBackground,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    },
+    modalDragIndicator: {
+        width: 40,
+        height: 4,
+        backgroundColor: colors.textMuted + '40',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: colors.textDark,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    modalMessage: {
+        fontSize: 15,
+        color: colors.textMuted,
+        marginBottom: 24,
+        textAlign: 'center',
+    },
+    modalActionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.textMuted + '30',
+        gap: 16,
+    },
+    modalActionText: {
+        fontSize: 17,
+        color: colors.error,
+        fontWeight: '500',
+    },
+    modalCancelButton: {
+        marginTop: 24,
+        paddingVertical: 16,
+        alignItems: 'center',
+        backgroundColor: colors.background,
+        borderRadius: 14,
+    },
+    modalCancelText: {
+        fontSize: 17,
+        color: colors.textDark,
+        fontWeight: '600',
     }
 });

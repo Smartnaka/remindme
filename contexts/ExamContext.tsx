@@ -20,6 +20,7 @@ const ExamContext = createContext<ExamContextType | undefined>(undefined);
 export const ExamProvider = ({ children }: { children: React.ReactNode }) => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { settings } = useSettings();
 
   useEffect(() => {
     loadExams();
@@ -63,19 +64,26 @@ export const ExamProvider = ({ children }: { children: React.ReactNode }) => {
 
     await saveExams(updatedExams);
 
-    // Schedule notification (e.g. 1 day before) - only on native platforms
+    // Schedule notification based on examOffset - only on native platforms
     if (Platform.OS !== 'web') {
       const trigger = new Date(newExam.date);
-      trigger.setHours(trigger.getHours() - 24); // 24 hours before
+      trigger.setMinutes(trigger.getMinutes() - settings.examOffset);
 
       if (trigger > new Date()) {
-        await Notifications.scheduleNotificationAsync({
+        const notificationId = await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Exam Tomorrow! 📝',
-            body: `Good luck on your ${newExam.courseName} exam.`,
+            title: 'Upcoming Exam! 📝',
+            body: `You have an exam for ${newExam.courseName} in ${settings.examOffset >= 1440 ? Math.floor(settings.examOffset / 1440) + ' days' : settings.examOffset + ' minutes'}.`,
+            data: { examId: newExam.id },
           },
-          trigger,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: trigger,
+            channelId: 'lecture-reminders',
+          },
         });
+        
+        // Save the notification ID (we need to add this property if it doesn't exist, but we can dynamically add it for now or just trust we'll clean them all on delete via standard clearing if we enhance Exam type)
       }
     }
   };

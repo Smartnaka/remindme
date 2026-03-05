@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, Share } from 'react-native';
 import ConfettiCelebration from '@/components/ConfettiCelebration';
+import AssignmentProgressBar from '@/components/AssignmentProgressBar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -15,7 +16,7 @@ import * as Sharing from 'expo-sharing';
 export default function LectureDetailScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
-    const { getLectureById, deleteLecture, assignments, addAssignment, updateAssignment, deleteAssignment, getAssignmentsByLectureId } = useLectures();
+    const { getLectureById, deleteLecture, updateLecture, assignments, addAssignment, updateAssignment, deleteAssignment, getAssignmentsByLectureId } = useLectures();
     const { colors, settings } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [showConfetti, setShowConfetti] = useState(false);
@@ -189,6 +190,66 @@ export default function LectureDetailScreen() {
                      </View>
                 )}
 
+                {/* Attendance Tracker */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>ATTENDANCE</Text>
+                    <View style={styles.card}>
+                        <View style={styles.attendanceStats}>
+                            <View style={styles.attendanceRing}>
+                                <Text style={styles.attendancePercent}>
+                                    {(lecture.totalClasses || 0) > 0
+                                        ? `${Math.round(((lecture.attendedClasses || 0) / (lecture.totalClasses || 1)) * 100)}%`
+                                        : '—'}
+                                </Text>
+                            </View>
+                            <View style={styles.attendanceCounts}>
+                                <Text style={styles.attendanceCountText}>
+                                    <Text style={{ fontWeight: '800', color: colors.primary }}>{lecture.attendedClasses || 0}</Text>
+                                    {' / '}
+                                    <Text style={{ fontWeight: '800' }}>{lecture.totalClasses || 0}</Text>
+                                    {' classes attended'}
+                                </Text>
+                                {(lecture.totalClasses || 0) > 0 && (
+                                    <Text style={styles.attendanceHint}>
+                                        {((lecture.attendedClasses || 0) / (lecture.totalClasses || 1)) >= 0.75
+                                            ? '🔥 Great attendance!'
+                                            : ((lecture.attendedClasses || 0) / (lecture.totalClasses || 1)) >= 0.5
+                                                ? '⚠️ Could improve'
+                                                : '😬 Needs work'}
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+                        <View style={styles.attendanceActions}>
+                            <TouchableOpacity
+                                style={[styles.attendanceBtn, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}
+                                onPress={() => {
+                                    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    updateLecture(lecture.id, {
+                                        totalClasses: (lecture.totalClasses || 0) + 1,
+                                        attendedClasses: (lecture.attendedClasses || 0) + 1,
+                                    });
+                                }}
+                            >
+                                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                                <Text style={[styles.attendanceBtnText, { color: colors.primary }]}>Attended</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.attendanceBtn, { backgroundColor: colors.error + '15', borderColor: colors.error }]}
+                                onPress={() => {
+                                    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    updateLecture(lecture.id, {
+                                        totalClasses: (lecture.totalClasses || 0) + 1,
+                                    });
+                                }}
+                            >
+                                <Ionicons name="close-circle" size={20} color={colors.error} />
+                                <Text style={[styles.attendanceBtnText, { color: colors.error }]}>Missed</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+
                 {/* Assignments */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeaderRow}>
@@ -230,9 +291,10 @@ export default function LectureDetailScreen() {
                                             )}
                                         </View>
                                         {assignment.dueDate && (
-                                            <Text style={styles.assignmentDate}>
-                                                Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                                            </Text>
+                                            <AssignmentProgressBar
+                                                dueDate={assignment.dueDate}
+                                                isCompleted={assignment.isCompleted}
+                                            />
                                         )}
                                     </View>
                                     <TouchableOpacity 
@@ -463,5 +525,56 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         fontSize: 10,
         fontWeight: '700',
         color: '#FFFFFF',
-    }
+    },
+    attendanceStats: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        marginBottom: 16,
+    },
+    attendanceRing: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        borderWidth: 4,
+        borderColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.primary + '10',
+    },
+    attendancePercent: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: colors.primary,
+    },
+    attendanceCounts: {
+        flex: 1,
+    },
+    attendanceCountText: {
+        fontSize: 15,
+        color: colors.textDark,
+    },
+    attendanceHint: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginTop: 4,
+    },
+    attendanceActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    attendanceBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    attendanceBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
 });

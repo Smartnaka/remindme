@@ -15,6 +15,8 @@ export interface Lecture {
   twoHourReminderId?: string; // ID for the 2-hour prior reminder
   calendarEventId?: string; // Store calendar event ID for sync management
   recurrence?: Recurrence; // New recurrence settings
+  totalClasses?: number; // Total number of classes held
+  attendedClasses?: number; // Number of classes attended
 }
 
 export interface Recurrence {

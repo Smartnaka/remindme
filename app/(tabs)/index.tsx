@@ -131,6 +131,13 @@ export default function TodayScreen() {
             <TouchableOpacity
               style={styles.iconButton}
               activeOpacity={0.7}
+              onPress={() => router.push('/study-timer')}
+            >
+              <Ionicons name="timer-outline" size={24} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconButton}
+              activeOpacity={0.7}
               onPress={handleNotificationPress}
             >
               <Ionicons name="notifications-outline" size={24} color={colors.primary} />

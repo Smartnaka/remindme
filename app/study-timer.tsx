@@ -1,42 +1,24 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Platform, Animated, Vibration, StatusBar,
+  View, Text, StyleSheet, TouchableOpacity, Platform, Animated, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useLectures } from '@/contexts/LectureContext';
+import { useStudyTimer } from '@/contexts/StudyTimerContext';
 import { ColorTheme } from '@/types/theme';
 import * as Haptics from 'expo-haptics';
-
-type TimerMode = 'focus' | 'shortBreak' | 'longBreak';
-
-const TIMER_DURATIONS: Record<TimerMode, number> = {
-  focus: 25 * 60,
-  shortBreak: 5 * 60,
-  longBreak: 15 * 60,
-};
-
-const MODE_LABELS: Record<TimerMode, string> = {
-  focus: 'Focus',
-  shortBreak: 'Short Break',
-  longBreak: 'Long Break',
-};
 
 export default function StudyTimerScreen() {
   const router = useRouter();
   const { colors, settings } = useSettings();
   const { lectures } = useLectures();
+  const timer = useStudyTimer();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [mode, setMode] = useState<TimerMode>('focus');
-  const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATIONS.focus);
-  const [isRunning, setIsRunning] = useState(false);
-  const [sessions, setSessions] = useState(0);
-  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const progressAnim = useRef(new Animated.Value(1)).current;
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Course names for picker
@@ -45,47 +27,20 @@ export default function StudyTimerScreen() {
     return names.sort();
   }, [lectures]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
-
-  // Timer tick
-  useEffect(() => {
-    if (isRunning && secondsLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current!);
-            handleTimerComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      };
-    }
-  }, [isRunning]);
-
   // Animate progress
   useEffect(() => {
-    const total = TIMER_DURATIONS[mode];
-    const progress = secondsLeft / total;
+    const total = timer.DURATIONS[timer.mode];
+    const progress = timer.secondsLeft / total;
     Animated.timing(progressAnim, {
       toValue: progress,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [secondsLeft, mode]);
+  }, [timer.secondsLeft, timer.mode]);
 
   // Pulse animation when running
   useEffect(() => {
-    if (isRunning && !settings.reduceMotion) {
+    if (timer.isRunning && !settings.reduceMotion) {
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -105,65 +60,15 @@ export default function StudyTimerScreen() {
     } else {
       pulseAnim.setValue(1);
     }
-  }, [isRunning, settings.reduceMotion]);
-
-  const handleTimerComplete = useCallback(() => {
-    setIsRunning(false);
-
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Vibration.vibrate([0, 300, 200, 300]);
-    }
-
-    if (mode === 'focus') {
-      const newSessions = sessions + 1;
-      setSessions(newSessions);
-
-      // After 4 focus sessions, suggest long break
-      if (newSessions % 4 === 0) {
-        switchMode('longBreak');
-      } else {
-        switchMode('shortBreak');
-      }
-    } else {
-      switchMode('focus');
-    }
-  }, [mode, sessions]);
-
-  const switchMode = (newMode: TimerMode) => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMode(newMode);
-    setSecondsLeft(TIMER_DURATIONS[newMode]);
-    setIsRunning(false);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  };
-
-  const toggleTimer = () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsRunning(prev => !prev);
-  };
-
-  const resetTimer = () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsRunning(false);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setSecondsLeft(TIMER_DURATIONS[mode]);
-  };
+  }, [timer.isRunning, settings.reduceMotion]);
 
   // Format time as MM:SS
-  const minutes = Math.floor(secondsLeft / 60);
-  const secs = secondsLeft % 60;
+  const minutes = Math.floor(timer.secondsLeft / 60);
+  const secs = timer.secondsLeft % 60;
   const timeString = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-  // Circle progress
-  const circumference = 2 * Math.PI * 120;
-  const strokeDashoffset = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [circumference, 0],
-  });
-
-  const modeColor = mode === 'focus' ? colors.primary
-    : mode === 'shortBreak' ? '#4ECDC4'
+  const modeColor = timer.mode === 'focus' ? colors.primary
+    : timer.mode === 'shortBreak' ? '#4ECDC4'
     : '#A78BFA';
 
   return (
@@ -183,20 +88,20 @@ export default function StudyTimerScreen() {
         <Text style={styles.headerTitle}>Study Timer</Text>
         <View style={styles.sessionBadge}>
           <Ionicons name="flame" size={16} color="#FF6B6B" />
-          <Text style={styles.sessionText}>{sessions}</Text>
+          <Text style={styles.sessionText}>{timer.sessions}</Text>
         </View>
       </View>
 
       {/* Mode Tabs */}
       <View style={styles.modeTabs}>
-        {(['focus', 'shortBreak', 'longBreak'] as TimerMode[]).map(m => (
+        {(['focus', 'shortBreak', 'longBreak'] as const).map(m => (
           <TouchableOpacity
             key={m}
-            style={[styles.modeTab, mode === m && { backgroundColor: modeColor }]}
-            onPress={() => switchMode(m)}
+            style={[styles.modeTab, timer.mode === m && { backgroundColor: modeColor }]}
+            onPress={() => timer.switchMode(m)}
           >
-            <Text style={[styles.modeTabText, mode === m && styles.modeTabTextActive]}>
-              {MODE_LABELS[m]}
+            <Text style={[styles.modeTabText, timer.mode === m && styles.modeTabTextActive]}>
+              {timer.LABELS[m]}
             </Text>
           </TouchableOpacity>
         ))}
@@ -213,17 +118,17 @@ export default function StudyTimerScreen() {
                 key={name}
                 style={[
                   styles.courseChip,
-                  selectedCourse === name && { backgroundColor: modeColor, borderColor: modeColor },
+                  timer.selectedCourse === name && { backgroundColor: modeColor, borderColor: modeColor },
                 ]}
                 onPress={() => {
                   if (Platform.OS !== 'web') Haptics.selectionAsync();
-                  setSelectedCourse(selectedCourse === name ? null : name);
+                  timer.setSelectedCourse(timer.selectedCourse === name ? null : name);
                 }}
               >
                 <Text
                   style={[
                     styles.courseChipText,
-                    selectedCourse === name && { color: '#FFF' },
+                    timer.selectedCourse === name && { color: '#FFF' },
                   ]}
                   numberOfLines={1}
                 >
@@ -245,7 +150,7 @@ export default function StudyTimerScreen() {
             {/* Timer display */}
             <View style={styles.timerTextContainer}>
               <Text style={[styles.timerText, { color: modeColor }]}>{timeString}</Text>
-              <Text style={styles.modeLabel}>{MODE_LABELS[mode]}</Text>
+              <Text style={styles.modeLabel}>{timer.LABELS[timer.mode]}</Text>
             </View>
           </View>
         </Animated.View>
@@ -253,28 +158,28 @@ export default function StudyTimerScreen() {
 
       {/* Controls */}
       <View style={styles.controls}>
-        <TouchableOpacity style={styles.secondaryBtn} onPress={resetTimer}>
+        <TouchableOpacity style={styles.secondaryBtn} onPress={timer.resetTimer}>
           <Ionicons name="refresh" size={28} color={colors.textMuted} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.mainBtn, { backgroundColor: modeColor }]}
-          onPress={toggleTimer}
+          onPress={timer.toggleTimer}
           activeOpacity={0.8}
         >
           <Ionicons
-            name={isRunning ? 'pause' : 'play'}
+            name={timer.isRunning ? 'pause' : 'play'}
             size={36}
             color="#FFF"
-            style={!isRunning ? { marginLeft: 4 } : undefined}
+            style={!timer.isRunning ? { marginLeft: 4 } : undefined}
           />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.secondaryBtn}
           onPress={() => {
-            const nextMode = mode === 'focus' ? 'shortBreak' : 'focus';
-            switchMode(nextMode);
+            const nextMode = timer.mode === 'focus' ? 'shortBreak' : 'focus';
+            timer.switchMode(nextMode);
           }}
         >
           <Ionicons name="play-skip-forward" size={28} color={colors.textMuted} />
@@ -290,15 +195,15 @@ export default function StudyTimerScreen() {
               style={[
                 styles.dot,
                 {
-                  backgroundColor: i < (sessions % 4) ? modeColor : colors.textMuted + '30',
+                  backgroundColor: i < (timer.sessions % 4) ? modeColor : colors.textMuted + '30',
                 },
               ]}
             />
           ))}
         </View>
         <Text style={styles.sessionInfoText}>
-          {sessions} session{sessions !== 1 ? 's' : ''} completed
-          {selectedCourse ? ` • ${selectedCourse}` : ''}
+          {timer.sessions} session{timer.sessions !== 1 ? 's' : ''} completed
+          {timer.selectedCourse ? ` • ${timer.selectedCourse}` : ''}
         </Text>
       </View>
     </SafeAreaView>

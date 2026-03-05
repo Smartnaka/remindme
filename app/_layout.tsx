@@ -14,6 +14,7 @@ import { useEffect, useRef } from "react";
 import * as Notifications from 'expo-notifications';
 import NotificationBanner from "@/components/NotificationBanner";
 import { ExamProvider } from "@/contexts/ExamContext";
+import { StudyTimerProvider } from "@/contexts/StudyTimerContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -127,8 +128,10 @@ export default function RootLayout() {
             <SettingsProvider>
               <LectureProvider>
                 <ExamProvider>
-                  <RootLayoutNav />
-                  <NotificationBanner />
+                  <StudyTimerProvider>
+                    <RootLayoutNav />
+                    <NotificationBanner />
+                  </StudyTimerProvider>
                 </ExamProvider>
               </LectureProvider>
             </SettingsProvider>

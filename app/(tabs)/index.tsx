@@ -15,6 +15,7 @@ import { Lecture } from '@/types/lecture';
 import { getUpcomingAssignments } from '@/utils/assignmentUtils';
 import UndoToast from '@/components/UndoToast';
 import SuccessToast from '@/components/SuccessToast';
+import MiniTimerBar from '@/components/MiniTimerBar';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -147,6 +148,9 @@ export default function TodayScreen() {
           </View>
         </View>
       </SafeAreaView>
+
+      {/* Mini Study Timer Bar — shows when a timer session is active */}
+      <MiniTimerBar />
 
       <ScrollView
         style={styles.scrollView}

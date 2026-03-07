@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Animated, StatusBar, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack, useNavigation } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +27,31 @@ export default function AddAssignmentScreen() {
     const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    
+    const navigation = useNavigation();
+
+    // Track if user made any input
+    const isDirty = useMemo(() => {
+        return title.trim().length > 0 || description.trim().length > 0 || priority !== 'medium';
+    }, [title, description, priority]);
+
+    React.useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            if (!isDirty || isSaving) {
+                return; // Let navigation proceed
+            }
+            e.preventDefault();
+            showAlert(
+                "Discard changes?",
+                "You have unsaved changes. Are you sure you want to discard them?",
+                [
+                    { text: "Keep Editing", style: "cancel" },
+                    { text: "Discard", style: "destructive", onPress: () => navigation.dispatch(e.data.action) }
+                ]
+            );
+        });
+        return unsubscribe;
+    }, [navigation, isDirty, isSaving]);
 
     const handleDateChange = (event: any, selectedDate?: Date) => {
         if (Platform.OS === 'android') setShowDatePicker(false);

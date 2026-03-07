@@ -13,7 +13,7 @@ import {
   StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams, Stack } from "expo-router";
+import { useRouter, useLocalSearchParams, Stack, useNavigation } from "expo-router";
 import { useLectures } from "@/contexts/LectureContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { DayOfWeek, CourseFile, Recurrence } from "@/types/lecture";
@@ -82,6 +82,53 @@ export default function AddLectureScreen() {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  const navigation = useNavigation();
+
+  // Track if user made any input or modified existing lecture
+  const isDirty = useMemo(() => {
+    if (isEditing && existingLecture) {
+      if (courseName !== existingLecture.courseName) return true;
+      if (lecturer !== (existingLecture.lecturer || "")) return true;
+      if (location !== (existingLecture.location || "")) return true;
+      if (color !== (existingLecture.color || "")) return true;
+      if (startTime !== existingLecture.startTime) return true;
+      if (endTime !== existingLecture.endTime) return true;
+      if (dayOfWeek !== existingLecture.dayOfWeek) return true;
+      if ((existingLecture.recurrence?.type || 'weekly') !== recurrenceType) return true;
+      if (files.length !== (existingLecture.files?.length || 0)) return true; 
+      return false;
+    } else {
+      // New lecture: dirty if filled fields
+      return (
+        courseName.trim().length > 0 ||
+        lecturer.trim().length > 0 ||
+        location.trim().length > 0 ||
+        files.length > 0
+      );
+    }
+  }, [
+    courseName, lecturer, location, color, startTime, endTime, 
+    dayOfWeek, files, recurrenceType, isEditing, existingLecture
+  ]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!isDirty || isSaving) {
+        return; // Let navigation proceed
+      }
+      e.preventDefault();
+      showAlert(
+        "Discard changes?",
+        "You have unsaved changes. Are you sure you want to discard them?",
+        [
+          { text: "Keep Editing", style: "cancel" },
+          { text: "Discard", style: "destructive", onPress: () => navigation.dispatch(e.data.action) }
+        ]
+      );
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, isSaving]);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 

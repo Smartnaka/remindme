@@ -186,21 +186,22 @@ export default function TodayScreen() {
                   const validNextLecture = nextLecture;
                   const dayLabel = daysAway === 1 ? 'Tomorrow' : validNextLecture.dayOfWeek;
                   return (
-                    <TouchableOpacity 
-                      style={styles.heroNextClass}
-                      activeOpacity={0.7}
-                      onPress={() => router.push(`/lecture/${validNextLecture.id}`)}
-                    >
-                      <View style={styles.heroNextIcon}>
-                        <Ionicons name="sparkles" size={28} color={colors.primary} />
-                      </View>
-                      <Text style={styles.heroNextLabel}>UP NEXT • {dayLabel.toUpperCase()}</Text>
-                      <Text style={styles.heroNextCourse} numberOfLines={2}>{validNextLecture.courseName}</Text>
-                      <Text style={styles.heroNextTime}>
-                        {formatTimeAMPM(validNextLecture.startTime)} - {formatTimeAMPM(validNextLecture.endTime)}
-                        {validNextLecture.location ? ` • ${validNextLecture.location}` : ''}
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={styles.nextClassContainer}>
+                      <Text style={styles.nextClassHeader}>UPCOMING</Text>
+                      <TouchableOpacity 
+                        style={styles.nextClassCard}
+                        activeOpacity={0.7}
+                        onPress={() => router.push(`/lecture/${validNextLecture.id}`)}
+                      >
+                        <View style={styles.nextClassInfo}>
+                          <Text style={styles.nextClassName} numberOfLines={1}>{validNextLecture.courseName}</Text>
+                          <Text style={styles.nextClassTime}>
+                            {dayLabel} • {formatTimeAMPM(validNextLecture.startTime)} {validNextLecture.location ? ` • ${validNextLecture.location}` : ''}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={{ opacity: 0.5 }} />
+                      </TouchableOpacity>
+                    </View>
                   );
                 })()}
               </>
@@ -653,37 +654,51 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     color: colors.primary,
   },
-  heroNextClass: {
-    alignItems: 'center',
-    marginTop: 32,
-    paddingHorizontal: 20,
+  nextClassContainer: {
+    width: '100%',
+    marginTop: 24,
   },
-  heroNextIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  heroNextLabel: {
-    fontSize: 13,
+  nextClassHeader: {
+    fontSize: 12,
     fontFamily: 'Inter_700Bold',
-    color: colors.primary,
-    letterSpacing: 1.2,
-    marginBottom: 8,
+    color: colors.textMuted,
+    letterSpacing: 1,
+    marginBottom: 12,
+    marginLeft: 4,
+    alignSelf: 'flex-start',
   },
-  heroNextCourse: {
-    fontSize: 28,
+  nextClassCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  nextClassInfo: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  nextClassName: {
+    fontSize: 18,
     fontFamily: 'Inter_700Bold',
     color: colors.textDark,
-    textAlign: 'center',
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: 4,
   },
-  heroNextTime: {
-    fontSize: 16,
+  nextClassTime: {
+    fontSize: 14,
     fontFamily: 'Inter_500Medium',
     color: colors.textMuted,
   },

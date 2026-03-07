@@ -183,15 +183,24 @@ export default function TodayScreen() {
                     if (diff < daysAway) { daysAway = diff; nextLecture = lec; }
                   }
                   if (!nextLecture) return null;
-                  const dayLabel = daysAway === 1 ? 'Tomorrow' : nextLecture.dayOfWeek;
+                  const validNextLecture = nextLecture;
+                  const dayLabel = daysAway === 1 ? 'Tomorrow' : validNextLecture.dayOfWeek;
                   return (
-                    <View style={styles.nextClassCard}>
-                      <Text style={styles.nextClassLabel}>NEXT CLASS</Text>
-                      <Text style={styles.nextClassName}>{nextLecture.courseName}</Text>
-                      <Text style={styles.nextClassTime}>
-                        {dayLabel} at {formatTimeAMPM(nextLecture.startTime)}
+                    <TouchableOpacity 
+                      style={styles.heroNextClass}
+                      activeOpacity={0.7}
+                      onPress={() => router.push(`/lecture/${validNextLecture.id}`)}
+                    >
+                      <View style={styles.heroNextIcon}>
+                        <Ionicons name="sparkles" size={28} color={colors.primary} />
+                      </View>
+                      <Text style={styles.heroNextLabel}>UP NEXT • {dayLabel.toUpperCase()}</Text>
+                      <Text style={styles.heroNextCourse} numberOfLines={2}>{validNextLecture.courseName}</Text>
+                      <Text style={styles.heroNextTime}>
+                        {formatTimeAMPM(validNextLecture.startTime)} - {formatTimeAMPM(validNextLecture.endTime)}
+                        {validNextLecture.location ? ` • ${validNextLecture.location}` : ''}
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })()}
               </>
@@ -644,44 +653,39 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     color: colors.primary,
   },
-  nextClassCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 14,
-    padding: 18,
+  heroNextClass: {
     alignItems: 'center',
-    width: '100%',
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: colors.textMuted + '15',
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    marginTop: 32,
+    paddingHorizontal: 20,
   },
-  nextClassLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textMuted,
-    letterSpacing: 0.8,
+  heroNextIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  heroNextLabel: {
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+    color: colors.primary,
+    letterSpacing: 1.2,
     marginBottom: 8,
   },
-  nextClassName: {
-    fontSize: 18,
+  heroNextCourse: {
+    fontSize: 28,
     fontFamily: 'Inter_700Bold',
     color: colors.textDark,
-    marginBottom: 4,
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
-  nextClassTime: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '500',
+  heroNextTime: {
+    fontSize: 16,
+    fontFamily: 'Inter_500Medium',
+    color: colors.textMuted,
   },
   timelineContainer: {
     paddingBottom: 40,

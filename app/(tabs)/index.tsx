@@ -16,12 +16,14 @@ import { getUpcomingAssignments } from '@/utils/assignmentUtils';
 import UndoToast from '@/components/UndoToast';
 import SuccessToast from '@/components/SuccessToast';
 import MiniTimerBar from '@/components/MiniTimerBar';
+import OnboardingCarousel from '@/components/OnboardingCarousel';
+import LectureContextMenu from '@/components/LectureContextMenu';
 
 export default function TodayScreen() {
   const router = useRouter();
   const todayLectures = useTodayLectures();
   const { lectures, deleteLecture, restoreLecture, assignments } = useLectures();
-  const { colors, settings, updateSettings } = useSettings();
+  const { colors, settings, updateSettings, isLoading: isSettingsLoading } = useSettings();
   const today = getCurrentDayOfWeek();
   const fabScale = useRef(new Animated.Value(1)).current;
   const [currentMinute, setCurrentMinute] = useState(new Date().getMinutes());
@@ -36,14 +38,25 @@ export default function TodayScreen() {
   }, []);
 
   // Action States
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
   const [fabMenuMode, setFabMenuMode] = useState<'options' | 'coursePicker'>('options');
   const [undoToastVisible, setUndoToastVisible] = useState(false);
   const [deletedLecture, setDeletedLecture] = useState<Lecture | null>(null);
+
+  // Context Menu State
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
+  const [contextLecture, setContextLecture] = useState<Lecture | null>(null);
   
   // Success Toast 
   const [successToastVisible, setSuccessToastVisible] = useState(false);
   const [successToastMessage, setSuccessToastMessage] = useState('');
+
+  useEffect(() => {
+    if (!isSettingsLoading && !settings.hasOnboarded) {
+      setShowOnboarding(true);
+    }
+  }, [isSettingsLoading, settings.hasOnboarded]);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('showSuccessToast', (data) => {
@@ -97,6 +110,14 @@ export default function TodayScreen() {
       deleteLecture(lecture.id);
       // 3. Show Toast
       setUndoToastVisible(true);
+  };
+
+  const handleLongPress = (lecture: Lecture) => {
+    if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setContextLecture(lecture);
+    setContextMenuVisible(true);
   };
 
   const handleUndoDelete = () => {
@@ -287,6 +308,7 @@ export default function TodayScreen() {
                                                 lecture={lecture}
                                                 isNext={false}
                                                 onPress={() => router.push(`/lecture/${lecture.id}`)}
+                                                onLongPress={() => handleLongPress(lecture)}
                                              />
                                          </SwipeableLectureRow>
                                          {!isLast && <View style={styles.separator} />}
@@ -326,6 +348,7 @@ export default function TodayScreen() {
                                   lecture={lecture}
                                   isNext={false}
                                   onPress={() => router.push(`/lecture/${lecture.id}`)}
+                                  onLongPress={() => handleLongPress(lecture)}
                                 />
                               </SwipeableLectureRow>
                               {!isLast && <View style={styles.separator} />}
@@ -536,6 +559,23 @@ export default function TodayScreen() {
           <Ionicons name="add" size={32} color="#FFFFFF" />
         </TouchableOpacity>
       </Animated.View>
+
+      <LectureContextMenu 
+        visible={contextMenuVisible}
+        lecture={contextLecture}
+        onClose={() => setContextMenuVisible(false)}
+        onView={(lec) => router.push(`/lecture/${lec.id}`)}
+        onEdit={(lec) => router.push(`/add-lecture?id=${lec.id}`)}
+        onDelete={handleDeleteClass}
+      />
+
+      <OnboardingCarousel 
+        visible={showOnboarding} 
+        onComplete={() => {
+            setShowOnboarding(false);
+            updateSettings({ hasOnboarded: true });
+        }}
+      />
     </View>
   );
 }

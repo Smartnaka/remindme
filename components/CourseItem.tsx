@@ -9,10 +9,11 @@ import { DEFAULT_LECTURE_COLOR } from '@/constants/colors';
 interface CourseItemProps {
     lecture: Lecture;
     onPress: () => void;
+    onLongPress?: () => void;
     isNext?: boolean;
 }
 
-export default function CourseItem({ lecture, onPress, isNext = false }: CourseItemProps) {
+export default function CourseItem({ lecture, onPress, onLongPress, isNext = false }: CourseItemProps) {
     const { colors } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -32,6 +33,7 @@ export default function CourseItem({ lecture, onPress, isNext = false }: CourseI
         <TouchableOpacity
             style={styles.container}
             onPress={onPress}
+            onLongPress={onLongPress}
             activeOpacity={0.7}
         >
             {/* Color Accent Bar */}

@@ -22,6 +22,7 @@ interface Settings {
     semesterEnd?: string; // ISO date string YYYY-MM-DD
     dailySummaryEnabled?: boolean;
     reduceMotion?: boolean;
+    hasOnboarded?: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -36,6 +37,7 @@ const defaultSettings: Settings = {
     quietHoursEnd: '07:00',
     dailySummaryEnabled: true,
     reduceMotion: false,
+    hasOnboarded: false,
 };
 
 interface SettingsContextType {
@@ -93,6 +95,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
                 if (parsed.quietHoursEnd === undefined) parsed.quietHoursEnd = defaultSettings.quietHoursEnd;
                 if (parsed.dailySummaryEnabled === undefined) parsed.dailySummaryEnabled = defaultSettings.dailySummaryEnabled;
                 if (parsed.reduceMotion === undefined) parsed.reduceMotion = defaultSettings.reduceMotion;
+                if (parsed.hasOnboarded === undefined) parsed.hasOnboarded = defaultSettings.hasOnboarded;
 
                 setSettings({ ...defaultSettings, ...parsed });
             }

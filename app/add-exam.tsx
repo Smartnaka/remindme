@@ -22,6 +22,7 @@ export default function AddExamScreen() {
     const [location, setLocation] = useState('');
     const [notes, setNotes] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const isSubmitted = React.useRef(false);
     
     const navigation = useNavigation();
 
@@ -32,7 +33,7 @@ export default function AddExamScreen() {
 
     React.useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-            if (!isDirty || isSaving) {
+            if (!isDirty || isSubmitted.current) {
                 return; // Let navigation proceed
             }
             e.preventDefault();
@@ -46,7 +47,7 @@ export default function AddExamScreen() {
             );
         });
         return unsubscribe;
-    }, [navigation, isDirty, isSaving]);
+    }, [navigation, isDirty]);
 
     // Status Bar Logic
     const statusBarStyle = colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content';
@@ -57,15 +58,20 @@ export default function AddExamScreen() {
             return;
         }
 
-        setIsSaving(true);
-        await addExam({
-            courseName,
-            date: date.toISOString(),
-            location,
-            notes
-        });
-        setIsSaving(false);
-        router.back();
+        try {
+            await addExam({
+                courseName,
+                date: date.toISOString(),
+                location,
+                notes
+            });
+            isSubmitted.current = true;
+            router.back();
+        } catch (error) {
+            console.error("Failed to save exam", error);
+            showAlert("Error", "Failed to save exam");
+            setIsSaving(false);
+        }
     };
 
     const showAndroidDatePicker = () => {

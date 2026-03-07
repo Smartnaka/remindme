@@ -128,15 +128,18 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <SettingsProvider>
-              <LectureProvider>
-                <ExamProvider>
-                  <StudyTimerProvider>
+              <AlertProvider>
+                <LectureProvider>
+                  <ExamProvider>
+                    <StudyTimerProvider>
                     <RootLayoutNav />
                     <NotificationBanner />
+                    <CustomAlert />
                   </StudyTimerProvider>
                 </ExamProvider>
               </LectureProvider>
-            </SettingsProvider>
+            </AlertProvider>
+          </SettingsProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </View>

@@ -84,6 +84,7 @@ export default function AddLectureScreen() {
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const navigation = useNavigation();
+  const isSubmitted = React.useRef(false);
 
   // Track if user made any input or modified existing lecture
   const isDirty = useMemo(() => {
@@ -114,7 +115,7 @@ export default function AddLectureScreen() {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!isDirty || isSaving) {
+      if (!isDirty || isSubmitted.current) {
         return; // Let navigation proceed
       }
       e.preventDefault();
@@ -128,7 +129,7 @@ export default function AddLectureScreen() {
       );
     });
     return unsubscribe;
-  }, [navigation, isDirty, isSaving]);
+  }, [navigation, isDirty]);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -312,6 +313,7 @@ export default function AddLectureScreen() {
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
+      isSubmitted.current = true;
       router.back();
     } catch (error) {
       if (Platform.OS !== "web") {

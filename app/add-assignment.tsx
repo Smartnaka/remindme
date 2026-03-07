@@ -29,6 +29,7 @@ export default function AddAssignmentScreen() {
     const [isSaving, setIsSaving] = useState(false);
     
     const navigation = useNavigation();
+    const isSubmitted = React.useRef(false);
 
     // Track if user made any input
     const isDirty = useMemo(() => {
@@ -37,7 +38,7 @@ export default function AddAssignmentScreen() {
 
     React.useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-            if (!isDirty || isSaving) {
+            if (!isDirty || isSubmitted.current) {
                 return; // Let navigation proceed
             }
             e.preventDefault();
@@ -51,7 +52,7 @@ export default function AddAssignmentScreen() {
             );
         });
         return unsubscribe;
-    }, [navigation, isDirty, isSaving]);
+    }, [navigation, isDirty]);
 
     const handleDateChange = (event: any, selectedDate?: Date) => {
         if (Platform.OS === 'android') setShowDatePicker(false);
@@ -86,6 +87,7 @@ export default function AddAssignmentScreen() {
                DeviceEventEmitter.emit('showSuccessToast', { message: `Added to "${course.courseName}"` });
             }
             
+            isSubmitted.current = true;
             router.back();
         } catch (error) {
             console.error("Failed to save assignment", error);

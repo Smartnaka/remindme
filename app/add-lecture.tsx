@@ -662,6 +662,8 @@ export default function AddLectureScreen() {
 
             <RecurrenceSection />
 
+            <Text style={styles.sectionHeader}>COURSE COLOR</Text>
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginHorizontal: 20, marginBottom: 8, marginTop: -4 }}>Helps identify this class at a glance</Text>
             <ColorPicker selectedColor={color} onColorSelect={setColor} />
 
             <Text style={styles.infoText}>
@@ -695,7 +697,7 @@ const createStyles = (colors: ColorTheme) =>
       borderBottomColor: colors.textMuted + "20",
     },
     backButton: {
-      padding: 8,
+      padding: 14,
     },
     cancelText: {
       fontSize: 17,
@@ -707,7 +709,7 @@ const createStyles = (colors: ColorTheme) =>
       color: colors.textDark,
     },
     saveButton: {
-      padding: 8,
+      padding: 14,
     },
     saveButtonDisabled: {
       opacity: 0.5,

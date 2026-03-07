@@ -25,7 +25,7 @@ if (Platform.OS !== 'web') {
 }
 
 const ensureNotificationChannel = async () => {
-  console.log('[Debug] ensureNotificationChannel execution');
+  log('[Notifications] ensureNotificationChannel execution');
   if (Platform.OS === 'android' && Notifications) {
     await Notifications.setNotificationChannelAsync('lecture-reminders', {
       name: 'Lecture Reminders',
@@ -116,11 +116,14 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
   }
 };
 
-const isNotificationAllowed = async (triggerDate: Date): Promise<boolean> => {
+const isNotificationAllowed = async (triggerDate: Date, cachedSettings?: any): Promise<boolean> => {
   try {
-    const settingsStr = await AsyncStorage.getItem('@settings');
-    if (!settingsStr) return true;
-    const settings = JSON.parse(settingsStr);
+    let settings = cachedSettings;
+    if (!settings) {
+      const settingsStr = await AsyncStorage.getItem('@settings');
+      if (!settingsStr) return true;
+      settings = JSON.parse(settingsStr);
+    }
 
     // Check Semester Limits
     if (settings.semesterStart) {
@@ -200,8 +203,6 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
         data: { lectureId: lecture.id },
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
-        sticky: true, // Makes notification persistent (can't swipe away)
-        autoDismiss: false, // Notification stays until manually dismissed or class starts
         categoryIdentifier: 'reminder',
       },
       trigger: {
@@ -222,24 +223,19 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
 };
 
 export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string[]> => {
-  console.log('[Debug] scheduleBiWeeklyNotifications called', { platform: Platform.OS, hasNotifications: !!Notifications });
+  log('[Notifications] scheduleBiWeeklyNotifications called');
   if (Platform.OS === 'web' || !Notifications) return [];
 
   try {
-    log('[Debug] Calling ensureNotificationChannel');
     await ensureNotificationChannel();
-    log('[Debug] Calling requestNotificationPermissions');
     const hasPermission = await requestNotificationPermissions();
-    log('[Debug] hasPermission:', hasPermission);
     if (!hasPermission) return [];
 
     const notificationIds: string[] = [];
     const recurrence = lecture.recurrence;
-    
-    log('[Debug] Check recurrence:', { recurrence: lecture.recurrence, type: lecture.recurrence?.type });
 
     if (!recurrence || recurrence.type !== 'biweekly') {
-        log('[Debug] Recurrence check failed');
+        log('[Notifications] Bi-weekly recurrence not configured, skipping');
         return [];
     }
 
@@ -266,17 +262,10 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
     let limit = 0;
     const MAX_OCCURRENCES = 10;
     
-    log('[Debug] Recurrence:', recurrence);
-    log(`[Debug] Starting loop. StartDate: ${startDate.toString()} (${startDate.toISOString()})`);
-    log(`[Debug] EndDate: ${endDate.toString()} (${endDate.toISOString()})`);
-    log(`[Debug] Now: ${now.toString()} (${now.toISOString()})`);
+    log(`[Notifications] Bi-weekly: ${startDate.toISOString()} → ${endDate.toISOString()}, max ${MAX_OCCURRENCES} occurrences`);
 
     while (currentDate.getTime() <= endDate.getTime() && limit < MAX_OCCURRENCES) {
-       // Check if this occurrence is in the past
-       // We compare the TRIGGER time (date - offset), not the class time
        const triggerDate = new Date(currentDate.getTime() - offsetMinutes * 60000);
-
-       log(`[Debug] Now: ${now.toISOString()}, Trigger: ${triggerDate.toISOString()}, Current: ${currentDate.toISOString()}`);
 
        if (triggerDate > now) {
           if (!(await isNotificationAllowed(triggerDate))) {
@@ -315,7 +304,7 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
   }
 };
 
-// New: Schedule exact-time alarm notifications for the next 4 weeks (Android only)
+// Schedule exact-time alarm notifications for the next 4 weeks (Android only)
 export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMinutes: number = 15): Promise<string[]> => {
   if (Platform.OS !== 'android' || !Notifications) {
     log('[Alarms] Exact alarms only available on Android, skipping');
@@ -333,21 +322,21 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
     const notificationIds: string[] = [];
     const now = new Date();
 
-    // Schedule for the next 4 occurrences (4 weeks)
+    // Pre-cache settings for the loop
+    const settingsStr = await AsyncStorage.getItem('@settings');
+    const cachedSettings = settingsStr ? JSON.parse(settingsStr) : null;
+
+    // Compute the base trigger date once, then offset by weeks
+    const baseOccurrence = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
+    const baseTrigger = new Date(baseOccurrence.getTime() - offsetMinutes * 60000);
+
     for (let week = 0; week < 4; week++) {
-      // Pass offsetMinutes here too so the base date handling remains correct
-      const nextOccurrence = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
-      const triggerDate = new Date(nextOccurrence.getTime() - offsetMinutes * 60000);
+      const triggerDate = new Date(baseTrigger.getTime() + week * 7 * 24 * 60 * 60 * 1000);
 
-      // Add weeks to the trigger date
-      triggerDate.setDate(triggerDate.getDate() + (week * 7));
-
-      // Only schedule if in the future and allowed
       if (triggerDate > now) {
-        // Check bounds
-        if (!(await isNotificationAllowed(triggerDate))) {
-          log(`[Notifications] Exact alarm occurrence ${week + 1} blocked by limits`);
-          continue; // Skip this occurrence if not allowed
+        if (!(await isNotificationAllowed(triggerDate, cachedSettings))) {
+          log(`[Alarms] Occurrence ${week + 1} blocked by limits`);
+          continue;
         }
 
         const notificationId = await Notifications.scheduleNotificationAsync({
@@ -361,8 +350,6 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
             },
             sound: true,
             priority: Notifications.AndroidNotificationPriority.HIGH,
-            sticky: true, // Persistent notification
-            autoDismiss: false, // Can't swipe away
             categoryIdentifier: 'reminder',
           },
           trigger: {
@@ -373,14 +360,14 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
         });
 
         notificationIds.push(notificationId);
-        log(`[Alarms] Scheduled alarm ${week + 1}/4 for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
+        log(`[Alarms] Scheduled ${week + 1}/4 for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
       }
     }
 
-    log(`[Alarms] Total alarms scheduled: ${notificationIds.length}`);
+    log(`[Alarms] Total scheduled: ${notificationIds.length}`);
     return notificationIds;
   } catch (error) {
-    console.error('[Alarms] Error scheduling exact alarms:', error);
+    log('[Alarms] Error scheduling exact alarms: ' + error);
     return [];
   }
 };
@@ -412,16 +399,21 @@ export const cancelMultipleNotifications = async (notificationIds: string[]): Pr
   }
 }
 
-// NEW: Schedule a reminder 2 hours before the class
+// Schedule a reminder 2 hours before the class
 export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string | null> => {
   if (Platform.OS === 'web' || !Notifications) return null;
 
   try {
-    // 2 hours = 120 minutes
     const offsetMinutes = 120;
     const nextMsg = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
     const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000);
-     // Expo Calendar Trigger requires 1-7 for Sunday-Saturday
+
+    // Check quiet hours and semester bounds
+    if (!(await isNotificationAllowed(triggerDate))) {
+      log('[Notifications] 2hr reminder blocked by quiet hours or semester limits');
+      return null;
+    }
+
     const triggerWeekday = triggerDate.getDay() + 1;
 
     const notificationId = await Notifications.scheduleNotificationAsync({
@@ -443,7 +435,7 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
     log(`[Notifications] Scheduled 2hr reminder for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
     return notificationId;
   } catch (error) {
-    console.error('[Notifications] Error scheduling 2hr reminder:', error);
+    log('[Notifications] Error scheduling 2hr reminder: ' + error);
     return null;
   }
 };
@@ -469,6 +461,7 @@ export const manageDailySummaryNotification = async (timeStr: string, existingId
                 title: greeting,
                 body: "Check your schedule for today's classes and assignments.",
                 sound: true,
+                categoryIdentifier: 'reminder',
             },
             trigger: {
                 channelId: 'lecture-reminders',

@@ -7,7 +7,7 @@ import { useSettings } from '@/contexts/SettingsContext';
 import LiveLectureCard from '@/components/LiveLectureCard';
 import CourseItem from '@/components/CourseItem';
 import SwipeableLectureRow from '@/components/SwipeableLectureRow';
-import { getCurrentDayOfWeek } from '@/utils/dateTime';
+import { getCurrentDayOfWeek, formatTimeAMPM } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ColorTheme } from '@/types/theme';
@@ -162,11 +162,44 @@ export default function TodayScreen() {
             <View style={styles.emptyIconContainer}>
               <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
             </View>
-            <Text style={styles.emptyTitle}>No Classes Scheduled</Text>
-            <Text style={styles.emptySubtitle}>You're free for the day! 🎉</Text>
-            <TouchableOpacity onPress={() => handleFabPress()} style={styles.emptyButton}>
-              <Text style={styles.emptyButtonText}>Add to Schedule</Text>
-            </TouchableOpacity>
+            {lectures.length === 0 ? (
+              <>
+                <Text style={styles.emptyTitle}>No Classes Yet</Text>
+                <Text style={styles.emptySubtitle}>Tap + to add your first class</Text>
+                <TouchableOpacity onPress={() => handleFabPress()} style={styles.emptyButton}>
+                  <Text style={styles.emptyButtonText}>Add to Schedule</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.emptyTitle}>No Classes Today</Text>
+                <Text style={styles.emptySubtitle}>You're free for the day! 🎉</Text>
+                {(() => {
+                  const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                  const todayIdx = new Date().getDay();
+                  let nextLecture: typeof lectures[0] | null = null;
+                  let daysAway = 7;
+                  for (const lec of lectures) {
+                    const lecIdx = dayOrder.indexOf(lec.dayOfWeek);
+                    if (lecIdx === -1) continue;
+                    let diff = lecIdx - todayIdx;
+                    if (diff <= 0) diff += 7;
+                    if (diff < daysAway) { daysAway = diff; nextLecture = lec; }
+                  }
+                  if (!nextLecture) return null;
+                  const dayLabel = daysAway === 1 ? 'Tomorrow' : nextLecture.dayOfWeek;
+                  return (
+                    <View style={styles.nextClassCard}>
+                      <Text style={styles.nextClassLabel}>NEXT CLASS</Text>
+                      <Text style={styles.nextClassName}>{nextLecture.courseName}</Text>
+                      <Text style={styles.nextClassTime}>
+                        {dayLabel} at {formatTimeAMPM(nextLecture.startTime)}
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </>
+            )}
           </View>
         ) : (
           <View style={styles.timelineContainer}>
@@ -608,6 +641,32 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter_600SemiBold',
     color: colors.primary,
+  },
+  nextClassCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 4,
+  },
+  nextClassLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  nextClassName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.textDark,
+    marginBottom: 4,
+  },
+  nextClassTime: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
   },
   timelineContainer: {
     paddingBottom: 40,

@@ -165,6 +165,14 @@ export default function AddExamScreen() {
                     )}
                 </View>
 
+                {/* Past-date warning */}
+                {date < new Date(new Date().setHours(0,0,0,0)) && (
+                    <View style={styles.pastDateWarning}>
+                        <Ionicons name="warning" size={16} color="#FF9500" />
+                        <Text style={styles.pastDateText}>This date has already passed — no reminder will be sent.</Text>
+                    </View>
+                )}
+
                 <View style={styles.formGroup}>
                     <Text style={styles.label}>LOCATION (OPTIONAL)</Text>
                     <TextInput
@@ -212,14 +220,14 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         color: colors.textDark,
     },
     cancelButton: {
-        padding: 8,
+        padding: 14,
     },
     cancelText: {
         fontSize: 17,
         color: colors.primary,
     },
     saveButton: {
-        padding: 8,
+        padding: 14,
     },
     saveText: {
         fontSize: 17,
@@ -267,4 +275,20 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         color: colors.textDark,
         marginLeft: 12,
     },
+    pastDateWarning: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FF950015',
+        padding: 12,
+        borderRadius: 8,
+        marginTop: -8,
+        marginBottom: 24,
+    },
+    pastDateText: {
+        color: '#D97706',
+        fontSize: 13,
+        fontWeight: '500',
+        marginLeft: 8,
+        flex: 1,
+    }
 });

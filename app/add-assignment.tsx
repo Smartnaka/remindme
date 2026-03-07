@@ -121,6 +121,7 @@ export default function AddAssignmentScreen() {
                     </View>
 
                     <Text style={styles.label}>PRIORITY</Text>
+                    <Text style={styles.priorityHint}>Higher priority assignments appear first in your list</Text>
                     <View style={styles.priorityContainer}>
                         {(['low', 'medium', 'high'] as const).map((p) => (
                             <TouchableOpacity
@@ -190,6 +191,14 @@ export default function AddAssignmentScreen() {
                         )}
                     </View>
 
+                    {/* Past-date warning */}
+                    {date < new Date(new Date().setHours(0,0,0,0)) && (
+                        <View style={styles.pastDateWarning}>
+                            <Ionicons name="warning" size={16} color="#FF9500" />
+                            <Text style={styles.pastDateText}>This date has already passed — no reminder will be sent.</Text>
+                        </View>
+                    )}
+
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -211,10 +220,10 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.textMuted + '20',
     },
-    backButton: { padding: 8 },
+    backButton: { padding: 14 },
     cancelText: { fontSize: 17, color: colors.primary },
     headerTitle: { fontSize: 17, fontWeight: '600', color: colors.textDark },
-    saveButton: { padding: 8 },
+    saveButton: { padding: 14 },
     saveButtonDisabled: { opacity: 0.5 },
     saveButtonText: { fontSize: 17, fontWeight: '600', color: colors.primary },
     keyboardView: { flex: 1 },
@@ -331,5 +340,27 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         color: colors.primary,
         fontWeight: '600',
         fontSize: 17,
+    },
+    priorityHint: {
+        fontSize: 12,
+        color: colors.textMuted,
+        marginBottom: 8,
+        marginTop: -4,
+        marginHorizontal: 4,
+    },
+    pastDateWarning: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FF950015',
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 16,
+    },
+    pastDateText: {
+        color: '#D97706',
+        fontSize: 13,
+        fontWeight: '500',
+        marginLeft: 8,
+        flex: 1,
     }
 });

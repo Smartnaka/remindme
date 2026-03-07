@@ -632,7 +632,7 @@ export default function SettingsScreen() {
                             onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearLecturesModalVisible(true), 300); }}
                         >
                             <Ionicons name="book-outline" size={22} color={colors.error} />
-                            <Text style={styles.modalActionText}>Clear All Lectures</Text>
+                            <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Lectures</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
@@ -640,7 +640,7 @@ export default function SettingsScreen() {
                             onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearAssignmentsModalVisible(true), 300); }}
                         >
                             <Ionicons name="clipboard-outline" size={22} color={colors.error} />
-                            <Text style={styles.modalActionText}>Clear All Assignments</Text>
+                            <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Assignments</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity 
@@ -648,7 +648,7 @@ export default function SettingsScreen() {
                             onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearExamsModalVisible(true), 300); }}
                         >
                             <Ionicons name="document-text-outline" size={22} color={colors.error} />
-                            <Text style={styles.modalActionText}>Clear All Exams</Text>
+                            <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Exams</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 

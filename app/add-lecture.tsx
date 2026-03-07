@@ -25,12 +25,14 @@ import { ColorTheme } from "@/types/theme";
 import { validateLecture } from "@/utils/validation";
 import ColorPicker from "@/components/ColorPicker";
 import * as DocumentPicker from 'expo-document-picker';
+import { useCustomAlert } from "@/contexts/AlertContext";
 
 export default function AddLectureScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { addLecture, updateLecture, getLectureById, lectures } = useLectures();
   const { colors, settings } = useSettings();
+  const { showAlert } = useCustomAlert();
 
   const isEditing = Boolean(id);
   const existingLecture = isEditing ? getLectureById(id as string) : null;
@@ -180,7 +182,7 @@ export default function AddLectureScreen() {
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-      Alert.alert("Validation Error", validation.errors.join("\n\n"));
+      showAlert("Validation Error", validation.errors.join("\n\n"));
       return;
     }
 
@@ -214,7 +216,7 @@ export default function AddLectureScreen() {
       setIsSaving(false);
 
       return new Promise<void>((resolve) => {
-        Alert.alert(
+        showAlert(
           'Schedule Conflict',
           `This time overlaps with:\n\n${names}\n\nDo you want to save anyway?`,
           [

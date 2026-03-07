@@ -148,10 +148,6 @@ export default function TodayScreen() {
           </View>
         </View>
       </SafeAreaView>
-
-      {/* Mini Study Timer Bar — shows when a timer session is active */}
-      <MiniTimerBar />
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -393,6 +389,11 @@ export default function TodayScreen() {
         )}
       </ScrollView>
 
+      {/* Mini Study Timer Bar pinned to bottom just above tabs */}
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: 16 }}>
+        <MiniTimerBar />
+      </View>
+
       <UndoToast 
           visible={undoToastVisible}
           message={`Deleted "${deletedLecture?.courseName}"`}
@@ -585,6 +586,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 100, // accommodate fixed MiniTimerBar and FAB
   },
   summaryText: {
     fontSize: 15,
@@ -645,21 +647,34 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   nextClassCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 14,
-    padding: 16,
+    padding: 18,
     alignItems: 'center',
     width: '100%',
-    marginTop: 4,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: colors.textMuted + '15',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   nextClassLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: colors.textMuted,
     letterSpacing: 0.8,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   nextClassName: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
     color: colors.textDark,
     marginBottom: 4,
   },

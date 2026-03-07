@@ -8,11 +8,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
+import { useCustomAlert } from '@/contexts/AlertContext';
 
 export default function AddExamScreen() {
     const router = useRouter();
     const { colors } = useSettings();
     const { addExam } = useExams();
+    const { showAlert } = useCustomAlert();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const [courseName, setCourseName] = useState('');
@@ -26,7 +28,7 @@ export default function AddExamScreen() {
 
     const handleSave = async () => {
         if (!courseName.trim()) {
-            alert('Please enter a course name');
+            showAlert('Validation Error', 'Please enter a course name');
             return;
         }
 

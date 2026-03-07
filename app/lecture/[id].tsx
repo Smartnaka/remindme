@@ -12,12 +12,14 @@ import { formatTimeAMPM } from '@/utils/dateTime';
 import { ColorTheme } from '@/types/theme';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
+import { useCustomAlert } from '@/contexts/AlertContext';
 
 export default function LectureDetailScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const { getLectureById, deleteLecture, updateLecture, assignments, addAssignment, updateAssignment, deleteAssignment, getAssignmentsByLectureId } = useLectures();
     const { colors, settings } = useSettings();
+    const { showAlert } = useCustomAlert();
     const [showConfetti, setShowConfetti] = useState(false);
     const [lastAttendanceAction, setLastAttendanceAction] = useState<'attended' | 'missed' | null>(null);
     const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,7 +57,7 @@ export default function LectureDetailScreen() {
     const handleEdit = () => router.push(`/add-lecture?id=${lecture.id}`);
 
     const handleDelete = () => {
-        Alert.alert(
+        showAlert(
             "Delete Lecture",
             "Are you sure you want to delete this lecture? This cannot be undone.",
             [
@@ -78,11 +80,11 @@ export default function LectureDetailScreen() {
             if (isAvailable) {
                 await Sharing.shareAsync(fileUri);
             } else {
-                Alert.alert("Error", "Sharing is not available on this device.");
+                showAlert("Error", "Sharing is not available on this device.");
             }
         } catch (error) {
             console.error("Error opening file", error);
-            Alert.alert("Error", "Could not open file");
+            showAlert("Error", "Could not open file");
         }
     };
     
@@ -152,7 +154,7 @@ export default function LectureDetailScreen() {
     };
 
     const handleResetAttendance = () => {
-        Alert.alert(
+        showAlert(
             'Reset Attendance',
             'This will reset all attendance data for this course to zero. Continue?',
             [

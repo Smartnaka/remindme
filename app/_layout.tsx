@@ -15,6 +15,8 @@ import * as Notifications from 'expo-notifications';
 import NotificationBanner from "@/components/NotificationBanner";
 import { ExamProvider } from "@/contexts/ExamContext";
 import { StudyTimerProvider } from "@/contexts/StudyTimerContext";
+import { AlertProvider } from "@/contexts/AlertContext";
+import CustomAlert from "@/components/CustomAlert";
 
 SplashScreen.preventAutoHideAsync();
 

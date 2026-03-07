@@ -13,6 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import Constants from 'expo-constants';
+import { useCustomAlert } from '@/contexts/AlertContext';
 
 const NOTIFICATION_OPTIONS = [5, 10, 15, 30, 45, 60];
 const EXAM_NOTIFICATION_OPTIONS = [15, 30, 60, 120, 1440];
@@ -21,10 +22,8 @@ export default function SettingsScreen() {
     const { settings, updateSettings, colors } = useSettings();
     const { lectures, clearLectures, clearAssignments } = useLectures();
     const { clearExams } = useExams();
+    const { showAlert } = useCustomAlert();
     
-    const [clearLecturesModalVisible, setClearLecturesModalVisible] = useState(false);
-    const [clearExamsModalVisible, setClearExamsModalVisible] = useState(false);
-    const [clearAssignmentsModalVisible, setClearAssignmentsModalVisible] = useState(false);
     const [manageDataModalVisible, setManageDataModalVisible] = useState(false);
     const [showSummaryPicker, setShowSummaryPicker] = useState(false);
     
@@ -143,17 +142,19 @@ export default function SettingsScreen() {
                 exportedAt: new Date().toISOString()
             };
             
-            const fileUri = `${FileSystem.documentDirectory || ''}RemindMe_Export.json`;
+            // ensure documentDirectory is a string
+            const docDir = FileSystem.documentDirectory || '';
+            const fileUri = `${docDir}RemindMe_Export.json`;
             await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(exportPayload, null, 2));
             
             if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(fileUri);
             } else {
-                Alert.alert("Error", "Sharing is not available on this device");
+                showAlert("Error", "Sharing is not available on this device", [{text: 'OK'}]);
             }
         } catch (e) {
             console.error("Failed to export data", e);
-            Alert.alert("Export Failed", "Could not export app data.");
+            showAlert("Export Failed", "Could not export app data.", [{text: 'OK'}]);
         }
     };
 
@@ -564,45 +565,6 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
             </Modal>
 
-            <ConfirmationModal
-                visible={clearLecturesModalVisible}
-                title="Clear Lectures?"
-                message="Are you sure you want to delete all lectures? This cannot be undone."
-                confirmText="Clear Lectures"
-                isDestructive
-                onCancel={() => setClearLecturesModalVisible(false)}
-                onConfirm={async () => {
-                    await clearLectures();
-                    setClearLecturesModalVisible(false);
-                }}
-            />
-
-            <ConfirmationModal
-                visible={clearExamsModalVisible}
-                title="Clear Exams?"
-                message="Are you sure you want to delete all exams? This cannot be undone."
-                confirmText="Clear Exams"
-                isDestructive
-                onCancel={() => setClearExamsModalVisible(false)}
-                onConfirm={async () => {
-                    await clearExams();
-                    setClearExamsModalVisible(false);
-                }}
-            />
-
-            <ConfirmationModal
-                visible={clearAssignmentsModalVisible}
-                title="Clear Assignments?"
-                message="Are you sure you want to delete all assignments? This cannot be undone."
-                confirmText="Clear Assignments"
-                isDestructive
-                onCancel={() => setClearAssignmentsModalVisible(false)}
-                onConfirm={async () => {
-                    await clearAssignments?.();
-                    setClearAssignmentsModalVisible(false);
-                }}
-            />
-
             <Modal
                 visible={manageDataModalVisible}
                 transparent
@@ -629,7 +591,15 @@ export default function SettingsScreen() {
 
                         <TouchableOpacity 
                             style={styles.modalActionRow}
-                            onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearLecturesModalVisible(true), 300); }}
+                            onPress={() => {
+                                setManageDataModalVisible(false);
+                                setTimeout(() => {
+                                    showAlert("Delete All Lectures?", "Are you sure you want to delete all lectures? This cannot be undone.", [
+                                        { text: "Cancel", style: "cancel" },
+                                        { text: "Delete All Lectures", style: "destructive", onPress: clearLectures }
+                                    ]);
+                                }, 300);
+                            }}
                         >
                             <Ionicons name="book-outline" size={22} color={colors.error} />
                             <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Lectures</Text>
@@ -637,7 +607,15 @@ export default function SettingsScreen() {
                         
                         <TouchableOpacity 
                             style={styles.modalActionRow}
-                            onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearAssignmentsModalVisible(true), 300); }}
+                            onPress={() => {
+                                setManageDataModalVisible(false);
+                                setTimeout(() => {
+                                    showAlert("Delete All Assignments?", "Are you sure you want to delete all assignments? This cannot be undone.", [
+                                        { text: "Cancel", style: "cancel" },
+                                        { text: "Delete All Assignments", style: "destructive", onPress: async () => await clearAssignments?.() }
+                                    ]);
+                                }, 300);
+                            }}
                         >
                             <Ionicons name="clipboard-outline" size={22} color={colors.error} />
                             <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Assignments</Text>
@@ -645,7 +623,15 @@ export default function SettingsScreen() {
 
                         <TouchableOpacity 
                             style={[styles.modalActionRow, { borderBottomWidth: 0 }]}
-                            onPress={() => { setManageDataModalVisible(false); setTimeout(() => setClearExamsModalVisible(true), 300); }}
+                            onPress={() => {
+                                setManageDataModalVisible(false);
+                                setTimeout(() => {
+                                    showAlert("Delete All Exams?", "Are you sure you want to delete all exams? This cannot be undone.", [
+                                        { text: "Cancel", style: "cancel" },
+                                        { text: "Delete All Exams", style: "destructive", onPress: clearExams }
+                                    ]);
+                                }, 300);
+                            }}
                         >
                             <Ionicons name="document-text-outline" size={22} color={colors.error} />
                             <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Exams</Text>

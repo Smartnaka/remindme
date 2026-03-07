@@ -9,12 +9,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
+import { useCustomAlert } from '@/contexts/AlertContext';
 
 export default function AddAssignmentScreen() {
     const router = useRouter();
     const { lectureId } = useLocalSearchParams();
     const { addAssignment, lectures } = useLectures();
     const { colors } = useSettings();
+    const { showAlert } = useCustomAlert();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const course = lectures.find(l => l.id === lectureId);
@@ -36,7 +38,7 @@ export default function AddAssignmentScreen() {
 
     const handleSave = async () => {
         if (!title.trim()) {
-            Alert.alert("Validation Error", "Please enter an assignment title.");
+            showAlert("Validation Error", "Please enter an assignment title.");
             return;
         }
 
@@ -62,7 +64,7 @@ export default function AddAssignmentScreen() {
             router.back();
         } catch (error) {
             console.error("Failed to save assignment", error);
-            Alert.alert("Error", "Failed to save assignment");
+            showAlert("Error", "Failed to save assignment");
             setIsSaving(false);
         }
     };

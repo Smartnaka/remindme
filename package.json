@@ -15,6 +15,7 @@
     "@nkzw/create-context-hook": "^1.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "^8.4.4",
+    "@react-native-community/netinfo": "^12.0.1",
     "@tanstack/react-query": "^5.17.19",
     "dayjs": "^1.11.19",
     "expo": "^54.0.32",
@@ -41,7 +42,6 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
-    "react-native-ui-datepicker": "^3.1.2",
     "react-native-web": "^0.21.0",
     "uuid": "^13.0.0"
   },

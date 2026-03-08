@@ -29,7 +29,7 @@ import { useCustomAlert } from "@/contexts/AlertContext";
 
 export default function AddLectureScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, source } = useLocalSearchParams();
   const { addLecture, updateLecture, getLectureById, lectures } = useLectures();
   const { colors, settings } = useSettings();
   const { showAlert } = useCustomAlert();
@@ -369,7 +369,7 @@ export default function AddLectureScreen() {
               onPress={() => setRecurrenceType('biweekly')}
               style={[styles.chip, recurrenceType === 'biweekly' && styles.chipActive]}
            >
-              <Text style={[styles.chipText, recurrenceType === 'biweekly' && styles.chipTextActive]}>Bi-Weekly</Text>
+              <Text style={[styles.chipText, recurrenceType === 'biweekly' && styles.chipTextActive]}>Every 2 Weeks</Text>
            </TouchableOpacity>
         </View>
       </View>
@@ -450,19 +450,31 @@ export default function AddLectureScreen() {
           onPress={handleBack}
           style={styles.backButton}
           activeOpacity={0.7}
+          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
         >
-          <Text style={styles.cancelText}>Cancel</Text>
+          {Platform.OS === 'android' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
+              <Text style={[styles.cancelText, { marginLeft: 4, color: colors.primary }]}>
+                {source ? `Back to ${source}` : "Back"}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.cancelText}>
+              {source ? `Back to ${source}` : "Cancel"}
+            </Text>
+          )}
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isEditing ? "Edit Lecture" : "New Lecture"}
         </Text>
         <TouchableOpacity
           onPress={handleSave}
-          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+          style={[styles.saveButtonFilled, isSaving && styles.saveButtonDisabled]}
           activeOpacity={0.7}
           disabled={isSaving}
         >
-          <Text style={styles.saveButtonText}>
+          <Text style={styles.saveButtonTextFilled}>
             {isSaving ? "Saving" : "Save"}
           </Text>
         </TouchableOpacity>
@@ -621,26 +633,23 @@ export default function AddLectureScreen() {
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  {(showStartPicker ||
-                    (Platform.OS === "ios" && showStartPicker)) && (
+                   {(showStartPicker || (Platform.OS === "ios" && showStartPicker)) && (
                       <View style={styles.pickerContainer}>
                         <DateTimePicker
                           value={timeStringToDate(startTime)}
                           mode="time"
                           is24Hour={false}
-                          display={Platform.OS === "ios" ? "spinner" : "default"}
+                          display={Platform.OS === "ios" ? "spinner" : "spinner"} // Forced spinner for iOS-style on Android
                           onChange={handleStartTimeChange}
                           textColor={colors.textDark}
                           style={styles.datePicker}
                         />
-                        {Platform.OS === "ios" && (
-                          <TouchableOpacity
-                            style={styles.pickerDone}
-                            onPress={() => setShowStartPicker(false)}
-                          >
-                            <Text style={styles.pickerDoneText}>Done</Text>
-                          </TouchableOpacity>
-                        )}
+                        <TouchableOpacity
+                          style={styles.pickerDone}
+                          onPress={() => setShowStartPicker(false)}
+                        >
+                          <Text style={styles.pickerDoneText}>Done</Text>
+                        </TouchableOpacity>
                       </View>
                     )}
                 </>
@@ -686,25 +695,23 @@ export default function AddLectureScreen() {
                     </View>
                   </TouchableOpacity>
 
-                  {(showEndPicker || (Platform.OS === "ios" && showEndPicker)) && (
+                   {(showEndPicker || (Platform.OS === "ios" && showEndPicker)) && (
                     <View style={styles.pickerContainer}>
                       <DateTimePicker
                         value={timeStringToDate(endTime)}
                         mode="time"
                         is24Hour={false}
-                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        display={Platform.OS === "ios" ? "spinner" : "spinner"} // Forced spinner for iOS-style on Android
                         onChange={handleEndTimeChange}
                         textColor={colors.textDark}
                         style={styles.datePicker}
                       />
-                      {Platform.OS === "ios" && (
-                        <TouchableOpacity
-                          style={styles.pickerDone}
-                          onPress={() => setShowEndPicker(false)}
-                        >
-                          <Text style={styles.pickerDoneText}>Done</Text>
-                        </TouchableOpacity>
-                      )}
+                      <TouchableOpacity
+                        style={styles.pickerDone}
+                        onPress={() => setShowEndPicker(false)}
+                      >
+                        <Text style={styles.pickerDoneText}>Done</Text>
+                      </TouchableOpacity>
                     </View>
                   )}
                 </>
@@ -751,24 +758,30 @@ const createStyles = (colors: ColorTheme) =>
       padding: 14,
     },
     cancelText: {
-      fontSize: 17,
-      color: colors.primary,
+      fontSize: 16,
+      color: colors.textMuted,
     },
     headerTitle: {
       fontSize: 17,
       fontWeight: "600",
       color: colors.textDark,
     },
-    saveButton: {
-      padding: 14,
+    saveButtonFilled: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      minWidth: 70,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     saveButtonDisabled: {
       opacity: 0.5,
     },
-    saveButtonText: {
-      fontSize: 17,
-      fontWeight: "600",
-      color: colors.primary,
+    saveButtonTextFilled: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.cardBackground === "#F8F9FA" ? "#FFFFFF" : "#000000",
     },
     animatedContainer: {
       flex: 1,

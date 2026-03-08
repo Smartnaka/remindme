@@ -10,14 +10,17 @@ import SwipeableLectureRow from '@/components/SwipeableLectureRow';
 import { getCurrentDayOfWeek, formatTimeAMPM } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import NetInfo from '@react-native-community/netinfo';
 import { ColorTheme } from '@/types/theme';
 import { Lecture } from '@/types/lecture';
+import { Assignment } from '@/types/assignment';
 import { getUpcomingAssignments } from '@/utils/assignmentUtils';
 import UndoToast from '@/components/UndoToast';
 import SuccessToast from '@/components/SuccessToast';
 import MiniTimerBar from '@/components/MiniTimerBar';
 import OnboardingCarousel from '@/components/OnboardingCarousel';
 import LectureContextMenu from '@/components/LectureContextMenu';
+import { FlatList } from 'react-native';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -37,12 +40,41 @@ export default function TodayScreen() {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Offline Detection
+  const [isOffline, setIsOffline] = useState(false);
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOffline(!state.isConnected);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // FAB Pulsing Animation for new users
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (lectures.length === 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.2, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [lectures.length]);
+
   // Action States
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
   const [fabMenuMode, setFabMenuMode] = useState<'options' | 'coursePicker'>('options');
   const [undoToastVisible, setUndoToastVisible] = useState(false);
   const [deletedLecture, setDeletedLecture] = useState<Lecture | null>(null);
+
+  const { updateAssignment } = useLectures();
+  const [assignmentUndoToastVisible, setAssignmentUndoToastVisible] = useState(false);
+  const [completedAssignment, setCompletedAssignment] = useState<Assignment | null>(null);
+  const [hiddenAssignmentIds, setHiddenAssignmentIds] = useState<Set<string>>(new Set());
 
   // Context Menu State
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
@@ -69,7 +101,7 @@ export default function TodayScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   // Get YYYY-MM-DD for today
   const todayDateString = new Date().toISOString().split('T')[0];
-  const hasUnreadNotifications = todayLectures.length > 0 && settings.lastNotificationCheckDate !== todayDateString;
+  const hasUnreadNotifications = false; // Mock dot removed for HCI clarity
 
   const handleNotificationPress = () => {
     updateSettings({ lastNotificationCheckDate: todayDateString });
@@ -124,9 +156,37 @@ export default function TodayScreen() {
       if (deletedLecture) {
          // Re-insert from context
          const { restoreLecture } = require('@/contexts/LectureContext');
-         // But we already have the context hooked! Wait.
-         // Actually, I can just use the context from above. But I need to extract restoreLecture.
+         restoreLecture(deletedLecture);
       }
+      setUndoToastVisible(false);
+      setDeletedLecture(null);
+  };
+
+  const handleCompleteAssignment = (assignment: Assignment) => {
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      // Temporarily hide it from the list immediately
+      setHiddenAssignmentIds(prev => new Set(prev).add(assignment.id));
+      setCompletedAssignment(assignment);
+      setAssignmentUndoToastVisible(true);
+      
+      // Commit the change to the database backend
+      updateAssignment(assignment.id, { isCompleted: true });
+  };
+
+  const handleUndoCompleteAssignment = () => {
+      if (completedAssignment) {
+          // Revert the change in the database backend
+          updateAssignment(completedAssignment.id, { isCompleted: false });
+          // Show it in the list again
+          setHiddenAssignmentIds(prev => {
+              const next = new Set(prev);
+              next.delete(completedAssignment.id);
+              return next;
+          });
+      }
+      setAssignmentUndoToastVisible(false);
+      setCompletedAssignment(null);
   };
 
   const currentDate = new Date();
@@ -150,6 +210,12 @@ export default function TodayScreen() {
             <Text style={styles.headerTitle}>Today</Text>
           </View>
           <View style={styles.headerActions}>
+            {isOffline && (
+              <View style={styles.offlineBadge}>
+                <Ionicons name="cloud-offline" size={12} color="#FFF" />
+                <Text style={styles.offlineText}>Offline</Text>
+              </View>
+            )}
             <TouchableOpacity
               style={styles.iconButton}
               activeOpacity={0.7}
@@ -165,262 +231,250 @@ export default function TodayScreen() {
               <Ionicons name="notifications-outline" size={24} color={colors.primary} />
               {hasUnreadNotifications && <View style={styles.notificationDot} />}
             </TouchableOpacity>
-
           </View>
         </View>
       </SafeAreaView>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {todayLectures.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconContainer}>
-              <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
-            </View>
-            {lectures.length === 0 ? (
-              <>
-                <Text style={styles.emptyTitle}>No Classes Yet</Text>
-                <Text style={styles.emptySubtitle}>Tap + to add your first class</Text>
-                <TouchableOpacity onPress={() => handleFabPress()} style={styles.emptyButton}>
-                  <Text style={styles.emptyButtonText}>Add to Schedule</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={styles.emptyTitle}>No Classes Today</Text>
-                <Text style={styles.emptySubtitle}>You're free for the day! 🎉</Text>
-                {(() => {
-                  const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                  const todayIdx = new Date().getDay();
-                  let nextLecture: typeof lectures[0] | null = null;
-                  let daysAway = 7;
-                  for (const lec of lectures) {
-                    const lecIdx = dayOrder.indexOf(lec.dayOfWeek);
-                    if (lecIdx === -1) continue;
-                    let diff = lecIdx - todayIdx;
-                    if (diff <= 0) diff += 7;
-                    if (diff < daysAway) { daysAway = diff; nextLecture = lec; }
-                  }
-                  if (!nextLecture) return null;
-                  const validNextLecture = nextLecture;
-                  const dayLabel = daysAway === 1 ? 'Tomorrow' : validNextLecture.dayOfWeek;
-                  return (
-                    <View style={styles.nextClassContainer}>
-                      <Text style={styles.nextClassHeader}>UPCOMING</Text>
-                      <TouchableOpacity 
-                        style={styles.nextClassCard}
-                        activeOpacity={0.7}
-                        onPress={() => router.push(`/lecture/${validNextLecture.id}`)}
-                      >
-                        <View style={styles.nextClassInfo}>
-                          <Text style={styles.nextClassName} numberOfLines={1}>{validNextLecture.courseName}</Text>
-                          <Text style={styles.nextClassTime}>
-                            {dayLabel} • {formatTimeAMPM(validNextLecture.startTime)} {validNextLecture.location ? ` • ${validNextLecture.location}` : ''}
-                          </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={{ opacity: 0.5 }} />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })()}
-              </>
-            )}
-          </View>
-        ) : (
-          <View style={styles.timelineContainer}>
-            {/* Summary Subtitle */}
-            <Text style={styles.summaryText}>
-              You have {todayLectures.length} {todayLectures.length === 1 ? 'class' : 'classes'} scheduled
-            </Text>
-
-            {/* Live Lecture and List Logic */}
-            {(() => {
-              const now = new Date();
-
-              // 1. Find the currently active lecture
-              const currentLecture = todayLectures.find(l => {
-                const [startH, startM] = l.startTime.split(':').map(Number);
-                const [endH, endM] = l.endTime.split(':').map(Number);
-
-                const start = new Date();
-                start.setHours(startH, startM, 0, 0);
-
-                const end = new Date();
-                end.setHours(endH, endM, 0, 0);
-
-                // Handle case where lecture spans to next day (rare but possible logic)
-                if (end < start) end.setDate(end.getDate() + 1);
-
-                return now >= start && now < end;
-              });
-
-              // 2. Filter for strictly upcoming lectures (start time > now)
-              const upcomingLectures = todayLectures.filter(l => {
-                // If it's the current lecture, it's not "upcoming"
-                if (currentLecture && l.id === currentLecture.id) return false;
-
-                const [startH, startM] = l.startTime.split(':').map(Number);
-                const start = new Date();
-                start.setHours(startH, startM, 0, 0);
-                return start > now;
-              });
-
-              // 3. Filter for past lectures (end time < now)
-              const pastLectures = todayLectures.filter(l => {
-                  if (currentLecture && l.id === currentLecture.id) return false;
-                  const [endH, endM] = l.endTime.split(':').map(Number);
-                  const end = new Date();
-                  end.setHours(endH, endM, 0, 0);
-                  if (end < now) {
-                      const [startH] = l.startTime.split(':').map(Number);
-                      if (endH < startH) return false; // Crosses midnight edge case
-                      return true;
-                  }
-                  return false;
-              });
-
-              const isDoneForToday = !currentLecture && upcomingLectures.length === 0 && pastLectures.length > 0;
-
-              return (
-                <>
-                  {/* Done For Today Section */}
-                  {isDoneForToday && (
-                      <View style={styles.allDoneContainer}>
-                          <Ionicons name="checkmark-done-circle" size={64} color={colors.primary} />
-                          <Text style={styles.allDoneTitle}>Done for today!</Text>
-                          <Text style={styles.allDoneSubtitle}>You've finished all {pastLectures.length} classes.</Text>
-                      </View>
-                  )}
-
-                  {/* Past Classes (grayed out) */}
-                  {isDoneForToday && pastLectures.length > 0 && (
-                      <View style={[styles.sectionContainer, { marginTop: 32, opacity: 0.6 }]}>
-                          <Text style={styles.sectionHeader}>COMPLETED CLASSES</Text>
-                          <View style={styles.groupedList}>
-                              {pastLectures.map((lecture, index) => {
-                                  const isLast = index === pastLectures.length - 1;
-                                  return (
-                                     <View key={lecture.id}>
-                                         <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
-                                             <CourseItem
-                                                lecture={lecture}
-                                                isNext={false}
-                                                onPress={() => router.push(`/lecture/${lecture.id}`)}
-                                                onLongPress={() => handleLongPress(lecture)}
-                                             />
-                                         </SwipeableLectureRow>
-                                         {!isLast && <View style={styles.separator} />}
-                                     </View>
-                                  );
-                              })}
-                          </View>
-                      </View>
-                  )}
-
-                  {/* Live Section */}
-                  {currentLecture && (
-                    <View style={styles.sectionContainer}>
-                      <Text style={styles.sectionHeader}>HAPPENING NOW</Text>
-                      <LiveLectureCard
-                        lecture={currentLecture}
-                        onPress={() => router.push(`/lecture/${currentLecture.id}`)}
-                      />
-                    </View>
-                  )}
-
-                  {/* Upcoming Section */}
-                  {upcomingLectures.length > 0 && (
-                    <View style={styles.sectionContainer}>
-                      <Text style={styles.sectionHeader}>UPCOMING CLASSES</Text>
-                      <View style={styles.groupedList}>
-                        {upcomingLectures.map((lecture, index) => {
-                           // ... same as before
-                           const [endH, endM] = lecture.endTime.split(':').map(Number);
-                           const end = new Date(); end.setHours(endH, endM, 0, 0);
-                           const isLast = index === upcomingLectures.length - 1;
-
-                           return (
-                            <View key={lecture.id}>
-                              <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
-                                <CourseItem
-                                  lecture={lecture}
-                                  isNext={false}
-                                  onPress={() => router.push(`/lecture/${lecture.id}`)}
-                                  onLongPress={() => handleLongPress(lecture)}
-                                />
-                              </SwipeableLectureRow>
-                              {!isLast && <View style={styles.separator} />}
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Upcoming Deadlines Widget */}
-                  {assignments && assignments.length > 0 && (() => {
-                      const upcoming = getUpcomingAssignments(assignments);
-
-                      if (upcoming.length === 0) return null;
-
+      {(() => {
+        // Prepare Data for FlatList to avoid ScrollView performance issues
+        if (todayLectures.length === 0) {
+            return (
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+              >
+               <View style={styles.emptyState}>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
+                </View>
+                {lectures.length === 0 ? (
+                  <>
+                    <Text style={styles.emptyTitle}>No Classes Yet</Text>
+                    <Text style={styles.emptySubtitle}>Tap + to add your first class</Text>
+                    <TouchableOpacity onPress={() => handleFabPress()} style={styles.emptyButton}>
+                      <Text style={styles.emptyButtonText}>Add to Schedule</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.emptyTitle}>No Classes Today</Text>
+                    <Text style={styles.emptySubtitle}>You're free for the day! 🎉</Text>
+                    {(() => {
+                      const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                      const todayIdx = new Date().getDay();
+                      let nextLecture: typeof lectures[0] | null = null;
+                      let daysAway = 7;
+                      for (const lec of lectures) {
+                        const lecIdx = dayOrder.indexOf(lec.dayOfWeek);
+                        if (lecIdx === -1) continue;
+                        let diff = lecIdx - todayIdx;
+                        if (diff <= 0) diff += 7;
+                        if (diff < daysAway) { daysAway = diff; nextLecture = lec; }
+                      }
+                      if (!nextLecture) return null;
+                      const validNextLecture = nextLecture;
+                      const dayLabel = daysAway === 1 ? 'Tomorrow' : validNextLecture.dayOfWeek;
                       return (
-                          <View style={styles.sectionContainer}>
-                              <Text style={styles.sectionHeader}>UPCOMING DEADLINES</Text>
-                              <View style={styles.groupedList}>
-                                  {upcoming.map((assignment, index) => {
-                                      // Find course color/name
-                                      const course = lectures.find(l => l.id === assignment.lectureId);
-                                      const isLast = index === upcoming.length - 1;
-                                      
-                                      return (
-                                          <TouchableOpacity 
-                                            key={assignment.id} 
-                                            style={[styles.deadlineCard, styles.groupedItem]}
-                                            onPress={() => router.push(`/lecture/${assignment.lectureId}`)}
-                                          >
-                                              <View style={styles.deadlineRow}>
-                                                  <View style={styles.deadlineInfo}>
-                                                      <View style={styles.deadlineBadgeRow}>
-                                                          {course && (
-                                                              <View style={[styles.miniBadge, { backgroundColor: course.color || colors.primary }]}>
-                                                                  <Text style={styles.miniBadgeText}>{course.courseName}</Text>
-                                                              </View>
-                                                          )}
-                                                          {assignment.priority && assignment.priority !== 'medium' && (
-                                                              <View style={[
-                                                                  styles.priorityDot, 
-                                                                  { backgroundColor: assignment.priority === 'high' ? colors.error : '#3498db' }
-                                                              ]} />
-                                                          )}
-                                                      </View>
-                                                      <Text style={styles.deadlineTitle} numberOfLines={1}>{assignment.title}</Text>
-                                                      <Text style={styles.deadlineDate}>
-                                                          Due {new Date(assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                      </Text>
-                                                  </View>
-                                                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                                              </View>
-                                              {!isLast && <View style={styles.separator} />}
-                                          </TouchableOpacity>
-                                      );
-                                  })}
-                              </View>
-                          </View>
+                        <View style={styles.nextClassContainer}>
+                          <Text style={styles.nextClassHeader}>UPCOMING</Text>
+                          <TouchableOpacity 
+                            style={styles.nextClassCard}
+                            activeOpacity={0.7}
+                            onPress={() => router.push(`/lecture/${validNextLecture.id}`)}
+                          >
+                            <View style={styles.nextClassInfo}>
+                              <Text style={styles.nextClassName} numberOfLines={1}>{validNextLecture.courseName}</Text>
+                              <Text style={styles.nextClassTime}>
+                                {dayLabel} • {formatTimeAMPM(validNextLecture.startTime)} {validNextLecture.location ? ` • ${validNextLecture.location}` : ''}
+                              </Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={{ opacity: 0.5 }} />
+                          </TouchableOpacity>
+                        </View>
                       );
-                  })()}
-                  
-                  {todayLectures.length > 0 && (
-                    <Text style={styles.swipeHint}>Tip: Swipe left to delete a class</Text>
-                  )}
-                </>
-              );
-            })()}
-            <View style={{ height: 100 }} />
-          </View>
-        )}
-      </ScrollView>
+                    })()}
+                  </>
+                )}
+              </View>
+             </ScrollView>
+            );
+        }
+
+        const now = new Date();
+        const currentLecture = todayLectures.find(l => {
+            const [startH, startM] = l.startTime.split(':').map(Number);
+            const [endH, endM] = l.endTime.split(':').map(Number);
+            const start = new Date(); start.setHours(startH, startM, 0, 0);
+            const end = new Date(); end.setHours(endH, endM, 0, 0);
+            if (end < start) end.setDate(end.getDate() + 1);
+            return now >= start && now < end;
+        });
+
+        const upcomingLectures = todayLectures.filter(l => {
+            if (currentLecture && l.id === currentLecture.id) return false;
+            const [startH, startM] = l.startTime.split(':').map(Number);
+            const start = new Date(); start.setHours(startH, startM, 0, 0);
+            return start > now;
+        });
+
+        const pastLectures = todayLectures.filter(l => {
+            if (currentLecture && l.id === currentLecture.id) return false;
+            const [endH, endM] = l.endTime.split(':').map(Number);
+            const end = new Date(); end.setHours(endH, endM, 0, 0);
+            if (end < now) {
+                const [startH] = l.startTime.split(':').map(Number);
+                if (endH < startH) return false;
+                return true;
+            }
+            return false;
+        });
+
+        const isDoneForToday = !currentLecture && upcomingLectures.length === 0 && pastLectures.length > 0;
+        const upcomingDeadlines = assignments ? getUpcomingAssignments(assignments) : [];
+
+        // Build FlatList Data Array
+        const listData: any[] = [];
+        
+        listData.push({ type: 'summary', text: `You have ${todayLectures.length} ${todayLectures.length === 1 ? 'class' : 'classes'} scheduled`, id: 'summary' });
+
+        if (isDoneForToday) {
+            listData.push({ type: 'all_done', count: pastLectures.length, id: 'all_done' });
+        }
+
+        if (isDoneForToday && pastLectures.length > 0) {
+            listData.push({ type: 'header', title: 'COMPLETED CLASSES', id: 'past_header', marginTop: 32 });
+            pastLectures.forEach((lecture, idx) => {
+                listData.push({ type: 'lecture', lecture, isLast: idx === pastLectures.length - 1, id: `past_${lecture.id}`, opacity: 0.6 });
+            });
+        }
+
+        if (currentLecture) {
+            listData.push({ type: 'header', title: 'HAPPENING NOW', id: 'live_header' });
+            listData.push({ type: 'live_lecture', lecture: currentLecture, id: `live_${currentLecture.id}` });
+        }
+
+        if (upcomingLectures.length > 0) {
+            listData.push({ type: 'header', title: 'UPCOMING CLASSES', id: 'upcoming_header' });
+            upcomingLectures.forEach((lecture, idx) => {
+                listData.push({ type: 'lecture', lecture, isLast: idx === upcomingLectures.length - 1, id: `upcoming_${lecture.id}` });
+            });
+        }
+
+        if (upcomingDeadlines.length > 0) {
+            let hasAddedHeader = false;
+            upcomingDeadlines.forEach((assignment, idx) => {
+                // Skip if we just marked it complete
+                if (hiddenAssignmentIds.has(assignment.id)) return;
+                if (!hasAddedHeader) {
+                    listData.push({ type: 'header', title: 'UPCOMING DEADLINES', id: 'deadline_header' });
+                    hasAddedHeader = true;
+                }
+                const course = lectures.find(l => l.id === assignment.lectureId);
+                listData.push({ type: 'deadline', assignment, course, isLast: idx === upcomingDeadlines.length - 1, id: `deadline_${assignment.id}` });
+            });
+        }
+
+        listData.push({ type: 'footer_hint', id: 'footer_hint' });
+        listData.push({ type: 'spacer', id: 'bottom_spacer' });
+
+        const renderItem = ({ item }: { item: any }) => {
+            switch (item.type) {
+                case 'summary':
+                    return <Text style={styles.summaryText}>{item.text}</Text>;
+                case 'all_done':
+                    return (
+                        <View style={styles.allDoneContainer}>
+                            <Ionicons name="checkmark-done-circle" size={64} color={colors.primary} />
+                            <Text style={styles.allDoneTitle}>Done for today!</Text>
+                            <Text style={styles.allDoneSubtitle}>You've finished all {item.count} classes.</Text>
+                        </View>
+                    );
+                case 'header':
+                    return <Text style={[styles.sectionHeader, item.marginTop ? { marginTop: item.marginTop } : null]}>{item.title}</Text>;
+                case 'live_lecture':
+                    return (
+                        <View style={[styles.sectionContainer, { marginTop: 0 }]}>
+                            <LiveLectureCard lecture={item.lecture} onPress={() => router.push(`/lecture/${item.lecture.id}`)} />
+                        </View>
+                    );
+                case 'lecture':
+                    return (
+                        <View style={[styles.sectionContainer, { marginTop: 0, opacity: item.opacity || 1 }]}>
+                            <View style={[styles.groupedList, item.isLast ? {} : { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 }]}>
+                                <SwipeableLectureRow onDelete={() => handleDeleteClass(item.lecture)}>
+                                    <CourseItem
+                                        lecture={item.lecture}
+                                        isNext={false}
+                                        onPress={() => router.push(`/lecture/${item.lecture.id}`)}
+                                        onLongPress={() => handleLongPress(item.lecture)}
+                                    />
+                                </SwipeableLectureRow>
+                                {!item.isLast && <View style={styles.separator} />}
+                            </View>
+                        </View>
+                    );
+                case 'deadline':
+                    return (
+                        <View style={[styles.sectionContainer, { marginTop: 0 }]}>
+                            <View style={[styles.groupedList, item.isLast ? {} : { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 }]}>
+                                <TouchableOpacity 
+                                    style={[styles.deadlineCard, styles.groupedItem]}
+                                    onPress={() => router.push(`/lecture/${item.assignment.lectureId}`)}
+                                >
+                                    <View style={styles.deadlineRow}>
+                                        <TouchableOpacity 
+                                            style={styles.checkboxContainer}
+                                            onPress={() => handleCompleteAssignment(item.assignment)}
+                                            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                                        >
+                                            <View style={styles.checkboxOutline} />
+                                        </TouchableOpacity>
+                                        <View style={styles.deadlineInfo}>
+                                            <View style={styles.deadlineBadgeRow}>
+                                                {item.course && (
+                                                    <View style={[styles.miniBadge, { backgroundColor: item.course.color || colors.primary }]}>
+                                                        <Text style={styles.miniBadgeText}>{item.course.courseName}</Text>
+                                                    </View>
+                                                )}
+                                                {item.assignment.priority && item.assignment.priority !== 'medium' && (
+                                                    <View style={[
+                                                        styles.priorityDot, 
+                                                        { backgroundColor: item.assignment.priority === 'high' ? colors.error : '#3498db' }
+                                                    ]} />
+                                                )}
+                                            </View>
+                                            <Text style={styles.deadlineTitle} numberOfLines={1}>{item.assignment.title}</Text>
+                                            <Text style={styles.deadlineDate}>
+                                                Due {new Date(item.assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            </Text>
+                                        </View>
+                                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                                    </View>
+                                    {!item.isLast && <View style={styles.separator} />}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    );
+                case 'footer_hint':
+                    return <Text style={styles.swipeHint}>Tip: Swipe left to delete a class</Text>;
+                case 'spacer':
+                    return <View style={{ height: 100 }} />;
+                default:
+                    return null;
+            }
+        };
+
+        return (
+            <FlatList
+                data={listData}
+                renderItem={renderItem}
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                style={styles.scrollView}
+            />
+        );
+      })()}
 
       {/* Mini Study Timer Bar pinned to bottom just above tabs */}
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: 16 }}>
@@ -434,6 +488,16 @@ export default function TodayScreen() {
           onDismiss={() => {
               setUndoToastVisible(false);
               setDeletedLecture(null);
+          }}
+      />
+      
+      <UndoToast 
+          visible={assignmentUndoToastVisible}
+          message={`Marked "${completedAssignment?.title}" complete`}
+          onUndo={handleUndoCompleteAssignment}
+          onDismiss={() => {
+              setAssignmentUndoToastVisible(false);
+              setCompletedAssignment(null);
           }}
       />
 
@@ -468,7 +532,7 @@ export default function TodayScreen() {
                               
                               <TouchableOpacity 
                                   style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.textMuted + '30' }}
-                                  onPress={() => navigateTo('/add-lecture')}
+                                  onPress={() => navigateTo('/add-lecture?source=Today')}
                               >
                                   <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
                                       <Ionicons name="book-outline" size={20} color={colors.primary} />
@@ -510,7 +574,7 @@ export default function TodayScreen() {
                                       </Text>
                                       <TouchableOpacity 
                                           style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}
-                                          onPress={() => navigateTo('/add-lecture')}
+                                          onPress={() => navigateTo('/add-lecture?source=Today')}
                                       >
                                           <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 15 }}>Add a Course</Text>
                                       </TouchableOpacity>
@@ -527,7 +591,7 @@ export default function TodayScreen() {
                                                   borderBottomWidth: index === lectures.length - 1 ? 0 : StyleSheet.hairlineWidth, 
                                                   borderBottomColor: colors.textMuted + '30' 
                                               }}
-                                              onPress={() => navigateTo(`/add-assignment?lectureId=${l.id}`)}
+                                              onPress={() => navigateTo(`/add-assignment?lectureId=${l.id}&source=Today`)}
                                           >
                                               <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: l.color || colors.primary, marginRight: 16 }} />
                                               <Text style={{ fontSize: 16, color: colors.textDark, fontWeight: '500', flex: 1 }}>{l.courseName}</Text>
@@ -557,6 +621,14 @@ export default function TodayScreen() {
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={32} color="#FFFFFF" />
+          {lectures.length === 0 && (
+            <Animated.View 
+              style={[
+                styles.fabPulseDot, 
+                { transform: [{ scale: pulseAnim }] }
+              ]} 
+            />
+          )}
         </TouchableOpacity>
       </Animated.View>
 
@@ -618,6 +690,22 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   iconButton: {
     padding: 4,
+  },
+  offlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.error,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 4,
+  },
+  offlineText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   notificationDot: {
     position: 'absolute',
@@ -746,11 +834,14 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     paddingBottom: 40,
   },
   swipeHint: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
     textAlign: 'center',
-    marginTop: 24,
-    opacity: 0.7,
+    marginTop: 32,
+    marginBottom: 16,
+    opacity: 0.9,
+    letterSpacing: 0.3,
   },
   fabContainer: {
     position: 'absolute',
@@ -770,6 +861,17 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  fabPulseDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FFD700', // Gold color for attention
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
   allDoneContainer: {
     alignItems: 'center',
@@ -830,6 +932,18 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
       fontWeight: '600',
       color: colors.textDark,
       marginBottom: 2,
+  },
+  checkboxContainer: {
+      marginRight: 16,
+      alignSelf: 'flex-start',
+      marginTop: 2,
+  },
+  checkboxOutline: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: colors.textMuted + '60',
   },
   deadlineDate: {
       fontSize: 12,

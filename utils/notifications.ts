@@ -602,7 +602,15 @@ export const handleNotificationResponse = async (response: any) => {
       },
     });
     log(`[Notifications] Snoozed notification for ${snoozeMinutes} minutes`);
+    return null;
   } else if (actionIdentifier === 'dismiss') {
     log('[Notifications] Dismissed notification');
+    return null;
+  } else if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+    // This is the default tap on the notification
+    log('[Notifications] Default action triggered, returning data for navigation');
+    return content.data;
   }
+  
+  return null;
 };

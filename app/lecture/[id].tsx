@@ -178,14 +178,15 @@ export default function LectureDetailScreen() {
              
              {/* Custom Header with color accent */}
              <View style={styles.header}>
-                <TouchableOpacity onPress={handleBack} style={styles.iconBtn}>
+                <TouchableOpacity onPress={handleBack} style={styles.iconBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <Ionicons name="chevron-back" size={24} color={colors.textDark} />
                 </TouchableOpacity>
                 <View style={styles.headerActions}>
-                     <TouchableOpacity onPress={handleEdit} style={styles.iconBtn}>
-                        <Ionicons name="create-outline" size={20} color={colors.textDark} />
+                     <TouchableOpacity onPress={handleEdit} style={styles.editHeaderBtn}>
+                        <Ionicons name="create-outline" size={16} color="#FFF" />
+                        <Text style={styles.editHeaderBtnText}>Edit</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleDelete} style={[styles.iconBtn, styles.deleteBtn]}>
+                    <TouchableOpacity onPress={handleDelete} style={[styles.iconBtn, styles.deleteBtn]} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                         <Ionicons name="trash-outline" size={20} color={colors.error} />
                     </TouchableOpacity>
                 </View>
@@ -465,6 +466,20 @@ const createStyles = (colors: ColorTheme, accent: string) => StyleSheet.create({
         padding: 8,
         backgroundColor: colors.cardBackground,
         borderRadius: 20,
+    },
+    editHeaderBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: colors.primary,
+        borderRadius: 20,
+    },
+    editHeaderBtnText: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: '700',
     },
     deleteBtn: {
         backgroundColor: colors.error + '12',

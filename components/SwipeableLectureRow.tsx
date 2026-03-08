@@ -61,7 +61,7 @@ export default function SwipeableLectureRow({ children, onDelete }: SwipeableLec
         <Swipeable
             ref={swipeableRef}
             renderRightActions={renderRightActions}
-            rightThreshold={40}
+            rightThreshold={120}
             overshootRight={false}
         >
             {children}

@@ -143,7 +143,7 @@ export default function SettingsScreen() {
             };
             
             // ensure documentDirectory is a string
-            const docDir = FileSystem.documentDirectory || '';
+            const docDir = (FileSystem as any).documentDirectory || '';
             const fileUri = `${docDir}RemindMe_Export.json`;
             await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(exportPayload, null, 2));
             
@@ -472,7 +472,7 @@ export default function SettingsScreen() {
                 </View>
 
                 {/* DATA SECTION */}
-                <SectionHeader title="Data Management" />
+                <SectionHeader title="Danger Zone" icon="warning-outline" />
                 <View style={styles.groupedList}>
                     <TouchableOpacity
                         style={styles.row}
@@ -482,9 +482,9 @@ export default function SettingsScreen() {
                             <View style={[styles.iconBox, { backgroundColor: colors.error + '15' }]}>
                                 <Ionicons name="trash-outline" size={16} color={colors.error} />
                             </View>
-                            <Text style={[styles.rowLabel, { color: colors.error }]}>Manage App Data</Text>
+                            <Text style={[styles.rowLabel, { color: colors.error, fontWeight: '600' }]}>Manage App Data</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted + '80'} />
+                        <Ionicons name="chevron-forward" size={16} color={colors.error + '60'} />
                     </TouchableOpacity>
                 </View>
 
@@ -594,15 +594,17 @@ export default function SettingsScreen() {
                             onPress={() => {
                                 setManageDataModalVisible(false);
                                 setTimeout(() => {
-                                    showAlert("Delete All Lectures?", "Are you sure you want to delete all lectures? This cannot be undone.", [
+                                    showAlert("Permanently Delete All Lectures?", "Are you sure? This will remove all your classes and scheduled reminders. This cannot be undone.", [
                                         { text: "Cancel", style: "cancel" },
-                                        { text: "Delete All Lectures", style: "destructive", onPress: clearLectures }
+                                        { text: "Delete Everything", style: "destructive", onPress: clearLectures }
                                     ]);
                                 }, 300);
                             }}
                         >
-                            <Ionicons name="book-outline" size={22} color={colors.error} />
-                            <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Lectures</Text>
+                            <View style={[styles.iconBox, { backgroundColor: colors.error + '15' }]}>
+                                <Ionicons name="book" size={20} color={colors.error} />
+                            </View>
+                            <Text style={[styles.modalActionText, { color: colors.error }]}>Permanently Delete All Lectures</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
@@ -610,15 +612,17 @@ export default function SettingsScreen() {
                             onPress={() => {
                                 setManageDataModalVisible(false);
                                 setTimeout(() => {
-                                    showAlert("Delete All Assignments?", "Are you sure you want to delete all assignments? This cannot be undone.", [
+                                    showAlert("Permanently Delete All Assignments?", "This will remove all your pending and completed tasks. Continue?", [
                                         { text: "Cancel", style: "cancel" },
-                                        { text: "Delete All Assignments", style: "destructive", onPress: async () => await clearAssignments?.() }
+                                        { text: "Delete Assignments", style: "destructive", onPress: async () => await clearAssignments?.() }
                                     ]);
                                 }, 300);
                             }}
                         >
-                            <Ionicons name="clipboard-outline" size={22} color={colors.error} />
-                            <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Assignments</Text>
+                            <View style={[styles.iconBox, { backgroundColor: colors.error + '15' }]}>
+                                <Ionicons name="clipboard" size={20} color={colors.error} />
+                            </View>
+                            <Text style={[styles.modalActionText, { color: colors.error }]}>Permanently Delete All Assignments</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity 
@@ -626,15 +630,17 @@ export default function SettingsScreen() {
                             onPress={() => {
                                 setManageDataModalVisible(false);
                                 setTimeout(() => {
-                                    showAlert("Delete All Exams?", "Are you sure you want to delete all exams? This cannot be undone.", [
+                                    showAlert("Permanently Delete All Exams?", "This will remove all your exam schedules. Continue?", [
                                         { text: "Cancel", style: "cancel" },
-                                        { text: "Delete All Exams", style: "destructive", onPress: clearExams }
+                                        { text: "Delete Exams", style: "destructive", onPress: clearExams }
                                     ]);
                                 }, 300);
                             }}
                         >
-                            <Ionicons name="document-text-outline" size={22} color={colors.error} />
-                            <Text style={[styles.modalActionText, { color: colors.error }]}>Delete All Exams</Text>
+                            <View style={[styles.iconBox, { backgroundColor: colors.error + '15' }]}>
+                                <Ionicons name="document-text" size={20} color={colors.error} />
+                            </View>
+                            <Text style={[styles.modalActionText, { color: colors.error }]}>Permanently Delete All Exams</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 

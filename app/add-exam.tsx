@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Stack, useNavigation } from 'expo-router';
+import { useRouter, Stack, useNavigation, useLocalSearchParams } from 'expo-router';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useExams } from '@/contexts/ExamContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { useCustomAlert } from '@/contexts/AlertContext';
 
 export default function AddExamScreen() {
     const router = useRouter();
+    const { source } = useLocalSearchParams();
     const { colors } = useSettings();
     const { addExam } = useExams();
     const { showAlert } = useCustomAlert();
@@ -115,22 +116,37 @@ export default function AddExamScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.cancelButton}>
-                    <Text style={styles.cancelText}>Cancel</Text>
+                <TouchableOpacity 
+                    onPress={() => router.back()} 
+                    style={styles.cancelButton}
+                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                >
+                    {Platform.OS === 'android' ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+                            <Text style={[styles.cancelText, { marginLeft: 4, color: colors.primary }]}>
+                                {source ? `Back to ${source}` : "Back"}
+                            </Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.cancelText}>
+                            {source ? `Back to ${source}` : "Cancel"}
+                        </Text>
+                    )}
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>New Exam</Text>
                 <TouchableOpacity
                     onPress={handleSave}
                     disabled={isSaving}
-                    style={styles.saveButton}
+                    style={[styles.saveButtonFilled, isSaving && styles.saveButtonDisabled]}
                 >
-                    <Text style={styles.saveText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+                    <Text style={styles.saveTextFilled}>{isSaving ? 'Saving...' : 'Save'}</Text>
                 </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>COURSE NAME</Text>
+                    <Text style={styles.label}>Course Name</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="e.g. Calculus II Midterm"
@@ -142,8 +158,8 @@ export default function AddExamScreen() {
                 </View>
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>DATE & TIME</Text>
-
+                    <Text style={styles.label}>Date & Time</Text>
+                    {/* ... picker logic ... */}
                     {Platform.OS === 'web' ? (
                         <View style={styles.datePickerCard}>
                             <input
@@ -207,7 +223,7 @@ export default function AddExamScreen() {
                 )}
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>LOCATION (OPTIONAL)</Text>
+                    <Text style={styles.label}>Location (Optional)</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="e.g. Hall B"
@@ -218,7 +234,7 @@ export default function AddExamScreen() {
                 </View>
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>NOTES (OPTIONAL)</Text>
+                    <Text style={styles.label}>Notes (Optional)</Text>
                     <TextInput
                         style={[styles.input, styles.textArea]}
                         placeholder="Topics to study..."
@@ -256,16 +272,25 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         padding: 14,
     },
     cancelText: {
-        fontSize: 17,
-        color: colors.primary,
+        fontSize: 16,
+        color: colors.textMuted,
     },
-    saveButton: {
-        padding: 14,
+    saveButtonFilled: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        minWidth: 70,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    saveText: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: colors.primary,
+    saveButtonDisabled: {
+        opacity: 0.5,
+    },
+    saveTextFilled: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: colors.cardBackground === '#F8F9FA' ? '#FFFFFF' : '#000000',
     },
     content: {
         padding: 20,

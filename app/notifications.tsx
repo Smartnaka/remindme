@@ -18,22 +18,42 @@ export default function NotificationsScreen() {
     // For this demo, let's just generate some "notifications" based on upcoming lectures
     // In a real app, this might come from a separate notifications store or push notification history
     const notifications = useMemo(() => {
-        const today = getCurrentDayOfWeek();
-        const todayLectures = lectures.filter(l => l.dayOfWeek === today);
+        const triggers: any[] = [];
+        const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const now = new Date();
+        const currentDayIdx = now.getDay();
 
-        // Sort by time
-        todayLectures.sort((a, b) => {
-            return a.startTime.localeCompare(b.startTime);
-        });
+        // Calculate occurrences for the next 7 days
+        for (let i = 0; i < 7; i++) {
+            const checkDate = new Date();
+            checkDate.setDate(now.getDate() + i);
+            const dayName = dayOrder[checkDate.getDay()];
+            
+            const dayLectures = lectures.filter(l => l.dayOfWeek === dayName);
+            
+            dayLectures.forEach(lecture => {
+                const [h, m] = lecture.startTime.split(':').map(Number);
+                const triggerTime = new Date(checkDate);
+                triggerTime.setHours(h, m, 0, 0);
 
-        return todayLectures.map(lecture => ({
-            id: lecture.id,
-            title: 'Upcoming Class',
-            message: `${lecture.courseName} starts at ${lecture.startTime}`,
-            time: 'Today',
-            type: 'upcoming',
-            lectureId: lecture.id
-        }));
+                // Only include if it's in the future
+                if (triggerTime > now) {
+                    const dayLabel = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : dayName;
+                    triggers.push({
+                        id: `${lecture.id}-${i}`,
+                        title: 'Upcoming Class',
+                        message: `${lecture.courseName} starts at ${lecture.startTime}${lecture.location ? ` in ${lecture.location}` : ''}`,
+                        time: `${dayLabel}, ${lecture.startTime}`,
+                        timestamp: triggerTime.getTime(),
+                        type: 'upcoming',
+                        lectureId: lecture.id
+                    });
+                }
+            });
+        }
+
+        // Sort by chronological order
+        return triggers.sort((a, b) => a.timestamp - b.timestamp);
     }, [lectures]);
 
     return (

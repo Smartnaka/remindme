@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useExams } from '@/contexts/ExamContext';
@@ -28,11 +28,11 @@ export default function ExamsScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView 
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {exams.length === 0 ? (
+      {exams.length === 0 ? (
+        <ScrollView 
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
             <View style={styles.emptyState}>
                 <View style={styles.emptyIconContainer}>
                     <Ionicons name="document-text-outline" size={64} color={colors.textMuted} />
@@ -41,21 +41,25 @@ export default function ExamsScreen() {
                 <Text style={styles.emptySubtitle}>Track your upcoming exams and stay ahead of your studies.</Text>
                 <TouchableOpacity 
                     style={{ marginTop: 24, backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20 }}
-                    onPress={() => router.push('/add-exam')}
+                    onPress={() => router.push('/add-exam?source=Exams')}
                 >
                     <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>Add Your First Exam</Text>
                 </TouchableOpacity>
             </View>
-        ) : (
-            exams.map(exam => (
-                <ExamCard key={exam.id} exam={exam} />
-            ))
-        )}
-      </ScrollView>
+        </ScrollView>
+      ) : (
+        <FlatList
+          data={exams}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <ExamCard exam={item} />}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push('/add-exam')}
+        onPress={() => router.push('/add-exam?source=Exams')}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={32} color="#FFFFFF" />

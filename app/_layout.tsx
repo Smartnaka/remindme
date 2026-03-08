@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback } from "react";
@@ -97,9 +97,23 @@ export default function RootLayout() {
     if (fontsLoaded) {
       requestNotificationPermissions();
       
-      // Handle notification responses (Snooze/Dismiss)
-      const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-        handleNotificationResponse(response);
+      // Handle notification responses (Snooze/Dismiss/Tap)
+      const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
+        const data = await handleNotificationResponse(response);
+        
+        if (data) {
+          // Deep Linking: navigate to the relevant screen based on notification data
+          if (data.lectureId) {
+            // Lecture or lecture-related reminder → go to lecture detail
+            router.push(`/lecture/${data.lectureId}`);
+          } else if (data.examId || data.type === 'exam-reminder') {
+            // Exam reminder → go to Exams tab
+            router.push('/(tabs)/exams');
+          } else if (data.assignmentId) {
+            // Assignment reminder without lectureId → go to Today tab
+            router.push('/(tabs)');
+          }
+        }
       });
 
       return () => {
@@ -132,14 +146,16 @@ export default function RootLayout() {
                 <LectureProvider>
                   <ExamProvider>
                     <StudyTimerProvider>
-                    <RootLayoutNav />
-                    <NotificationBanner />
-                    <CustomAlert />
-                  </StudyTimerProvider>
-                </ExamProvider>
-              </LectureProvider>
-            </AlertProvider>
-          </SettingsProvider>
+                      <>
+                        <RootLayoutNav />
+                        <NotificationBanner />
+                        <CustomAlert />
+                      </>
+                    </StudyTimerProvider>
+                  </ExamProvider>
+                </LectureProvider>
+              </AlertProvider>
+            </SettingsProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </View>

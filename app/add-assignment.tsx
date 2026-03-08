@@ -13,7 +13,7 @@ import { useCustomAlert } from '@/contexts/AlertContext';
 
 export default function AddAssignmentScreen() {
     const router = useRouter();
-    const { lectureId } = useLocalSearchParams();
+    const { lectureId, source } = useLocalSearchParams();
     const { addAssignment, lectures } = useLectures();
     const { colors } = useSettings();
     const { showAlert } = useCustomAlert();
@@ -102,23 +102,38 @@ export default function AddAssignmentScreen() {
              <StatusBar barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'} backgroundColor="transparent" translucent />
 
              <View style={styles.customHeader}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Text style={styles.cancelText}>Cancel</Text>
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.backButton}
+                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                >
+                    {Platform.OS === 'android' ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+                            <Text style={[styles.cancelText, { marginLeft: 4, color: colors.primary }]}>
+                                {source ? `Back to ${source}` : 'Back'}
+                            </Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.cancelText}>
+                            {source ? `Back to ${source}` : 'Cancel'}
+                        </Text>
+                    )}
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>New Assignment</Text>
                 <TouchableOpacity 
                     onPress={handleSave} 
-                    style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                    style={[styles.saveButtonFilled, isSaving && styles.saveButtonDisabled]}
                     disabled={isSaving}
                 >
-                    <Text style={styles.saveButtonText}>{isSaving ? "Saving..." : "Save"}</Text>
+                    <Text style={styles.saveButtonTextFilled}>{isSaving ? "Saving..." : "Save"}</Text>
                 </TouchableOpacity>
             </View>
 
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
                 <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
                     
-                    {course && (
+                    {course ? (
                         <View style={styles.courseBadgeContainer}>
                             <View style={[styles.courseBadge, { backgroundColor: course.color || colors.primary + '20' }]}>
                                 <Ionicons name="folder-outline" size={16} color={course.color ? '#FFF' : colors.primary} style={{ marginRight: 6 }} />
@@ -126,6 +141,11 @@ export default function AddAssignmentScreen() {
                                     {course.courseName}
                                 </Text>
                             </View>
+                        </View>
+                    ) : (
+                        <View style={styles.emptyCourseItem}>
+                            <Ionicons name="warning-outline" size={20} color={colors.warning} style={{ marginRight: 8 }} />
+                            <Text style={styles.emptyCourseText}>No course selected — add a lecture first</Text>
                         </View>
                     )}
 
@@ -204,7 +224,7 @@ export default function AddAssignmentScreen() {
                                         <DateTimePicker
                                             value={date}
                                             mode="date"
-                                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                            display="spinner"
                                             onChange={handleDateChange}
                                             textColor={colors.textDark}
                                             style={styles.datePicker}
@@ -250,11 +270,38 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         borderBottomColor: colors.textMuted + '20',
     },
     backButton: { padding: 14 },
-    cancelText: { fontSize: 17, color: colors.primary },
+    cancelText: { fontSize: 16, color: colors.textMuted },
     headerTitle: { fontSize: 17, fontWeight: '600', color: colors.textDark },
-    saveButton: { padding: 14 },
+    saveButtonFilled: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        minWidth: 70,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     saveButtonDisabled: { opacity: 0.5 },
-    saveButtonText: { fontSize: 17, fontWeight: '600', color: colors.primary },
+    saveButtonTextFilled: { 
+        fontSize: 15, 
+        fontWeight: '700', 
+        color: colors.cardBackground === '#F8F9FA' ? '#FFFFFF' : '#000000' 
+    },
+    emptyCourseItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.cardBackground,
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: colors.warning + '30',
+    },
+    emptyCourseText: {
+        color: colors.textMuted,
+        fontSize: 14,
+        fontWeight: '500',
+    },
     keyboardView: { flex: 1 },
     content: { padding: 20 },
     courseBadgeContainer: {

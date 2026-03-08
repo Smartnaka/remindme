@@ -1,29 +1,43 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, ScrollView, Modal, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, ScrollView, Modal, SafeAreaView, Platform, StatusBarStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { useSettings } from '@/contexts/SettingsContext';
-import { ColorTheme } from '@/types/theme';
+import { StatusBar } from 'expo-status-bar';
 
 const { width, height } = Dimensions.get('window');
+
+// Responsive utility
+const wp = (percentage: number) => {
+    return (percentage * width) / 100;
+};
+
+const hp = (percentage: number) => {
+    return (percentage * height) / 100;
+};
 
 const SLIDES = [
     {
         id: '1',
-        title: 'Master Your Schedule',
-        description: 'Add your university lectures easily and track your entire week at a glance.',
-        icon: 'calendar-outline' as const,
+        titleTop: 'Master Your',
+        titleHighlight: 'Class Schedule',
+        description: 'Never miss a lecture or assignment\nagain with smart reminders.',
+        icon: 'school' as const,
     },
     {
         id: '2',
-        title: 'Never Miss a Deadline',
-        description: 'Keep track of assignments and upcoming exams, all linked directly to your courses.',
-        icon: 'checkmark-circle-outline' as const,
+        titleTop: 'Be On Time for Every\nClass',
+        titleHighlight: '',
+        description: 'Organize your semester and set custom\nalerts for your lectures.',
+        icon: 'book' as const,
     },
     {
         id: '3',
-        title: 'Smart Reminders',
-        description: 'Get notified before your classes start so you always arrive on time without stressing.',
-        icon: 'notifications-outline' as const,
+        titleTop: 'All Your Deadlines\nIn',
+        titleHighlight: 'One Place',
+        description: 'Track assignments seamlessly and\nwatch your academic progress grow.',
+        icon: 'document-text' as const,
     }
 ];
 
@@ -33,11 +47,12 @@ interface OnboardingProps {
 }
 
 export default function OnboardingCarousel({ visible, onComplete }: OnboardingProps) {
-    const { colors } = useSettings();
-    const styles = useMemo(() => createStyles(colors), [colors]);
+    const { colors, theme } = useSettings();
     const scrollX = useRef(new Animated.Value(0)).current;
     const scrollViewRef = useRef<ScrollView>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
+
+    const isDark = theme === 'dark';
 
     if (!visible) return null;
 
@@ -52,6 +67,9 @@ export default function OnboardingCarousel({ visible, onComplete }: OnboardingPr
     };
 
     const goNext = () => {
+        if (Platform.OS !== 'web') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
         if (currentIndex < SLIDES.length - 1) {
             scrollViewRef.current?.scrollTo({ x: (currentIndex + 1) * width, animated: true });
         } else {
@@ -60,16 +78,125 @@ export default function OnboardingCarousel({ visible, onComplete }: OnboardingPr
     };
 
     const goSkip = () => {
+        if (Platform.OS !== 'web') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
         onComplete();
     };
 
-    return (
-        <Modal animationType="slide" transparent={false} visible={visible}>
-            <SafeAreaView style={styles.container}>
-                <TouchableOpacity style={styles.skipButton} onPress={goSkip}>
-                    <Text style={styles.skipText}>Skip</Text>
-                </TouchableOpacity>
+    const renderHero = (slideId: string) => {
+        const glowColor = colors.primary + (isDark ? '40' : '20');
+        
+        if (slideId === '1') {
+            return (
+                <View style={styles.heroWrapper}>
+                    <View style={[styles.heroBox, { borderColor: colors.primary + '20', backgroundColor: colors.primary + '03' }]}>
+                        <LinearGradient
+                            colors={[colors.primary + '15', 'transparent']}
+                            style={StyleSheet.absoluteFillObject}
+                        />
+                        <View style={styles.heroCenter}>
+                            <Ionicons 
+                                name="school" 
+                                size={wp(25)} 
+                                color={colors.primary} 
+                                style={{
+                                    textShadowColor: glowColor,
+                                    textShadowOffset: { width: 0, height: 0 },
+                                    textShadowRadius: 30,
+                                }} 
+                            />
+                            <View style={[styles.floatingBadge, { top: -hp(2), left: -wp(10) }]}>
+                                <Ionicons name="book" size={wp(10)} color={colors.primary} style={{ opacity: 0.6 }} />
+                            </View>
+                            <View style={[styles.floatingBadge, { bottom: -hp(1), right: -wp(5), backgroundColor: colors.background, borderWidth: 1, borderColor: colors.primary + '30', borderRadius: 12, padding: 4 }]}>
+                                <View style={[styles.clockInner, { backgroundColor: colors.primary }]}>
+                                    <Ionicons name="time" size={wp(6)} color={isDark ? '#000' : '#FFF'} />
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            );
+        }
 
+        if (slideId === '2') {
+            return (
+                <View style={styles.heroWrapper}>
+                    <View style={[styles.heroBox, { borderColor: colors.primary + '15', backgroundColor: 'transparent' }]}>
+                        <View style={styles.heroCenter}>
+                            <View style={[styles.circleOutline, { borderColor: colors.primary + '30', backgroundColor: colors.primary + '05' }]}>
+                                <Ionicons name="book" size={wp(14)} color={colors.primary} />
+                            </View>
+                            <View style={[styles.floatingCard, { borderColor: colors.primary + '30', backgroundColor: colors.cardBackground }]}>
+                                <View style={[styles.cardIconBox, { backgroundColor: colors.primary }]}>
+                                    <Ionicons name="school" size={wp(5)} color={isDark ? '#000' : '#FFF'} />
+                                </View>
+                                <View style={styles.cardTextCol}>
+                                    <Text style={[styles.cardTitle, { color: colors.textDark }]}>Intro to Economics</Text>
+                                    <Text style={[styles.cardSub, { color: colors.primary }]}>Starts in 10 mins • Hall A</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            );
+        }
+
+        return (
+            <View style={styles.heroWrapper}>
+                <View style={[styles.heroBox, { borderColor: colors.primary + '20', backgroundColor: colors.primary + '03' }]}>
+                    <LinearGradient
+                        colors={[colors.primary + '10', 'transparent']}
+                        style={StyleSheet.absoluteFillObject}
+                    />
+                    <View style={styles.heroCenter}>
+                        <View style={[styles.floatingCard, { borderColor: colors.primary + '30', backgroundColor: colors.cardBackground, width: wp(65), marginBottom: hp(2) }]}>
+                            <View style={[styles.cardIconBox, { backgroundColor: colors.primary }]}>
+                                <Ionicons name="document-text" size={wp(5)} color={isDark ? '#000' : '#FFF'} />
+                            </View>
+                            <View style={styles.cardTextCol}>
+                                <Text style={[styles.cardTitle, { color: colors.textDark }]}>CS101 Project</Text>
+                                <View style={[styles.progressBarBg, { backgroundColor: colors.textMuted + '20' }]}>
+                                    <View style={[styles.progressBarFill, { width: '70%', backgroundColor: colors.primary }]} />
+                                </View>
+                            </View>
+                        </View>
+                        <View style={[styles.floatingCard, { borderColor: colors.textMuted + '20', backgroundColor: colors.cardBackground, width: wp(65), opacity: 0.6 }]}>
+                            <View style={[styles.cardIconBox, { backgroundColor: colors.textMuted }]}>
+                                <Ionicons name="pencil" size={wp(5)} color={isDark ? '#000' : '#FFF'} />
+                            </View>
+                            <View style={styles.cardTextCol}>
+                                <Text style={[styles.cardTitle, { color: colors.textDark }]}>Math Quiz</Text>
+                                <View style={[styles.progressBarBg, { backgroundColor: colors.textMuted + '20' }]}>
+                                    <View style={[styles.progressBarFill, { width: '100%', backgroundColor: colors.textMuted }]} />
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            </View>
+        );
+    };
+
+    return (
+        <Modal animationType="fade" transparent={false} visible={visible}>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                {/* Header Section */}
+                <View style={styles.header}>
+                    <View style={styles.logoRow}>
+                        <View style={[styles.logoBox, { backgroundColor: colors.primary }]}>
+                            <Ionicons name="school" size={16} color={isDark ? '#000' : '#FFF'} />
+                        </View>
+                        <Text style={[styles.logoText, { color: colors.textDark }]}>RemindMe</Text>
+                    </View>
+                    <TouchableOpacity onPress={goSkip} style={styles.skipBtn}>
+                        <Text style={[styles.skipText, { color: colors.primary }]}>Skip</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Slides */}
                 <Animated.ScrollView
                     ref={scrollViewRef}
                     horizontal
@@ -81,21 +208,26 @@ export default function OnboardingCarousel({ visible, onComplete }: OnboardingPr
                     scrollEventThrottle={16}
                     style={{ flex: 1 }}
                 >
-                    {SLIDES.map((slide, index) => (
+                    {SLIDES.map((slide) => (
                         <View key={slide.id} style={styles.slide}>
-                            <View style={styles.iconContainer}>
-                                <View style={styles.iconCircle}>
-                                    <Ionicons name={slide.icon} size={80} color={colors.primary} />
-                                </View>
-                            </View>
+                            {renderHero(slide.id)}
+                            
                             <View style={styles.textContainer}>
-                                <Text style={styles.title}>{slide.title}</Text>
-                                <Text style={styles.description}>{slide.description}</Text>
+                                <Text style={[styles.titleText, { color: colors.textDark }]}>
+                                    {slide.titleTop}
+                                    {slide.titleHighlight ? (
+                                        <Text style={{ color: colors.primary }}>{'\n'}{slide.titleHighlight}</Text>
+                                    ) : null}
+                                </Text>
+                                <Text style={[styles.descriptionText, { color: colors.textMuted }]}>
+                                    {slide.description}
+                                </Text>
                             </View>
                         </View>
                     ))}
                 </Animated.ScrollView>
 
+                {/* Footer and Navigation */}
                 <View style={styles.footer}>
                     <View style={styles.pagination}>
                         {SLIDES.map((_, index) => {
@@ -123,13 +255,19 @@ export default function OnboardingCarousel({ visible, onComplete }: OnboardingPr
                     </View>
 
                     <TouchableOpacity 
-                        style={styles.nextButton} 
+                        style={[styles.nextButton, { backgroundColor: colors.primary }]} 
                         onPress={goNext}
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.nextButtonText}>
+                        <Text style={[styles.nextButtonText, { color: isDark ? '#000' : '#FFF' }]}>
                             {currentIndex === SLIDES.length - 1 ? "Get Started" : "Next"}
                         </Text>
+                        <Ionicons 
+                            name="arrow-forward" 
+                            size={20} 
+                            color={isDark ? '#000' : '#FFF'} 
+                            style={{ marginLeft: 8 }} 
+                        />
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -137,69 +275,169 @@ export default function OnboardingCarousel({ visible, onComplete }: OnboardingPr
     );
 }
 
-const createStyles = (colors: ColorTheme) => StyleSheet.create({
+const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: wp(6),
+        paddingTop: hp(2),
+        paddingBottom: hp(2),
+    },
+    logoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    logoBox: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    logoText: {
+        fontSize: wp(4.5),
+        fontFamily: 'Inter_700Bold',
+    },
+    skipBtn: {
+        padding: 8,
+    },
+    skipText: {
+        fontSize: wp(4),
+        fontFamily: 'Inter_600SemiBold',
     },
     slide: {
         width,
         alignItems: 'center',
-        padding: 40,
-        paddingTop: height * 0.15,
+        paddingHorizontal: wp(6),
+        paddingTop: hp(4),
     },
-    iconContainer: {
-        marginBottom: 60,
+    heroWrapper: {
+        width: '100%',
+        aspectRatio: 1,
+        marginBottom: hp(4),
         alignItems: 'center',
         justifyContent: 'center',
     },
-    iconCircle: {
-        width: 160,
-        height: 160,
-        borderRadius: 80,
-        backgroundColor: colors.primary + '15',
+    heroBox: {
+        width: wp(80),
+        height: wp(80),
+        borderRadius: wp(10),
+        borderWidth: 1.5,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    heroCenter: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    floatingBadge: {
+        position: 'absolute',
+        zIndex: 2,
+    },
+    clockInner: {
+        width: wp(10),
+        height: wp(10),
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    circleOutline: {
+        width: wp(30),
+        height: wp(30),
+        borderRadius: wp(15),
+        borderWidth: 1.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: -hp(2),
+        zIndex: 0,
+    },
+    floatingCard: {
+        borderWidth: 1.5,
+        borderRadius: 16,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: wp(70),
+        zIndex: 1,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.15,
+                shadowRadius: 15,
+            },
+            android: {
+                elevation: 8,
+            },
+        }),
+    },
+    cardIconBox: {
+        width: wp(10),
+        height: wp(10),
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    cardTextCol: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    cardTitle: {
+        fontFamily: 'Inter_700Bold',
+        fontSize: wp(3.8),
+        marginBottom: 2,
+    },
+    cardSub: {
+        fontFamily: 'Inter_600SemiBold',
+        fontSize: wp(3),
+    },
+    progressBarBg: {
+        height: 5,
+        width: '100%',
+        borderRadius: 2.5,
+        marginTop: 6,
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 2.5,
     },
     textContainer: {
         alignItems: 'center',
+        width: '100%',
+        paddingHorizontal: wp(4),
     },
-    title: {
-        fontSize: 28,
+    titleText: {
+        fontSize: wp(8.5),
         fontFamily: 'Inter_700Bold',
-        color: colors.textDark,
-        marginBottom: 16,
         textAlign: 'center',
-        letterSpacing: -0.5,
+        letterSpacing: -1,
+        lineHeight: wp(10),
     },
-    description: {
-        fontSize: 16,
+    descriptionText: {
+        fontSize: wp(4),
         fontFamily: 'Inter_400Regular',
-        color: colors.textMuted,
         textAlign: 'center',
-        lineHeight: 24,
-        paddingHorizontal: 20,
-    },
-    skipButton: {
-        position: 'absolute',
-        top: Platform.OS === 'ios' ? 60 : 40,
-        right: 24,
-        zIndex: 10,
-        padding: 8,
-    },
-    skipText: {
-        fontSize: 16,
-        fontFamily: 'Inter_600SemiBold',
-        color: colors.textMuted,
+        lineHeight: wp(6),
+        marginTop: hp(2),
+        paddingHorizontal: wp(5),
     },
     footer: {
-        paddingHorizontal: 40,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 32,
+        paddingHorizontal: wp(6),
+        paddingBottom: hp(4),
     },
     pagination: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginBottom: 40,
+        marginBottom: hp(3),
     },
     dot: {
         height: 8,
@@ -207,27 +445,26 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         marginHorizontal: 4,
     },
     nextButton: {
-        backgroundColor: colors.primary,
-        height: 56,
-        borderRadius: 28,
+        height: 60,
+        borderRadius: 18,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
         ...Platform.select({
             ios: {
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 16,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.2,
+                shadowRadius: 8,
             },
             android: {
-                elevation: 6,
+                elevation: 4,
             },
         }),
     },
     nextButtonText: {
-        color: '#FFFFFF',
-        fontSize: 18,
+        fontSize: wp(4.5),
         fontFamily: 'Inter_700Bold',
     }
 });

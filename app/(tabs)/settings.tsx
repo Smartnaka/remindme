@@ -594,9 +594,9 @@ export default function SettingsScreen() {
                             onPress={() => {
                                 setManageDataModalVisible(false);
                                 setTimeout(() => {
-                                    showAlert("Permanently Delete All Lectures?", "Are you sure? This will remove all your classes and scheduled reminders. This cannot be undone.", [
+                                    showAlert("End Semester?", "Are you sure? This will remove all your classes and scheduled reminders to give you a clean slate. This cannot be undone.", [
                                         { text: "Cancel", style: "cancel" },
-                                        { text: "Delete Everything", style: "destructive", onPress: clearLectures }
+                                        { text: "End Semester", style: "destructive", onPress: clearLectures }
                                     ]);
                                 }, 300);
                             }}
@@ -604,7 +604,7 @@ export default function SettingsScreen() {
                             <View style={[styles.iconBox, { backgroundColor: colors.error + '15' }]}>
                                 <Ionicons name="book" size={20} color={colors.error} />
                             </View>
-                            <Text style={[styles.modalActionText, { color: colors.error }]}>Permanently Delete All Lectures</Text>
+                            <Text style={[styles.modalActionText, { color: colors.error }]}>End Semester (Clear Classes)</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 

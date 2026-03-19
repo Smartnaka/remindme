@@ -1,87 +1,95 @@
-{
-  "expo": {
-    "name": "RemindMe",
-    "slug": "lecture-reminder-app-1elte0d",
-    "version": "1.2.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/splash-icon-light.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "androidStatusBar": {
-      "backgroundColor": "#ffffff",
-      "translucent": false,
-      "barStyle": "dark-content"
-    },
-    "scheme": "remindme",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "app.remindme.remindme",
-      "userInterfaceStyle": "automatic",
+  {
+    "expo": {
+      "name": "RemindMe",
+      "slug": "lecture-reminder-app-1elte0d",
+      "version": "1.2.0",
+      "orientation": "portrait",
       "icon": "./assets/images/icon.png",
-      "infoPlist": {
-        "NSCalendarsUsageDescription": "RemindMe needs access to your calendar to sync your lecture schedule.",
-        "NSRemindersUsageDescription": "RemindMe needs access to reminders to set alerts for your lectures."
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000000"
-      },
-      "package": "app.remindme.remindme",
       "userInterfaceStyle": "automatic",
-      "permissions": [
-        "SCHEDULE_EXACT_ALARM",
-        "USE_EXACT_ALARM"
-      ]
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "single",
-      "favicon": "./assets/images/icon.png"
-    },
-    "plugins": [
-      "expo-router",
-      "expo-font",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon-light.png",
-          "backgroundColor": "#ffffff",
-          "resizeMode": "contain",
-          "imageResizeMode": "contain",
-          "dark": {
-            "image": "./assets/images/splash-icon-dark.png",
-            "backgroundColor": "#000000"
-          }
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "color": "#ffffff",
-          "sounds": []
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "extra": {
-      "router": {
-        "origin": "https://remindme.com/"
+      "splash": {
+        "image": "./assets/images/splash-icon-light.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
       },
-      "eas": {
-        "projectId": "01b5e388-b3d0-4b99-adf0-d12e41ac2c1a"
+      "androidStatusBar": {
+        "backgroundColor": "#ffffff",
+        "translucent": false,
+        "barStyle": "dark-content"
+      },
+      "scheme": "remindme",
+      "newArchEnabled": true,
+      "ios": {
+        "supportsTablet": false,
+        "bundleIdentifier": "app.remindme.remindme",
+        "userInterfaceStyle": "automatic",
+        "icon": "./assets/images/icon.png",
+        "infoPlist": {
+          "NSCalendarsUsageDescription": "RemindMe needs access to your calendar to sync your lecture schedule.",
+          "NSRemindersUsageDescription": "RemindMe needs access to reminders to set alerts for your lectures."
+        }
+      },
+      "android": {
+        "enableProguardInReleaseBuilds": true,
+        "enableShrinkResourcesInReleaseBuilds": true,
+        "adaptiveIcon": {
+          "foregroundImage": "./assets/images/adaptive-icon.png",
+          "backgroundColor": "#000000"
+        },
+        "package": "app.remindme.remindme",
+        "userInterfaceStyle": "automatic",
+        "permissions": [
+          "SCHEDULE_EXACT_ALARM",
+          "USE_EXACT_ALARM"
+        ]
+      },
+      "web": {
+        "bundler": "metro",
+        "output": "single",
+        "favicon": "./assets/images/icon.png"
+      },
+      "plugins": [
+        "expo-router",
+        "expo-font",
+        [
+          "expo-splash-screen",
+          {
+            "image": "./assets/images/splash-icon-light.png",
+            "backgroundColor": "#ffffff",
+            "resizeMode": "contain",
+            "imageResizeMode": "contain",
+            "dark": {
+              "image": "./assets/images/splash-icon-dark.png",
+              "backgroundColor": "#000000"
+            }
+          }
+        ],
+        [
+          "expo-notifications",
+          {
+            "color": "#ffffff",
+            "sounds": []
+          }
+        ]
+      ],
+      "experiments": {
+        "typedRoutes": true
+      },
+      "assetBundlePatterns": [
+        "assets/**"
+      ],
+      "extra": {
+        "router": {
+          "origin": "https://remindme.com/"
+        },
+        "eas": {
+          "projectId": "01b5e388-b3d0-4b99-adf0-d12e41ac2c1a"
+        }
+      },
+      "runtimeVersion": {
+        "policy": "appVersion"
+      },
+      "updates": {
+        "url": "https://u.expo.dev/01b5e388-b3d0-4b99-adf0-d12e41ac2c1a"
       }
     }
   }
-}

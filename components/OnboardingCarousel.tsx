@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, ScrollView, Modal, SafeAreaView, Platform, StatusBarStyle } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, ScrollView, Modal, Platform, StatusBarStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';

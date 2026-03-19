@@ -159,20 +159,16 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
        // Sticking to alarmNotificationIds as a general "list of scheduled IDs".
        newLecture.alarmNotificationIds = biWeeklyIds;
     } else {
-       // Weekly (Standard): Use standard weekly trigger
-       const notificationId = await scheduleWeeklyNotification(newLecture, settings.lectureOffset);
-       if (notificationId) newLecture.notificationId = notificationId;
-    }
-
-    // 2. Exact Alarms (Android) - Only if explicitly requested or if we want to double up?
-    // The previous logic always scheduled alarms. Let's keep it but ONLY for weekly. 
-    // For bi-weekly, we already scheduled "biWeeklyIds" which are functionally similar (individual dates).
-    // So distinct logic:
-    if ((!newLecture.recurrence || newLecture.recurrence.type === 'weekly')) {
-        const alarmIds = await scheduleExactAlarmNotifications(newLecture, settings.lectureOffset);
-        if (alarmIds.length > 0) {
-           newLecture.alarmNotificationIds = [...(newLecture.alarmNotificationIds || []), ...alarmIds];
-        }
+       // Weekly (Standard): one system per platform to avoid duplicate firing
+       if (Platform.OS === 'android') {
+           // Android: exact alarms bypass battery optimisation and are more reliable
+           const alarmIds = await scheduleExactAlarmNotifications(newLecture, settings.lectureOffset);
+           if (alarmIds.length > 0) newLecture.alarmNotificationIds = alarmIds;
+       } else {
+           // iOS: calendar-based weekly trigger
+           const notificationId = await scheduleWeeklyNotification(newLecture, settings.lectureOffset);
+           if (notificationId) newLecture.notificationId = notificationId;
+       }
     }
     
     // 3. 2-Hour Reminder
@@ -203,11 +199,16 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
        updatedLecture.alarmNotificationIds = biWeeklyIds;
        updatedLecture.notificationId = undefined; // Clear weekly ID if switching types
     } else {
-       const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.lectureOffset);
-       if (notificationId) updatedLecture.notificationId = notificationId;
-       
-       const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.lectureOffset);
-       if (alarmIds.length > 0) updatedLecture.alarmNotificationIds = alarmIds;
+       // Weekly (Standard): one system per platform to avoid duplicate firing
+       if (Platform.OS === 'android') {
+           const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.lectureOffset);
+           if (alarmIds.length > 0) updatedLecture.alarmNotificationIds = alarmIds;
+           updatedLecture.notificationId = undefined; // clear any stale iOS id
+       } else {
+           const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.lectureOffset);
+           if (notificationId) updatedLecture.notificationId = notificationId;
+           updatedLecture.alarmNotificationIds = undefined; // clear any stale Android ids
+       }
     }
 
     const twoHourId = await scheduleTwoHourReminder(updatedLecture);

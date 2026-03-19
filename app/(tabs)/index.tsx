@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StatusBar, Modal, DeviceEventEmitter } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTodayLectures, useLectures } from '@/contexts/LectureContext';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -24,6 +24,7 @@ import { FlatList } from 'react-native';
 
 export default function TodayScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const todayLectures = useTodayLectures();
   const { lectures, deleteLecture, restoreLecture, assignments } = useLectures();
   const { colors, settings, updateSettings, isLoading: isSettingsLoading } = useSettings();
@@ -522,7 +523,7 @@ export default function TodayScreen() {
               >
                   <TouchableOpacity 
                      activeOpacity={1} 
-                     style={{ backgroundColor: colors.cardBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: 500 }}
+                     style={{ backgroundColor: colors.cardBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Math.max(insets.bottom, 24), maxHeight: 500 }}
                   >
                       <View style={{ width: 40, height: 4, backgroundColor: colors.textMuted + '40', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
                       

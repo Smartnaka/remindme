@@ -118,21 +118,10 @@ export default function AddExamScreen() {
             <View style={styles.header}>
                 <TouchableOpacity 
                     onPress={() => router.back()} 
-                    style={styles.cancelButton}
-                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                    style={styles.backIconBtn}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                    {Platform.OS === 'android' ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Ionicons name="arrow-back" size={24} color={colors.primary} />
-                            <Text style={[styles.cancelText, { marginLeft: 4, color: colors.primary }]}>
-                                {source ? `Back to ${source}` : "Back"}
-                            </Text>
-                        </View>
-                    ) : (
-                        <Text style={styles.cancelText}>
-                            {source ? `Back to ${source}` : "Cancel"}
-                        </Text>
-                    )}
+                    <Ionicons name="chevron-back" size={24} color={colors.textDark} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>New Exam</Text>
                 <TouchableOpacity
@@ -268,12 +257,10 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         fontWeight: '600',
         color: colors.textDark,
     },
-    cancelButton: {
-        padding: 14,
-    },
-    cancelText: {
-        fontSize: 16,
-        color: colors.textMuted,
+    backIconBtn: {
+        padding: 8,
+        backgroundColor: colors.cardBackground,
+        borderRadius: 20,
     },
     saveButtonFilled: {
         backgroundColor: colors.primary,

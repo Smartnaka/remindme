@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useExams } from '@/contexts/ExamContext';
@@ -7,21 +7,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import ExamCard from '@/components/ExamCard';
 import { ColorTheme } from '@/types/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ExamsScreen() {
   const { colors } = useSettings();
   const { exams } = useExams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, insets.bottom), [colors, insets.bottom]);
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'}
-        backgroundColor="transparent"
-        translucent
-      />
       <SafeAreaView style={styles.headerContainer} edges={['top', 'left', 'right']}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Exams</Text>
@@ -68,7 +65,7 @@ export default function ExamsScreen() {
   );
 }
 
-const createStyles = (colors: ColorTheme) => StyleSheet.create({
+const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -115,7 +112,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 24 + bottomInset,
     right: 20,
     width: 56,
     height: 56,

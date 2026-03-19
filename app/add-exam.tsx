@@ -107,11 +107,6 @@ export default function AddExamScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-            <StatusBar
-                barStyle={statusBarStyle}
-                backgroundColor="transparent"
-                translucent
-            />
             <Stack.Screen options={{ headerShown: false }} />
 
             {/* Header */}

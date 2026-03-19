@@ -57,11 +57,6 @@ export default function WeeklyScheduleScreen() {
   return (
 
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar
-        barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'}
-        backgroundColor="transparent"
-        translucent
-      />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Week</Text>
       </View>

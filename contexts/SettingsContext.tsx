@@ -29,7 +29,7 @@ const defaultSettings: Settings = {
     lectureOffset: 15,
     assignmentOffset: 15,
     examOffset: 60,
-    dailySummaryTime: "18:00",
+    dailySummaryTime: "07:00",
     themeMode: 'automatic',
     lastNotificationCheckDate: '',
     quietHoursEnabled: false,

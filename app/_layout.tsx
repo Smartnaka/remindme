@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LectureProvider } from "@/contexts/LectureContext";
 import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
@@ -64,7 +65,7 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.background} translucent={false} />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor="transparent" translucent={true} />
       <Stack screenOptions={{ 
         headerBackTitle: "Back", 
         contentStyle: { backgroundColor: colors.background },
@@ -141,7 +142,8 @@ export default function RootLayout() {
       <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <SettingsProvider>
+            <SafeAreaProvider>
+              <SettingsProvider>
               <AlertProvider>
                 <LectureProvider>
                   <ExamProvider>
@@ -156,6 +158,7 @@ export default function RootLayout() {
                 </LectureProvider>
               </AlertProvider>
             </SettingsProvider>
+            </SafeAreaProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </View>

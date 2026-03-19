@@ -199,11 +199,7 @@ export default function TodayScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'}
-        backgroundColor="transparent"
-        translucent
-      />
+
       <SafeAreaView style={styles.headerContainer} edges={['top', 'left', 'right']}>
         <View style={styles.headerContent}>
           <View>
@@ -477,8 +473,8 @@ export default function TodayScreen() {
         );
       })()}
 
-      {/* Mini Study Timer Bar pinned to bottom just above tabs */}
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: 16 }}>
+      {/* Mini Study Timer Bar pinned just above the tab bar */}
+      <View style={{ position: 'absolute', bottom: 80, left: 0, right: 0, paddingHorizontal: 16 }}>
         <MiniTimerBar />
       </View>
 

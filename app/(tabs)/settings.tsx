@@ -69,9 +69,9 @@ export default function SettingsScreen() {
     };
 
     const getSummaryDate = () => {
-        const [hours, minutes] = (settings.dailySummaryTime || '18:00').split(':').map(Number);
+        const [hours, minutes] = (settings.dailySummaryTime || '07:00').split(':').map(Number);
         const d = new Date();
-        d.setHours(hours || 18, minutes || 0, 0, 0);
+        d.setHours(hours || 7, minutes || 0, 0, 0);
         return d;
     };
 
@@ -180,11 +180,6 @@ export default function SettingsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar
-                barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'}
-                backgroundColor="transparent"
-                translucent
-            />
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Settings</Text>
             </View>
@@ -447,7 +442,7 @@ export default function SettingsScreen() {
                                 <View style={styles.rowContent}>
                                     <Text style={[styles.rowLabel, { marginLeft: 16 }]}>Summary Time</Text>
                                 </View>
-                                <Text style={styles.rowValue}>{formatTime(settings.dailySummaryTime || '18:00')}</Text>
+                                <Text style={styles.rowValue}>{formatTime(settings.dailySummaryTime || '07:00')}</Text>
                             </TouchableOpacity>
                             
                             {showSummaryPicker && (

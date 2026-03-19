@@ -73,11 +73,6 @@ export default function StudyTimerScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar
-        barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'}
-        backgroundColor="transparent"
-        translucent
-      />
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}

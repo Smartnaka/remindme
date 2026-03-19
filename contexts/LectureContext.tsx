@@ -110,6 +110,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
 
   useEffect(() => {
     if (isSettingsLoading) return; // Wait for settings to load properly
+    if (!settings.dailySummaryEnabled) return; // Only schedule if enabled
 
     requestNotificationPermissions().then((hasPermission) => {
        if (!hasPermission) return;
@@ -121,7 +122,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
             }
          });
     });
-  }, [settings.dailySummaryTime, isSettingsLoading, updateSettings]);
+  }, [settings.dailySummaryTime, settings.dailySummaryEnabled, isSettingsLoading, updateSettings, lectures, assignments]);
 
   const saveLecturesMutation = useMutation({
     mutationFn: async (newLectures: Lecture[]) => {

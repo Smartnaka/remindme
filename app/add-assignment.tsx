@@ -99,7 +99,6 @@ export default function AddAssignmentScreen() {
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
              <Stack.Screen options={{ headerShown: false }} />
-             <StatusBar barStyle={colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content'} backgroundColor="transparent" translucent />
 
              <View style={styles.customHeader}>
                 <TouchableOpacity

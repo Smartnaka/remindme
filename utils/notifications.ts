@@ -54,10 +54,6 @@ const registerNotificationCategories = async () => {
       options: {
         opensAppToForeground: false,
       },
-      textInput: {
-          placeholder: 'Minutes',
-          submitButtonTitle: 'Snooze',
-      },
     },
     {
       identifier: 'dismiss',
@@ -456,10 +452,87 @@ export const manageDailySummaryNotification = async (timeStr: string, existingId
         else if (hours >= 17 && hours < 21) greeting = "Good Evening! 🌙";
         else greeting = "Late Night Reminder! 🦉";
 
+        // Build dynamic body from stored data
+        let body = '';
+
+        try {
+            const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const today = DAYS[new Date().getDay()];
+
+            // --- Lectures for today ---
+            const lecturesStr = await AsyncStorage.getItem('@lectures');
+            const lectures: any[] = lecturesStr ? JSON.parse(lecturesStr) : [];
+            const todayLectures = lectures
+                .filter((l: any) => l.dayOfWeek === today)
+                .sort((a: any, b: any) => (a.startTime || '').localeCompare(b.startTime || ''));
+
+            // --- Assignments due today ---
+            const assignmentsStr = await AsyncStorage.getItem('@assignments');
+            const allAssignments: any[] = assignmentsStr ? JSON.parse(assignmentsStr) : [];
+            const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const dueToday = allAssignments.filter((a: any) => {
+                if (a.completed) return false;
+                if (!a.dueDate) return false;
+                return a.dueDate.startsWith(todayStr);
+            });
+
+            // --- Exams today ---
+            const examsStr = await AsyncStorage.getItem('@exams');
+            const allExams: any[] = examsStr ? JSON.parse(examsStr) : [];
+            const examsToday = allExams.filter((e: any) => {
+                if (!e.date) return false;
+                return e.date.startsWith(todayStr);
+            });
+
+            // Build body parts
+            const parts: string[] = [];
+
+            // Exam alert (highest priority, shown first)
+            if (examsToday.length > 0) {
+                const examNames = examsToday.map((e: any) => {
+                    const time = new Date(e.date);
+                    const h = time.getHours();
+                    const m = time.getMinutes();
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    const h12 = h % 12 || 12;
+                    const timeStr = m > 0 ? `${h12}:${m.toString().padStart(2, '0')}${ampm}` : `${h12}${ampm}`;
+                    return `${e.courseName} at ${timeStr}`;
+                });
+                parts.push(`🚨 EXAM TODAY: ${examNames.join(', ')}`);
+            }
+
+            // Classes
+            if (todayLectures.length > 0) {
+                const classNames = todayLectures.map((l: any) => {
+                    const [h, m] = (l.startTime || '00:00').split(':').map(Number);
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    const h12 = h % 12 || 12;
+                    const timeStr = m > 0 ? `${h12}:${m.toString().padStart(2, '0')}${ampm}` : `${h12}${ampm}`;
+                    return `${l.courseName} at ${timeStr}`;
+                });
+                parts.push(`${todayLectures.length} class${todayLectures.length > 1 ? 'es' : ''} today: ${classNames.join(', ')}`);
+            } else {
+                parts.push('No classes today — enjoy your day!');
+            }
+
+            // Assignments
+            if (dueToday.length > 0) {
+                parts.push(`${dueToday.length} assignment${dueToday.length > 1 ? 's' : ''} due`);
+            }
+
+            body = parts.join('. ') + '.';
+        } catch (dataError) {
+            log('[Notifications] Could not build dynamic summary, using fallback:', dataError);
+            body = "Check your schedule for today's classes and assignments.";
+        }
+
+        // Update title for exams
+        const titleSuffix = " — Your Day Ahead";
+
         const notificationId = await Notifications.scheduleNotificationAsync({
             content: {
-                title: greeting,
-                body: "Check your schedule for today's classes and assignments.",
+                title: `${greeting}${titleSuffix}`,
+                body,
                 sound: true,
                 categoryIdentifier: 'reminder',
             },
@@ -471,7 +544,7 @@ export const manageDailySummaryNotification = async (timeStr: string, existingId
             },
         });
         
-        log(`[Notifications] Scheduled daily summary for ${timeStr} with greeting '${greeting}' (ID: ${notificationId})`);
+        log(`[Notifications] Scheduled daily summary for ${timeStr} — body: "${body}" (ID: ${notificationId})`);
         return notificationId;
     } catch (e) {
         console.error("Error scheduling daily summary", e);
@@ -582,16 +655,12 @@ export const handleNotificationResponse = async (response: any) => {
   const content = response.notification.request.content;
 
   if (actionIdentifier === 'snooze-10') {
-    // Read custom minutes from user text input, fallback to 10
-    const customMinutes = parseInt(response.userText, 10);
-    const snoozeMinutes = (!isNaN(customMinutes) && customMinutes > 0 && customMinutes <= 120)
-      ? customMinutes
-      : 10;
+    const snoozeMinutes = 10;
 
     await Notifications.scheduleNotificationAsync({
       content: {
         title: content.title,
-        body: content.body,
+        body: `Snoozed — reminder in ${snoozeMinutes} minutes`,
         data: content.data,
         sound: true,
         categoryIdentifier: 'reminder',

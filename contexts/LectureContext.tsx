@@ -65,6 +65,7 @@ interface LectureContextType {
   clearLectures: () => Promise<void>;
   restoreLecture: (lecture: Lecture) => Promise<void>;
   getLectureById: (id: string) => Lecture | undefined;
+  rescheduleAllLectures: () => Promise<void>;
   
   assignments: Assignment[];
   addAssignment: (assignment: Omit<Assignment, 'id'>) => Promise<void>;
@@ -123,7 +124,70 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
             }
          });
     });
-  }, [settings.dailySummaryTime, settings.dailySummaryEnabled, isSettingsLoading, updateSettings, lectures, assignments]);
+  }, [settings.dailySummaryTime, settings.dailySummaryEnabled, isSettingsLoading]);
+
+  // Handle Rescheduling when Notification Offsets or NotifyAtClassStart changes
+  const prevOffsetRef = React.useRef(settings.lectureOffset);
+  const prevNotifyRef = React.useRef(settings.notifyAtClassStart);
+
+  useEffect(() => {
+    if (isSettingsLoading || lectures.length === 0) return;
+    
+    const offsetChanged = prevOffsetRef.current !== settings.lectureOffset;
+    const notifyChanged = prevNotifyRef.current !== settings.notifyAtClassStart;
+
+    if (offsetChanged || notifyChanged) {
+        prevOffsetRef.current = settings.lectureOffset;
+        prevNotifyRef.current = settings.notifyAtClassStart;
+        rescheduleAllLectures();
+    }
+  }, [settings.lectureOffset, settings.notifyAtClassStart, isSettingsLoading]);
+
+  const rescheduleAllLectures = async () => {
+    if (lectures.length === 0) return;
+    
+    const updatedLectures = [];
+    for (const oldLecture of lectures) {
+        // Cleanup old
+        if (oldLecture.notificationId) await cancelNotification(oldLecture.notificationId);
+        if (oldLecture.alarmNotificationIds) await cancelMultipleNotifications(oldLecture.alarmNotificationIds);
+        if (oldLecture.twoHourReminderId) await cancelNotification(oldLecture.twoHourReminderId);
+        if (oldLecture.startNowNotificationId) await cancelNotification(oldLecture.startNowNotificationId);
+
+        const updatedLecture = { ...oldLecture };
+
+        // Reschedule
+        if (updatedLecture.recurrence?.type === 'biweekly') {
+           const biWeeklyIds = await scheduleBiWeeklyNotifications(updatedLecture, settings.lectureOffset);
+           updatedLecture.alarmNotificationIds = biWeeklyIds;
+           updatedLecture.notificationId = undefined; 
+        } else {
+           if (Platform.OS === 'android') {
+               const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.lectureOffset);
+               updatedLecture.alarmNotificationIds = alarmIds.length > 0 ? alarmIds : undefined;
+               updatedLecture.notificationId = undefined;
+           } else {
+               const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.lectureOffset);
+               updatedLecture.notificationId = notificationId || undefined;
+               updatedLecture.alarmNotificationIds = undefined;
+           }
+        }
+
+        const twoHourId = await scheduleTwoHourReminder(updatedLecture);
+        updatedLecture.twoHourReminderId = twoHourId || undefined;
+
+        if (settings.notifyAtClassStart) {
+          const startNowId = await scheduleStartNowNotification(updatedLecture);
+          updatedLecture.startNowNotificationId = startNowId || undefined;
+        } else {
+          updatedLecture.startNowNotificationId = undefined;
+        }
+
+        updatedLectures.push(updatedLecture);
+    }
+    
+    saveLecturesMutation.mutate(updatedLectures);
+  };
 
   const saveLecturesMutation = useMutation({
     mutationFn: async (newLectures: Lecture[]) => {
@@ -380,6 +444,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     clearLectures,
     restoreLecture,
     getLectureById: (id) => lectures.find(l => l.id === id),
+    rescheduleAllLectures,
     
     assignments,
     addAssignment,

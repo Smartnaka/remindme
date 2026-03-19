@@ -53,11 +53,21 @@ try {
 function RootLayoutNav() {
   const { theme, colors, settings, updateSettings, isLoading: isSettingsLoading } = useSettings();
 
+  // Request permissions once onboarded (or passively if already onboarded)
+  useEffect(() => {
+    if (!isSettingsLoading && settings.hasOnboarded) {
+      requestNotificationPermissions();
+    }
+  }, [isSettingsLoading, settings.hasOnboarded]);
+
   // Gate: show onboarding if not completed
   if (!isSettingsLoading && !settings.hasOnboarded) {
     return (
       <OnboardingCarousel
-        onComplete={() => updateSettings({ hasOnboarded: true })}
+        onComplete={() => {
+          updateSettings({ hasOnboarded: true });
+          requestNotificationPermissions();
+        }}
       />
     );
   }
@@ -106,7 +116,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) {
-      requestNotificationPermissions();
+      // Deferring permissions until after onboarding
       
       // Handle notification responses (Snooze/Dismiss/Tap)
       const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {

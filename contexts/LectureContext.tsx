@@ -112,6 +112,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
 
   useEffect(() => {
     if (isSettingsLoading) return; // Wait for settings to load properly
+    if (!settings.hasOnboarded) return; // Wait for onboarding 
     if (!settings.dailySummaryEnabled) return; // Only schedule if enabled
 
     requestNotificationPermissions().then((hasPermission) => {

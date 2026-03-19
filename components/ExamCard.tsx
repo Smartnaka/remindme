@@ -63,25 +63,32 @@ export default function ExamCard({ exam }: ExamCardProps) {
         onLongPress={handleLongPress}
         delayLongPress={500}
       >
-        <View style={styles.mainContent}>
-          <Text style={styles.courseName}>{exam.courseName}</Text>
-          <View style={styles.detailsRow}>
-            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.detailText}>{formatDate(exam.date)}</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.courseInfo}>
+            <Text style={styles.courseName} numberOfLines={1}>{exam.courseName}</Text>
           </View>
-          {exam.location && (
-            <View style={styles.detailsRow}>
-              <Ionicons name="location-outline" size={14} color={colors.textMuted} />
-              <Text style={styles.detailText}>{exam.location}</Text>
-            </View>
-          )}
+          
+          <View style={[styles.badge, { backgroundColor: timeLeftColor + '15' }]}>
+            <Text style={[styles.badgeText, { color: timeLeftColor }]}>
+              {daysLeft < 0 ? 'Done' : daysLeft === 0 ? 'Today' : `${daysLeft} Days Left`}
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.rightContent}>
-          <Text style={[styles.daysNumber, { color: timeLeftColor }]}>
-            {daysLeft < 0 ? 'Done' : daysLeft === 0 ? 'Today' : daysLeft}
-          </Text>
-          {daysLeft > 0 && <Text style={[styles.daysLabel, { color: timeLeftColor }]}>Days</Text>}
+        <View style={styles.divider} />
+
+        <View style={styles.footerRow}>
+          <View style={styles.detailItem}>
+            <Ionicons name="calendar-outline" size={14} color={colors.textDark} style={{ opacity: 0.6 }} />
+            <Text style={styles.detailText}>{formatDate(exam.date)}</Text>
+          </View>
+          
+          {exam.location && (
+            <View style={styles.detailItem}>
+              <Ionicons name="location-outline" size={14} color={colors.textDark} style={{ opacity: 0.6 }} />
+              <Text style={styles.detailText} numberOfLines={1}>{exam.location}</Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
 
@@ -102,48 +109,58 @@ export default function ExamCard({ exam }: ExamCardProps) {
 const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    // Removed shadows for a cleaner, flatter look
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.textMuted + '20',
   },
-  mainContent: {
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  courseInfo: {
     flex: 1,
-    paddingRight: 12,
+    marginRight: 12,
   },
   courseName: {
-    fontSize: 17,
-    fontFamily: 'Inter_600SemiBold',
+    fontSize: 18,
+    fontFamily: 'Inter_700Bold',
     color: colors.textDark,
-    marginBottom: 6,
   },
-  detailsRow: {
+  badge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    fontSize: 12,
+    fontFamily: 'Inter_700Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.textMuted + '15',
+    marginBottom: 12,
+  },
+  footerRow: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 6,
+    gap: 8,
   },
   detailText: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: colors.textMuted,
-  },
-  rightContent: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingLeft: 12,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: colors.textMuted + '30',
-  },
-  daysNumber: {
-    fontSize: 22,
-    fontFamily: 'Inter_700Bold',
-  },
-  daysLabel: {
-    fontSize: 12,
     fontFamily: 'Inter_500Medium',
-    marginTop: -2,
+    color: colors.textMuted,
+    flex: 1,
   },
 });

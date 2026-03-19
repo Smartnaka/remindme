@@ -35,17 +35,17 @@ export default function WeeklyScheduleScreen() {
   };
 
   const handleDeleteClass = (lecture: Lecture) => {
-      setDeletedLecture(lecture);
-      deleteLecture(lecture.id);
-      setUndoToastVisible(true);
+    setDeletedLecture(lecture);
+    deleteLecture(lecture.id);
+    setUndoToastVisible(true);
   };
 
   const handleUndoDelete = () => {
-      if (deletedLecture) {
-         restoreLecture(deletedLecture);
-         setUndoToastVisible(false);
-         setDeletedLecture(null);
-      }
+    if (deletedLecture) {
+      restoreLecture(deletedLecture);
+      setUndoToastVisible(false);
+      setDeletedLecture(null);
+    }
   };
 
   const getLecturesForDay = (day: DayOfWeek) => {
@@ -119,14 +119,14 @@ export default function WeeklyScheduleScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      <UndoToast 
-          visible={undoToastVisible}
-          message={`Deleted "${deletedLecture?.courseName}"`}
-          onUndo={handleUndoDelete}
-          onDismiss={() => {
-              setUndoToastVisible(false);
-              setDeletedLecture(null);
-          }}
+      <UndoToast
+        visible={undoToastVisible}
+        message={`Deleted "${deletedLecture?.courseName}"`}
+        onUndo={handleUndoDelete}
+        onDismiss={() => {
+          setUndoToastVisible(false);
+          setDeletedLecture(null);
+        }}
       />
     </SafeAreaView >
   );

@@ -27,6 +27,7 @@ export default function ExamCard({ exam }: ExamCardProps) {
   }, [exam.date]);
 
   const timeLeftColor = useMemo(() => {
+    if (daysLeft < 0) return colors.textMuted; // Past
     if (daysLeft <= 3) return colors.error; // Panic mode!
     if (daysLeft <= 7) return '#FF9500'; // Warning (Orange)
     return colors.primary; // Safe (Green)
@@ -44,41 +45,43 @@ export default function ExamCard({ exam }: ExamCardProps) {
   };
 
   const handleLongPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    if (Haptics?.impactAsync) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsDeleteModalVisible(true);
   };
 
   const handleConfirmDelete = async () => {
     await deleteExam(exam.id);
     setIsDeleteModalVisible(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Haptics?.notificationAsync) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
     <>
       <TouchableOpacity
         style={styles.container}
-        activeOpacity={0.9}
+        activeOpacity={0.7}
         onLongPress={handleLongPress}
         delayLongPress={500}
       >
-        <View style={styles.leftContent}>
-          <View style={[styles.daysContainer, { backgroundColor: timeLeftColor }]}>
-            <Text style={styles.daysNumber}>{Math.max(0, daysLeft)}</Text>
-            <Text style={styles.daysLabel}>DAYS</Text>
-          </View>
-        </View>
-
         <View style={styles.mainContent}>
           <Text style={styles.courseName}>{exam.courseName}</Text>
-          <Text style={styles.dateText}>
-            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} /> {formatDate(exam.date)}
-          </Text>
+          <View style={styles.detailsRow}>
+            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.detailText}>{formatDate(exam.date)}</Text>
+          </View>
           {exam.location && (
-            <Text style={styles.locationText}>
-              <Ionicons name="location-outline" size={14} color={colors.textMuted} /> {exam.location}
-            </Text>
+            <View style={styles.detailsRow}>
+              <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+              <Text style={styles.detailText}>{exam.location}</Text>
+            </View>
           )}
+        </View>
+
+        <View style={styles.rightContent}>
+          <Text style={[styles.daysNumber, { color: timeLeftColor }]}>
+            {daysLeft < 0 ? 'Done' : daysLeft === 0 ? 'Today' : daysLeft}
+          </Text>
+          {daysLeft > 0 && <Text style={[styles.daysLabel, { color: timeLeftColor }]}>Days</Text>}
         </View>
       </TouchableOpacity>
 
@@ -99,54 +102,48 @@ export default function ExamCard({ exam }: ExamCardProps) {
 const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  leftContent: {
-    marginRight: 16,
-  },
-  daysContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  daysNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFF',
-  },
-  daysLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFF',
-    marginTop: -2,
+    marginBottom: 12,
+    // Removed shadows for a cleaner, flatter look
   },
   mainContent: {
     flex: 1,
+    paddingRight: 12,
   },
   courseName: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    fontFamily: 'Inter_600SemiBold',
     color: colors.textDark,
     marginBottom: 6,
   },
-  dateText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginBottom: 4,
+  detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 6,
   },
-  locationText: {
+  detailText: {
     fontSize: 14,
+    fontFamily: 'Inter_400Regular',
     color: colors.textMuted,
+  },
+  rightContent: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingLeft: 12,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: colors.textMuted + '30',
+  },
+  daysNumber: {
+    fontSize: 22,
+    fontFamily: 'Inter_700Bold',
+  },
+  daysLabel: {
+    fontSize: 12,
+    fontFamily: 'Inter_500Medium',
+    marginTop: -2,
   },
 });

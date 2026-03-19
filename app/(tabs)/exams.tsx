@@ -37,10 +37,10 @@ export default function ExamsScreen() {
                 <Text style={styles.emptyTitle}>No Exams Added Yet</Text>
                 <Text style={styles.emptySubtitle}>Track your upcoming exams and stay ahead of your studies.</Text>
                 <TouchableOpacity 
-                    style={{ marginTop: 24, backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20 }}
+                    style={{ marginTop: 24, backgroundColor: colors.background, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.primary }}
                     onPress={() => router.push('/add-exam?source=Exams')}
                 >
-                    <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>Add Your First Exam</Text>
+                    <Text style={{ color: colors.primary, fontFamily: 'Inter_600SemiBold', fontSize: 16 }}>Add Your First Exam</Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>
@@ -80,7 +80,7 @@ const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet
   },
   headerTitle: {
     fontSize: 34,
-    fontWeight: '800', // Heavy bold for consistency
+    fontFamily: 'Inter_700Bold',
     color: colors.textDark,
     letterSpacing: -0.5,
   },
@@ -100,12 +100,13 @@ const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
     color: colors.textDark,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 16,
+    fontFamily: 'Inter_400Regular',
     color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
@@ -120,10 +121,10 @@ const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });

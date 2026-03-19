@@ -137,7 +137,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     },
     courseName: {
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: 'Inter_700Bold',
         color: colors.textDark,
         flex: 1,
         marginRight: 8,
@@ -149,9 +149,9 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         borderRadius: 6,
     },
     nextText: {
-        color: colors.primary === '#00ff00' ? '#000' : '#FFF', // Black text on neon green
+        color: colors.primary === '#00ff00' ? '#000' : '#FFF',
         fontSize: 10,
-        fontWeight: '800',
+        fontFamily: 'Inter_800ExtraBold',
     },
     detailsRow: {
         flexDirection: 'row',
@@ -166,6 +166,6 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     metaText: {
         fontSize: 13,
         color: colors.textMuted,
-        fontWeight: '500',
+        fontFamily: 'Inter_500Medium',
     }
 });

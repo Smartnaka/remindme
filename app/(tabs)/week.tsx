@@ -175,17 +175,17 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   sectionHeaderTitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
     color: colors.textMuted,
     letterSpacing: -0.2,
   },
   currentDayTitle: {
     color: colors.primary,
-    fontWeight: '800',
+    fontFamily: 'Inter_800ExtraBold',
   },
   todayLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
     color: colors.primary,
     backgroundColor: colors.primary + '20',
     paddingHorizontal: 6,
@@ -212,11 +212,12 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: colors.textMuted,
+    fontFamily: 'Inter_400Regular',
     fontStyle: 'italic',
   },
   freeDayText: {
     color: colors.primary,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
     fontStyle: 'normal',
   },
   timeContainer: {
@@ -224,11 +225,12 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   startTime: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
     color: colors.textDark,
   },
   endTime: {
     fontSize: 12,
+    fontFamily: 'Inter_400Regular',
     color: colors.textMuted,
     marginTop: 2,
   },
@@ -238,12 +240,13 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   lectureTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
     color: colors.textDark,
     marginBottom: 2,
   },
   lectureLocation: {
     fontSize: 13,
+    fontFamily: 'Inter_400Regular',
     color: colors.textMuted,
   },
   separator: {

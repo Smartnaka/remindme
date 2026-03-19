@@ -96,8 +96,8 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         alignItems: 'center',
     },
     badgeText: {
-        color: '#FFF', // Always white — badge bg is always the colored primary
-        fontWeight: '700',
+        color: '#FFF',
+        fontFamily: 'Inter_700Bold',
         fontSize: 12,
         letterSpacing: 0.5,
     },
@@ -115,7 +115,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     },
     courseName: {
         fontSize: 24,
-        fontWeight: '800',
+        fontFamily: 'Inter_800ExtraBold',
         color: colors.textDark,
         marginBottom: 20,
         lineHeight: 30,
@@ -131,7 +131,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     detailText: {
         fontSize: 16,
         color: colors.textDark,
-        fontWeight: '500',
+        fontFamily: 'Inter_500Medium',
         opacity: 0.9,
     },
     decorativeCircle: {

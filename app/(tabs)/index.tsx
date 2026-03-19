@@ -80,7 +80,7 @@ export default function TodayScreen() {
   // Context Menu State
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
   const [contextLecture, setContextLecture] = useState<Lecture | null>(null);
-  
+
   // Success Toast 
   const [successToastVisible, setSuccessToastVisible] = useState(false);
   const [successToastMessage, setSuccessToastMessage] = useState('');
@@ -89,8 +89,8 @@ export default function TodayScreen() {
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('showSuccessToast', (data) => {
-        setSuccessToastMessage(data.message);
-        setSuccessToastVisible(true);
+      setSuccessToastMessage(data.message);
+      setSuccessToastVisible(true);
     });
     return () => sub.remove();
   }, []);
@@ -128,62 +128,62 @@ export default function TodayScreen() {
   const navigateTo = (route: any) => {
     setFabMenuVisible(false);
     setTimeout(() => {
-        router.push(route);
+      router.push(route);
     }, Platform.OS === 'ios' ? 200 : 0);
   }
 
   const handleDeleteClass = (lecture: Lecture) => {
-      // 1. Save data for undo
-      setDeletedLecture(lecture);
-      // 2. Actually delete it
-      deleteLecture(lecture.id);
-      // 3. Show Toast
-      setUndoToastVisible(true);
+    // 1. Save data for undo
+    setDeletedLecture(lecture);
+    // 2. Actually delete it
+    deleteLecture(lecture.id);
+    // 3. Show Toast
+    setUndoToastVisible(true);
   };
 
   const handleLongPress = (lecture: Lecture) => {
     if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     setContextLecture(lecture);
     setContextMenuVisible(true);
   };
 
   const handleUndoDelete = () => {
-      if (deletedLecture) {
-         // Re-insert from context
-         const { restoreLecture } = require('@/contexts/LectureContext');
-         restoreLecture(deletedLecture);
-      }
-      setUndoToastVisible(false);
-      setDeletedLecture(null);
+    if (deletedLecture) {
+      // Re-insert from context
+      const { restoreLecture } = require('@/contexts/LectureContext');
+      restoreLecture(deletedLecture);
+    }
+    setUndoToastVisible(false);
+    setDeletedLecture(null);
   };
 
   const handleCompleteAssignment = (assignment: Assignment) => {
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      // Temporarily hide it from the list immediately
-      setHiddenAssignmentIds(prev => new Set(prev).add(assignment.id));
-      setCompletedAssignment(assignment);
-      setAssignmentUndoToastVisible(true);
-      
-      // Commit the change to the database backend
-      updateAssignment(assignment.id, { isCompleted: true });
+    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Temporarily hide it from the list immediately
+    setHiddenAssignmentIds(prev => new Set(prev).add(assignment.id));
+    setCompletedAssignment(assignment);
+    setAssignmentUndoToastVisible(true);
+
+    // Commit the change to the database backend
+    updateAssignment(assignment.id, { isCompleted: true });
   };
 
   const handleUndoCompleteAssignment = () => {
-      if (completedAssignment) {
-          // Revert the change in the database backend
-          updateAssignment(completedAssignment.id, { isCompleted: false });
-          // Show it in the list again
-          setHiddenAssignmentIds(prev => {
-              const next = new Set(prev);
-              next.delete(completedAssignment.id);
-              return next;
-          });
-      }
-      setAssignmentUndoToastVisible(false);
-      setCompletedAssignment(null);
+    if (completedAssignment) {
+      // Revert the change in the database backend
+      updateAssignment(completedAssignment.id, { isCompleted: false });
+      // Show it in the list again
+      setHiddenAssignmentIds(prev => {
+        const next = new Set(prev);
+        next.delete(completedAssignment.id);
+        return next;
+      });
+    }
+    setAssignmentUndoToastVisible(false);
+    setCompletedAssignment(null);
   };
 
   const currentDate = new Date();
@@ -230,13 +230,13 @@ export default function TodayScreen() {
       {(() => {
         // Prepare Data for FlatList to avoid ScrollView performance issues
         if (todayLectures.length === 0) {
-            return (
-              <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.content}
-                showsVerticalScrollIndicator={false}
-              >
-               <View style={styles.emptyState}>
+          return (
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.emptyState}>
                 <View style={styles.emptyIconContainer}>
                   <Ionicons name="calendar-outline" size={48} color={colors.textMuted} />
                 </View>
@@ -270,7 +270,7 @@ export default function TodayScreen() {
                       return (
                         <View style={styles.nextClassContainer}>
                           <Text style={styles.nextClassHeader}>UPCOMING</Text>
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             style={styles.nextClassCard}
                             activeOpacity={0.7}
                             onPress={() => router.push(`/lecture/${validNextLecture.id}`)}
@@ -289,37 +289,37 @@ export default function TodayScreen() {
                   </>
                 )}
               </View>
-             </ScrollView>
-            );
+            </ScrollView>
+          );
         }
 
         const now = new Date();
         const currentLecture = todayLectures.find(l => {
-            const [startH, startM] = l.startTime.split(':').map(Number);
-            const [endH, endM] = l.endTime.split(':').map(Number);
-            const start = new Date(); start.setHours(startH, startM, 0, 0);
-            const end = new Date(); end.setHours(endH, endM, 0, 0);
-            if (end < start) end.setDate(end.getDate() + 1);
-            return now >= start && now < end;
+          const [startH, startM] = l.startTime.split(':').map(Number);
+          const [endH, endM] = l.endTime.split(':').map(Number);
+          const start = new Date(); start.setHours(startH, startM, 0, 0);
+          const end = new Date(); end.setHours(endH, endM, 0, 0);
+          if (end < start) end.setDate(end.getDate() + 1);
+          return now >= start && now < end;
         });
 
         const upcomingLectures = todayLectures.filter(l => {
-            if (currentLecture && l.id === currentLecture.id) return false;
-            const [startH, startM] = l.startTime.split(':').map(Number);
-            const start = new Date(); start.setHours(startH, startM, 0, 0);
-            return start > now;
+          if (currentLecture && l.id === currentLecture.id) return false;
+          const [startH, startM] = l.startTime.split(':').map(Number);
+          const start = new Date(); start.setHours(startH, startM, 0, 0);
+          return start > now;
         });
 
         const pastLectures = todayLectures.filter(l => {
-            if (currentLecture && l.id === currentLecture.id) return false;
-            const [endH, endM] = l.endTime.split(':').map(Number);
-            const end = new Date(); end.setHours(endH, endM, 0, 0);
-            if (end < now) {
-                const [startH] = l.startTime.split(':').map(Number);
-                if (endH < startH) return false;
-                return true;
-            }
-            return false;
+          if (currentLecture && l.id === currentLecture.id) return false;
+          const [endH, endM] = l.endTime.split(':').map(Number);
+          const end = new Date(); end.setHours(endH, endM, 0, 0);
+          if (end < now) {
+            const [startH] = l.startTime.split(':').map(Number);
+            if (endH < startH) return false;
+            return true;
+          }
+          return false;
         });
 
         const isDoneForToday = !currentLecture && upcomingLectures.length === 0 && pastLectures.length > 0;
@@ -327,145 +327,145 @@ export default function TodayScreen() {
 
         // Build FlatList Data Array
         const listData: any[] = [];
-        
+
         listData.push({ type: 'summary', text: `You have ${todayLectures.length} ${todayLectures.length === 1 ? 'class' : 'classes'} scheduled`, id: 'summary' });
 
         if (isDoneForToday) {
-            listData.push({ type: 'all_done', count: pastLectures.length, id: 'all_done' });
+          listData.push({ type: 'all_done', count: pastLectures.length, id: 'all_done' });
         }
 
         if (isDoneForToday && pastLectures.length > 0) {
-            listData.push({ type: 'header', title: 'COMPLETED CLASSES', id: 'past_header', marginTop: 32 });
-            pastLectures.forEach((lecture, idx) => {
-                listData.push({ type: 'lecture', lecture, isLast: idx === pastLectures.length - 1, id: `past_${lecture.id}`, opacity: 0.6 });
-            });
+          listData.push({ type: 'header', title: 'COMPLETED CLASSES', id: 'past_header', marginTop: 32 });
+          pastLectures.forEach((lecture, idx) => {
+            listData.push({ type: 'lecture', lecture, isLast: idx === pastLectures.length - 1, id: `past_${lecture.id}`, opacity: 0.6 });
+          });
         }
 
         if (currentLecture) {
-            listData.push({ type: 'header', title: 'HAPPENING NOW', id: 'live_header' });
-            listData.push({ type: 'live_lecture', lecture: currentLecture, id: `live_${currentLecture.id}` });
+          listData.push({ type: 'header', title: 'HAPPENING NOW', id: 'live_header' });
+          listData.push({ type: 'live_lecture', lecture: currentLecture, id: `live_${currentLecture.id}` });
         }
 
         if (upcomingLectures.length > 0) {
-            listData.push({ type: 'header', title: 'UPCOMING CLASSES', id: 'upcoming_header' });
-            upcomingLectures.forEach((lecture, idx) => {
-                listData.push({ type: 'lecture', lecture, isLast: idx === upcomingLectures.length - 1, id: `upcoming_${lecture.id}` });
-            });
+          listData.push({ type: 'header', title: 'UPCOMING CLASSES', id: 'upcoming_header' });
+          upcomingLectures.forEach((lecture, idx) => {
+            listData.push({ type: 'lecture', lecture, isLast: idx === upcomingLectures.length - 1, id: `upcoming_${lecture.id}` });
+          });
         }
 
         if (upcomingDeadlines.length > 0) {
-            let hasAddedHeader = false;
-            upcomingDeadlines.forEach((assignment, idx) => {
-                // Skip if we just marked it complete
-                if (hiddenAssignmentIds.has(assignment.id)) return;
-                if (!hasAddedHeader) {
-                    listData.push({ type: 'header', title: 'UPCOMING DEADLINES', id: 'deadline_header' });
-                    hasAddedHeader = true;
-                }
-                const course = lectures.find(l => l.id === assignment.lectureId);
-                listData.push({ type: 'deadline', assignment, course, isLast: idx === upcomingDeadlines.length - 1, id: `deadline_${assignment.id}` });
-            });
+          let hasAddedHeader = false;
+          upcomingDeadlines.forEach((assignment, idx) => {
+            // Skip if we just marked it complete
+            if (hiddenAssignmentIds.has(assignment.id)) return;
+            if (!hasAddedHeader) {
+              listData.push({ type: 'header', title: 'UPCOMING DEADLINES', id: 'deadline_header' });
+              hasAddedHeader = true;
+            }
+            const course = lectures.find(l => l.id === assignment.lectureId);
+            listData.push({ type: 'deadline', assignment, course, isLast: idx === upcomingDeadlines.length - 1, id: `deadline_${assignment.id}` });
+          });
         }
 
         listData.push({ type: 'footer_hint', id: 'footer_hint' });
         listData.push({ type: 'spacer', id: 'bottom_spacer' });
 
         const renderItem = ({ item }: { item: any }) => {
-            switch (item.type) {
-                case 'summary':
-                    return <Text style={styles.summaryText}>{item.text}</Text>;
-                case 'all_done':
-                    return (
-                        <View style={styles.allDoneContainer}>
-                            <Ionicons name="checkmark-done-circle" size={64} color={colors.primary} />
-                            <Text style={styles.allDoneTitle}>Done for today!</Text>
-                            <Text style={styles.allDoneSubtitle}>You've finished all {item.count} classes.</Text>
+          switch (item.type) {
+            case 'summary':
+              return <Text style={styles.summaryText}>{item.text}</Text>;
+            case 'all_done':
+              return (
+                <View style={styles.allDoneContainer}>
+                  <Ionicons name="checkmark-done-circle" size={64} color={colors.primary} />
+                  <Text style={styles.allDoneTitle}>Done for today!</Text>
+                  <Text style={styles.allDoneSubtitle}>You've finished all {item.count} classes.</Text>
+                </View>
+              );
+            case 'header':
+              return <Text style={[styles.sectionHeader, item.marginTop ? { marginTop: item.marginTop } : null]}>{item.title}</Text>;
+            case 'live_lecture':
+              return (
+                <View style={[styles.sectionContainer, { marginTop: 0 }]}>
+                  <LiveLectureCard lecture={item.lecture} onPress={() => router.push(`/lecture/${item.lecture.id}`)} />
+                </View>
+              );
+            case 'lecture':
+              return (
+                <View style={[styles.sectionContainer, { marginTop: 0, opacity: item.opacity || 1 }]}>
+                  <View style={[styles.groupedList, item.isLast ? {} : { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 }]}>
+                    <SwipeableLectureRow onDelete={() => handleDeleteClass(item.lecture)}>
+                      <CourseItem
+                        lecture={item.lecture}
+                        isNext={false}
+                        onPress={() => router.push(`/lecture/${item.lecture.id}`)}
+                        onLongPress={() => handleLongPress(item.lecture)}
+                      />
+                    </SwipeableLectureRow>
+                    {!item.isLast && <View style={styles.separator} />}
+                  </View>
+                </View>
+              );
+            case 'deadline':
+              return (
+                <View style={[styles.sectionContainer, { marginTop: 0 }]}>
+                  <View style={[styles.groupedList, item.isLast ? {} : { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 }]}>
+                    <TouchableOpacity
+                      style={[styles.deadlineCard, styles.groupedItem]}
+                      onPress={() => router.push(`/lecture/${item.assignment.lectureId}`)}
+                    >
+                      <View style={styles.deadlineRow}>
+                        <TouchableOpacity
+                          style={styles.checkboxContainer}
+                          onPress={() => handleCompleteAssignment(item.assignment)}
+                          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                        >
+                          <View style={styles.checkboxOutline} />
+                        </TouchableOpacity>
+                        <View style={styles.deadlineInfo}>
+                          <View style={styles.deadlineBadgeRow}>
+                            {item.course && (
+                              <View style={[styles.miniBadge, { backgroundColor: item.course.color || colors.primary }]}>
+                                <Text style={styles.miniBadgeText}>{item.course.courseName}</Text>
+                              </View>
+                            )}
+                            {item.assignment.priority && item.assignment.priority !== 'medium' && (
+                              <View style={[
+                                styles.priorityDot,
+                                { backgroundColor: item.assignment.priority === 'high' ? colors.error : '#3498db' }
+                              ]} />
+                            )}
+                          </View>
+                          <Text style={styles.deadlineTitle} numberOfLines={1}>{item.assignment.title}</Text>
+                          <Text style={styles.deadlineDate}>
+                            Due {new Date(item.assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </Text>
                         </View>
-                    );
-                case 'header':
-                    return <Text style={[styles.sectionHeader, item.marginTop ? { marginTop: item.marginTop } : null]}>{item.title}</Text>;
-                case 'live_lecture':
-                    return (
-                        <View style={[styles.sectionContainer, { marginTop: 0 }]}>
-                            <LiveLectureCard lecture={item.lecture} onPress={() => router.push(`/lecture/${item.lecture.id}`)} />
-                        </View>
-                    );
-                case 'lecture':
-                    return (
-                        <View style={[styles.sectionContainer, { marginTop: 0, opacity: item.opacity || 1 }]}>
-                            <View style={[styles.groupedList, item.isLast ? {} : { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 }]}>
-                                <SwipeableLectureRow onDelete={() => handleDeleteClass(item.lecture)}>
-                                    <CourseItem
-                                        lecture={item.lecture}
-                                        isNext={false}
-                                        onPress={() => router.push(`/lecture/${item.lecture.id}`)}
-                                        onLongPress={() => handleLongPress(item.lecture)}
-                                    />
-                                </SwipeableLectureRow>
-                                {!item.isLast && <View style={styles.separator} />}
-                            </View>
-                        </View>
-                    );
-                case 'deadline':
-                    return (
-                        <View style={[styles.sectionContainer, { marginTop: 0 }]}>
-                            <View style={[styles.groupedList, item.isLast ? {} : { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 }]}>
-                                <TouchableOpacity 
-                                    style={[styles.deadlineCard, styles.groupedItem]}
-                                    onPress={() => router.push(`/lecture/${item.assignment.lectureId}`)}
-                                >
-                                    <View style={styles.deadlineRow}>
-                                        <TouchableOpacity 
-                                            style={styles.checkboxContainer}
-                                            onPress={() => handleCompleteAssignment(item.assignment)}
-                                            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-                                        >
-                                            <View style={styles.checkboxOutline} />
-                                        </TouchableOpacity>
-                                        <View style={styles.deadlineInfo}>
-                                            <View style={styles.deadlineBadgeRow}>
-                                                {item.course && (
-                                                    <View style={[styles.miniBadge, { backgroundColor: item.course.color || colors.primary }]}>
-                                                        <Text style={styles.miniBadgeText}>{item.course.courseName}</Text>
-                                                    </View>
-                                                )}
-                                                {item.assignment.priority && item.assignment.priority !== 'medium' && (
-                                                    <View style={[
-                                                        styles.priorityDot, 
-                                                        { backgroundColor: item.assignment.priority === 'high' ? colors.error : '#3498db' }
-                                                    ]} />
-                                                )}
-                                            </View>
-                                            <Text style={styles.deadlineTitle} numberOfLines={1}>{item.assignment.title}</Text>
-                                            <Text style={styles.deadlineDate}>
-                                                Due {new Date(item.assignment.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                            </Text>
-                                        </View>
-                                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                                    </View>
-                                    {!item.isLast && <View style={styles.separator} />}
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    );
-                case 'footer_hint':
-                    return <Text style={styles.swipeHint}>Tip: Swipe left to delete a class</Text>;
-                case 'spacer':
-                    return <View style={{ height: 100 }} />;
-                default:
-                    return null;
-            }
+                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                      </View>
+                      {!item.isLast && <View style={styles.separator} />}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            case 'footer_hint':
+              return <Text style={styles.swipeHint}>Tip: Swipe left to delete a class</Text>;
+            case 'spacer':
+              return <View style={{ height: 100 }} />;
+            default:
+              return null;
+          }
         };
 
         return (
-            <FlatList
-                data={listData}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.content}
-                showsVerticalScrollIndicator={false}
-                style={styles.scrollView}
-            />
+          <FlatList
+            data={listData}
+            renderItem={renderItem}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+            style={styles.scrollView}
+          />
         );
       })()}
 
@@ -474,137 +474,137 @@ export default function TodayScreen() {
         <MiniTimerBar />
       </View>
 
-      <UndoToast 
-          visible={undoToastVisible}
-          message={`Deleted "${deletedLecture?.courseName}"`}
-          onUndo={handleUndoDelete}
-          onDismiss={() => {
-              setUndoToastVisible(false);
-              setDeletedLecture(null);
-          }}
-      />
-      
-      <UndoToast 
-          visible={assignmentUndoToastVisible}
-          message={`Marked "${completedAssignment?.title}" complete`}
-          onUndo={handleUndoCompleteAssignment}
-          onDismiss={() => {
-              setAssignmentUndoToastVisible(false);
-              setCompletedAssignment(null);
-          }}
+      <UndoToast
+        visible={undoToastVisible}
+        message={`Deleted "${deletedLecture?.courseName}"`}
+        onUndo={handleUndoDelete}
+        onDismiss={() => {
+          setUndoToastVisible(false);
+          setDeletedLecture(null);
+        }}
       />
 
-      <SuccessToast 
-          visible={successToastVisible}
-          message={successToastMessage}
-          onDismiss={() => setSuccessToastVisible(false)}
+      <UndoToast
+        visible={assignmentUndoToastVisible}
+        message={`Marked "${completedAssignment?.title}" complete`}
+        onUndo={handleUndoCompleteAssignment}
+        onDismiss={() => {
+          setAssignmentUndoToastVisible(false);
+          setCompletedAssignment(null);
+        }}
+      />
+
+      <SuccessToast
+        visible={successToastVisible}
+        message={successToastMessage}
+        onDismiss={() => setSuccessToastVisible(false)}
       />
 
       {/* FAB Bottom Sheet Menu */}
       {Platform.OS === 'web' ? null : ( // Modal fallback required for web sometimes, but using native Modal here
-          <Modal
-             visible={fabMenuVisible}
-             transparent
-             animationType="slide"
-             onRequestClose={() => setFabMenuVisible(false)}
+        <Modal
+          visible={fabMenuVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setFabMenuVisible(false)}
+        >
+          <TouchableOpacity
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+            activeOpacity={1}
+            onPress={() => setFabMenuVisible(false)}
           >
-              <TouchableOpacity
-                 style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
-                 activeOpacity={1}
-                 onPress={() => setFabMenuVisible(false)}
-              >
-                  <TouchableOpacity 
-                     activeOpacity={1} 
-                     style={{ backgroundColor: colors.cardBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Math.max(insets.bottom, 24), maxHeight: 500 }}
+            <TouchableOpacity
+              activeOpacity={1}
+              style={{ backgroundColor: colors.cardBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Math.max(insets.bottom, 24), maxHeight: 500 }}
+            >
+              <View style={{ width: 40, height: 4, backgroundColor: colors.textMuted + '40', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+
+              {fabMenuMode === 'options' ? (
+                <>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: colors.textDark, textAlign: 'center', marginBottom: 24 }}>Add to Schedule</Text>
+
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.textMuted + '30' }}
+                    onPress={() => navigateTo('/add-lecture?source=Today')}
                   >
-                      <View style={{ width: 40, height: 4, backgroundColor: colors.textMuted + '40', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
-                      
-                      {fabMenuMode === 'options' ? (
-                          <>
-                              <Text style={{ fontSize: 20, fontWeight: '700', color: colors.textDark, textAlign: 'center', marginBottom: 24 }}>Add to Schedule</Text>
-                              
-                              <TouchableOpacity 
-                                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.textMuted + '30' }}
-                                  onPress={() => navigateTo('/add-lecture?source=Today')}
-                              >
-                                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                                      <Ionicons name="book-outline" size={20} color={colors.primary} />
-                                  </View>
-                                  <Text style={{ fontSize: 17, color: colors.textDark, fontWeight: '500' }}>New Class</Text>
-                              </TouchableOpacity>
-
-                              <TouchableOpacity 
-                                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
-                                  onPress={() => {
-                                      if (Platform.OS !== 'web') Haptics.selectionAsync();
-                                      setFabMenuMode('coursePicker');
-                                  }}
-                              >
-                                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                                      <Ionicons name="document-text-outline" size={20} color={colors.primary} />
-                                  </View>
-                                  <Text style={{ fontSize: 17, color: colors.textDark, fontWeight: '500' }}>New Assignment</Text>
-                              </TouchableOpacity>
-                          </>
-                      ) : (
-                          <>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                                  <TouchableOpacity onPress={() => setFabMenuMode('options')} style={{ padding: 4 }}>
-                                      <Ionicons name="arrow-back" size={24} color={colors.textDark} />
-                                  </TouchableOpacity>
-                                  <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textDark }}>Select Course</Text>
-                                  <View style={{ width: 32 }} />
-                              </View>
-
-                              {lectures.length === 0 ? (
-                                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                                      <Ionicons name="folder-open-outline" size={48} color={colors.textMuted} style={{ marginBottom: 16, opacity: 0.5 }} />
-                                      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textDark, marginBottom: 8, textAlign: 'center' }}>
-                                          You haven't added any courses yet.
-                                      </Text>
-                                      <Text style={{ fontSize: 14, color: colors.textMuted, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20 }}>
-                                          Add a course first to attach assignments to it.
-                                      </Text>
-                                      <TouchableOpacity 
-                                          style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}
-                                          onPress={() => navigateTo('/add-lecture?source=Today')}
-                                      >
-                                          <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 15 }}>Add a Course</Text>
-                                      </TouchableOpacity>
-                                  </View>
-                              ) : (
-                                  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                                      {lectures.map((l, index) => (
-                                          <TouchableOpacity 
-                                              key={l.id}
-                                              style={{ 
-                                                  flexDirection: 'row', 
-                                                  alignItems: 'center', 
-                                                  paddingVertical: 16, 
-                                                  borderBottomWidth: index === lectures.length - 1 ? 0 : StyleSheet.hairlineWidth, 
-                                                  borderBottomColor: colors.textMuted + '30' 
-                                              }}
-                                              onPress={() => navigateTo(`/add-assignment?lectureId=${l.id}&source=Today`)}
-                                          >
-                                              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: l.color || colors.primary, marginRight: 16 }} />
-                                              <Text style={{ fontSize: 16, color: colors.textDark, fontWeight: '500', flex: 1 }}>{l.courseName}</Text>
-                                              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                                          </TouchableOpacity>
-                                      ))}
-                                  </ScrollView>
-                              )}
-                          </>
-                      )}
-
-                      <TouchableOpacity 
-                          style={{ marginTop: 16, paddingVertical: 16, alignItems: 'center', backgroundColor: colors.background, borderRadius: 14 }}
-                          onPress={() => setFabMenuVisible(false)}
-                      >
-                          <Text style={{ fontSize: 17, fontWeight: '600', color: colors.textDark }}>Cancel</Text>
-                      </TouchableOpacity>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                      <Ionicons name="book-outline" size={20} color={colors.primary} />
+                    </View>
+                    <Text style={{ fontSize: 17, color: colors.textDark, fontWeight: '500' }}>New Class</Text>
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}
+                    onPress={() => {
+                      if (Platform.OS !== 'web') Haptics.selectionAsync();
+                      setFabMenuMode('coursePicker');
+                    }}
+                  >
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                      <Ionicons name="document-text-outline" size={20} color={colors.primary} />
+                    </View>
+                    <Text style={{ fontSize: 17, color: colors.textDark, fontWeight: '500' }}>New Assignment</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                    <TouchableOpacity onPress={() => setFabMenuMode('options')} style={{ padding: 4 }}>
+                      <Ionicons name="arrow-back" size={24} color={colors.textDark} />
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textDark }}>Select Course</Text>
+                    <View style={{ width: 32 }} />
+                  </View>
+
+                  {lectures.length === 0 ? (
+                    <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                      <Ionicons name="folder-open-outline" size={48} color={colors.textMuted} style={{ marginBottom: 16, opacity: 0.5 }} />
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textDark, marginBottom: 8, textAlign: 'center' }}>
+                        You haven't added any courses yet.
+                      </Text>
+                      <Text style={{ fontSize: 14, color: colors.textMuted, textAlign: 'center', marginBottom: 24, paddingHorizontal: 20 }}>
+                        Add a course first to attach assignments to it.
+                      </Text>
+                      <TouchableOpacity
+                        style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}
+                        onPress={() => navigateTo('/add-lecture?source=Today')}
+                      >
+                        <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 15 }}>Add a Course</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                      {lectures.map((l, index) => (
+                        <TouchableOpacity
+                          key={l.id}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 16,
+                            borderBottomWidth: index === lectures.length - 1 ? 0 : StyleSheet.hairlineWidth,
+                            borderBottomColor: colors.textMuted + '30'
+                          }}
+                          onPress={() => navigateTo(`/add-assignment?lectureId=${l.id}&source=Today`)}
+                        >
+                          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: l.color || colors.primary, marginRight: 16 }} />
+                          <Text style={{ fontSize: 16, color: colors.textDark, fontWeight: '500', flex: 1 }}>{l.courseName}</Text>
+                          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </>
+              )}
+
+              <TouchableOpacity
+                style={{ marginTop: 16, paddingVertical: 16, alignItems: 'center', backgroundColor: colors.background, borderRadius: 14 }}
+                onPress={() => setFabMenuVisible(false)}
+              >
+                <Text style={{ fontSize: 17, fontWeight: '600', color: colors.textDark }}>Cancel</Text>
               </TouchableOpacity>
-          </Modal>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
       )}
 
       <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
@@ -615,17 +615,17 @@ export default function TodayScreen() {
         >
           <Ionicons name="add" size={32} color="#FFFFFF" />
           {lectures.length === 0 && (
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.fabPulseDot, 
+                styles.fabPulseDot,
                 { transform: [{ scale: pulseAnim }] }
-              ]} 
+              ]}
             />
           )}
         </TouchableOpacity>
       </Animated.View>
 
-      <LectureContextMenu 
+      <LectureContextMenu
         visible={contextMenuVisible}
         lecture={contextLecture}
         onClose={() => setContextMenuVisible(false)}
@@ -879,61 +879,61 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     color: colors.textMuted,
   },
   groupedItem: {
-      backgroundColor: colors.cardBackground,
-      padding: 16,
+    backgroundColor: colors.cardBackground,
+    padding: 16,
   },
   deadlineCard: {
-      // styles handled by groupedItem mostly
+    // styles handled by groupedItem mostly
   },
   deadlineRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   deadlineInfo: {
-      flex: 1,
+    flex: 1,
   },
   deadlineBadgeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 4,
-      gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 6,
   },
   miniBadge: {
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   miniBadgeText: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   priorityDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   deadlineTitle: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textDark,
-      marginBottom: 2,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textDark,
+    marginBottom: 2,
   },
   checkboxContainer: {
-      marginRight: 16,
-      alignSelf: 'flex-start',
-      marginTop: 2,
+    marginRight: 16,
+    alignSelf: 'flex-start',
+    marginTop: 2,
   },
   checkboxOutline: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      borderWidth: 2,
-      borderColor: colors.textMuted + '60',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.textMuted + '60',
   },
   deadlineDate: {
-      fontSize: 12,
-      color: colors.textMuted,
+    fontSize: 12,
+    color: colors.textMuted,
   }
 });

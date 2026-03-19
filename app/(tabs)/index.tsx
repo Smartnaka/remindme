@@ -18,7 +18,7 @@ import { getUpcomingAssignments } from '@/utils/assignmentUtils';
 import UndoToast from '@/components/UndoToast';
 import SuccessToast from '@/components/SuccessToast';
 import MiniTimerBar from '@/components/MiniTimerBar';
-import OnboardingCarousel from '@/components/OnboardingCarousel';
+
 import LectureContextMenu from '@/components/LectureContextMenu';
 import { FlatList } from 'react-native';
 
@@ -66,7 +66,7 @@ export default function TodayScreen() {
   }, [lectures.length]);
 
   // Action States
-  const [showOnboarding, setShowOnboarding] = useState(false);
+
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
   const [fabMenuMode, setFabMenuMode] = useState<'options' | 'coursePicker'>('options');
   const [undoToastVisible, setUndoToastVisible] = useState(false);
@@ -85,11 +85,7 @@ export default function TodayScreen() {
   const [successToastVisible, setSuccessToastVisible] = useState(false);
   const [successToastMessage, setSuccessToastMessage] = useState('');
 
-  useEffect(() => {
-    if (!isSettingsLoading && !settings.hasOnboarded) {
-      setShowOnboarding(true);
-    }
-  }, [isSettingsLoading, settings.hasOnboarded]);
+
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('showSuccessToast', (data) => {
@@ -638,13 +634,7 @@ export default function TodayScreen() {
         onDelete={handleDeleteClass}
       />
 
-      <OnboardingCarousel 
-        visible={showOnboarding} 
-        onComplete={() => {
-            setShowOnboarding(false);
-            updateSettings({ hasOnboarded: true });
-        }}
-      />
+
     </View>
   );
 }

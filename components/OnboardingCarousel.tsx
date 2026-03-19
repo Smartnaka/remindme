@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, ScrollView, Modal, Platform, StatusBarStyle } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Animated, ScrollView, Platform, StatusBarStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,19 +43,16 @@ const SLIDES = [
 ];
 
 interface OnboardingProps {
-    visible: boolean;
     onComplete: () => void;
 }
 
-export default function OnboardingCarousel({ visible, onComplete }: OnboardingProps) {
+export default function OnboardingCarousel({ onComplete }: OnboardingProps) {
     const { colors, theme } = useSettings();
     const scrollX = useRef(new Animated.Value(0)).current;
     const scrollViewRef = useRef<ScrollView>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const isDark = theme === 'dark';
-
-    if (!visible) return null;
 
     const handleScroll = Animated.event(
         [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -181,7 +178,7 @@ export default function OnboardingCarousel({ visible, onComplete }: OnboardingPr
     };
 
     return (
-        <Modal animationType="fade" transparent={false} visible={visible}>
+        <>
             <StatusBar style={isDark ? 'light' : 'dark'} />
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 {/* Header Section */}
@@ -272,7 +269,7 @@ export default function OnboardingCarousel({ visible, onComplete }: OnboardingPr
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
-        </Modal>
+        </>
     );
 }
 

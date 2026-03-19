@@ -18,6 +18,7 @@ import { ExamProvider } from "@/contexts/ExamContext";
 import { StudyTimerProvider } from "@/contexts/StudyTimerContext";
 import { AlertProvider } from "@/contexts/AlertContext";
 import CustomAlert from "@/components/CustomAlert";
+import OnboardingCarousel from "@/components/OnboardingCarousel";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -50,7 +51,16 @@ try {
 }
 
 function RootLayoutNav() {
-  const { theme, colors, settings } = useSettings();
+  const { theme, colors, settings, updateSettings, isLoading: isSettingsLoading } = useSettings();
+
+  // Gate: show onboarding if not completed
+  if (!isSettingsLoading && !settings.hasOnboarded) {
+    return (
+      <OnboardingCarousel
+        onComplete={() => updateSettings({ hasOnboarded: true })}
+      />
+    );
+  }
 
   const navTheme = {
     ...(theme === 'dark' ? DarkTheme : DefaultTheme),

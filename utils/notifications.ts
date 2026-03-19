@@ -436,6 +436,78 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
   }
 };
 
+// Schedule a "class is starting NOW" notification at exact start time
+export const scheduleStartNowNotification = async (lecture: Lecture): Promise<string | null> => {
+  if (Platform.OS === 'web' || !Notifications) return null;
+
+  try {
+    await ensureNotificationChannel();
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) return null;
+
+    // offset = 0 means fire at the exact class start time
+    const nextOccurrence = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, 0);
+    const triggerDate = nextOccurrence; // No offset subtraction
+
+    if (!(await isNotificationAllowed(triggerDate))) {
+      log('[Notifications] Start-now reminder blocked by quiet hours or semester limits');
+      return null;
+    }
+
+    if (Platform.OS === 'android') {
+      // Android: use exact date trigger (more reliable)
+      const now = new Date();
+      if (triggerDate <= now) {
+        // Already passed this week, schedule for next week
+        triggerDate.setDate(triggerDate.getDate() + 7);
+      }
+
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `${lecture.courseName} is starting NOW`,
+          body: `${lecture.location ? `${lecture.location} • ` : ''}Tap to mark attendance`,
+          data: { lectureId: lecture.id, type: 'start-now' },
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.MAX,
+          categoryIdentifier: 'reminder',
+        },
+        trigger: {
+          channelId: 'lecture-reminders',
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: triggerDate,
+        },
+      });
+      log(`[Notifications] Scheduled start-now for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
+      return notificationId;
+    } else {
+      // iOS: use weekly repeating trigger
+      const triggerWeekday = triggerDate.getDay() + 1;
+
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `${lecture.courseName} is starting NOW`,
+          body: `${lecture.location ? `${lecture.location} • ` : ''}Tap to mark attendance`,
+          data: { lectureId: lecture.id, type: 'start-now' },
+          sound: true,
+          categoryIdentifier: 'reminder',
+        },
+        trigger: {
+          channelId: 'lecture-reminders',
+          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+          weekday: triggerWeekday,
+          hour: triggerDate.getHours(),
+          minute: triggerDate.getMinutes(),
+        },
+      });
+      log(`[Notifications] Scheduled start-now for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
+      return notificationId;
+    }
+  } catch (error) {
+    log('[Notifications] Error scheduling start-now: ' + error);
+    return null;
+  }
+};
+
 export const manageDailySummaryNotification = async (timeStr: string, existingId?: string): Promise<string | null> => {
     if (Platform.OS === 'web' || !Notifications) return null;
 

@@ -12,12 +12,16 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
       "ios": {
         "simulator": true
       },
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_NO_HERMES_DEBUGGER": "1"
+      }
     },
     "production": {
       "channel": "production",

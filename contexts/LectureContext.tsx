@@ -11,6 +11,7 @@ import {
   scheduleExactAlarmNotifications, 
   cancelMultipleNotifications,
   scheduleTwoHourReminder,
+  scheduleStartNowNotification,
   manageDailySummaryNotification,
   scheduleBiWeeklyNotifications,
   scheduleAssignmentNotification
@@ -176,6 +177,12 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     const twoHourId = await scheduleTwoHourReminder(newLecture);
     if (twoHourId) newLecture.twoHourReminderId = twoHourId;
 
+    // 4. "Class starting NOW" notification
+    if (settings.notifyAtClassStart) {
+      const startNowId = await scheduleStartNowNotification(newLecture);
+      if (startNowId) newLecture.startNowNotificationId = startNowId;
+    }
+
     const updatedLectures = [...lectures, newLecture];
     saveLecturesMutation.mutate(updatedLectures);
   };
@@ -190,6 +197,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     if (oldLecture.notificationId) await cancelNotification(oldLecture.notificationId);
     if (oldLecture.alarmNotificationIds) await cancelMultipleNotifications(oldLecture.alarmNotificationIds);
     if (oldLecture.twoHourReminderId) await cancelNotification(oldLecture.twoHourReminderId);
+    if (oldLecture.startNowNotificationId) await cancelNotification(oldLecture.startNowNotificationId);
 
     const updatedLecture = { ...oldLecture, ...updates };
 
@@ -219,6 +227,14 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
         updatedLecture.twoHourReminderId = undefined;
     }
 
+    // "Class starting NOW" notification
+    if (settings.notifyAtClassStart) {
+      const startNowId = await scheduleStartNowNotification(updatedLecture);
+      updatedLecture.startNowNotificationId = startNowId || undefined;
+    } else {
+      updatedLecture.startNowNotificationId = undefined;
+    }
+
     const updatedLectures = [...lectures];
     updatedLectures[lectureIndex] = updatedLecture;
     saveLecturesMutation.mutate(updatedLectures);
@@ -230,6 +246,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     if (lecture?.notificationId) await cancelNotification(lecture.notificationId);
     if (lecture?.alarmNotificationIds) await cancelMultipleNotifications(lecture.alarmNotificationIds);
     if (lecture?.twoHourReminderId) await cancelNotification(lecture.twoHourReminderId);
+    if (lecture?.startNowNotificationId) await cancelNotification(lecture.startNowNotificationId);
 
     const updatedLectures = lectures.filter(l => l.id !== id);
     saveLecturesMutation.mutate(updatedLectures);

@@ -13,6 +13,7 @@ export interface Lecture {
   notificationId?: string; // Calendar-based notification ID
   alarmNotificationIds?: string[]; // Alarm-based notification IDs (for 4 weeks)
   twoHourReminderId?: string; // ID for the 2-hour prior reminder
+  startNowNotificationId?: string; // ID for "class is starting now" notification
   calendarEventId?: string; // Store calendar event ID for sync management
   recurrence?: Recurrence; // New recurrence settings
   totalClasses?: number; // Total number of classes held

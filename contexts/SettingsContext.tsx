@@ -23,6 +23,7 @@ interface Settings {
     dailySummaryEnabled?: boolean;
     reduceMotion?: boolean;
     hasOnboarded?: boolean;
+    notifyAtClassStart?: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -38,6 +39,7 @@ const defaultSettings: Settings = {
     dailySummaryEnabled: true,
     reduceMotion: false,
     hasOnboarded: false,
+    notifyAtClassStart: true,
 };
 
 interface SettingsContextType {

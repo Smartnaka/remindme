@@ -466,7 +466,26 @@ export default function SettingsScreen() {
                     )}
                 </View>
 
-                {/* DATA SECTION */}
+                {/* CLASS START NOTIFICATION */}
+                <View style={styles.separator} />
+                <View style={styles.row}>
+                    <View style={{ flex: 1 }}>
+                        <View style={styles.rowContent}>
+                            <View style={[styles.iconBox, { backgroundColor: colors.primary + '15' }]}>
+                                <Ionicons name="megaphone-outline" size={16} color={colors.primary} />
+                            </View>
+                            <Text style={styles.rowLabel}>Notify at Class Start</Text>
+                        </View>
+                        <Text style={[styles.rowSubtext, { marginLeft: 40 }]}>Get a "starting now" alert when class begins</Text>
+                    </View>
+                    <Switch
+                        value={settings.notifyAtClassStart}
+                        onValueChange={(val) => updateSettings({ notifyAtClassStart: val })}
+                        trackColor={{ false: colors.textMuted + '40', true: colors.primary }}
+                        thumbColor={Platform.OS === 'android' ? '#fff' : undefined}
+                    />
+                </View>
+
                 <SectionHeader title="Danger Zone" icon="warning-outline" />
                 <View style={styles.groupedList}>
                     <TouchableOpacity

@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Platform } from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import { Lecture, DayOfWeek } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
 import { 
@@ -127,6 +127,46 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     });
   }, [settings.dailySummaryTime, settings.dailySummaryEnabled, isSettingsLoading]);
 
+  // Reschedule notifications once per day when the app is opened or comes to foreground.
+  // This ensures Android's 4-week exact-alarm window stays fresh.
+  const appState = useRef(AppState.currentState);
+  const lecturesRef = useRef(lectures);
+  const settingsRef = useRef(settings);
+
+  // Keep refs up to date so the AppState listener always sees current values
+  useEffect(() => { lecturesRef.current = lectures; }, [lectures]);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+
+  // Ref to the latest reschedule function to avoid stale closures in AppState listener
+  const rescheduleRef = useRef<() => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    if (isSettingsLoading || !settings.hasOnboarded) return;
+
+    const checkAndReschedule = async () => {
+      const currentLectures = lecturesRef.current;
+      const currentSettings = settingsRef.current;
+      if (currentLectures.length === 0) return;
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      if (currentSettings.lastNotificationCheckDate === today) return; // Already rescheduled today
+      await rescheduleRef.current();
+      await updateSettings({ lastNotificationCheckDate: today });
+    };
+
+    // Check on mount (covers fresh app launch)
+    checkAndReschedule();
+
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (appState.current !== 'active' && nextAppState === 'active') {
+        // App came to foreground — reschedule if needed
+        checkAndReschedule();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => subscription.remove();
+  }, [isSettingsLoading, settings.hasOnboarded]);
+
   // Handle Rescheduling when Notification Offsets or NotifyAtClassStart changes
   const prevOffsetRef = React.useRef(settings.lectureOffset);
   const prevNotifyRef = React.useRef(settings.notifyAtClassStart);
@@ -149,7 +189,6 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     
     const updatedLectures = [];
     for (const oldLecture of lectures) {
-        // Cleanup old
         if (oldLecture.notificationId) await cancelNotification(oldLecture.notificationId);
         if (oldLecture.alarmNotificationIds) await cancelMultipleNotifications(oldLecture.alarmNotificationIds);
         if (oldLecture.twoHourReminderId) await cancelNotification(oldLecture.twoHourReminderId);
@@ -189,6 +228,12 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     
     saveLecturesMutation.mutate(updatedLectures);
   };
+
+  // Update rescheduleRef on every render so the AppState listener always
+  // calls the up-to-date closure with the latest `lectures` and `settings`.
+  // Assigning to a ref during render is the recommended React pattern for
+  // avoiding stale callbacks in stable event subscriptions.
+  rescheduleRef.current = rescheduleAllLectures;
 
   const saveLecturesMutation = useMutation({
     mutationFn: async (newLectures: Lecture[]) => {

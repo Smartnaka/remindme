@@ -57,5 +57,16 @@
     "ts-jest": "^29.4.6",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "globals": {
+      "__DEV__": true
+    },
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1",
+      "^@react-native-async-storage/async-storage$": "<rootDir>/__mocks__/asyncStorage.ts"
+    }
+  }
 }

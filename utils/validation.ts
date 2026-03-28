@@ -6,6 +6,9 @@
 export const MAX_COURSE_NAME_LENGTH = 100;
 export const MAX_LOCATION_LENGTH = 200;
 export const MIN_COURSE_NAME_LENGTH = 1;
+export const MAX_ASSIGNMENT_TITLE_LENGTH = 200;
+export const MAX_DESCRIPTION_LENGTH = 1000;
+export const MAX_NOTES_LENGTH = 1000;
 
 /**
  * Validates course name input
@@ -120,4 +123,41 @@ export const validateLecture = (
     valid: errors.length === 0,
     errors,
   };
+};
+
+/**
+ * Validates assignment title input
+ */
+export const validateAssignmentTitle = (title: string): { valid: boolean; error?: string } => {
+  const trimmed = title.trim();
+
+  if (!trimmed) {
+    return { valid: false, error: 'Assignment title is required' };
+  }
+
+  if (trimmed.length > MAX_ASSIGNMENT_TITLE_LENGTH) {
+    return { valid: false, error: `Assignment title must be less than ${MAX_ASSIGNMENT_TITLE_LENGTH} characters` };
+  }
+
+  return { valid: true };
+};
+
+/**
+ * Validates optional description/notes input
+ */
+export const validateDescription = (description: string): { valid: boolean; error?: string } => {
+  if (description.trim().length > MAX_DESCRIPTION_LENGTH) {
+    return { valid: false, error: `Description must be less than ${MAX_DESCRIPTION_LENGTH} characters` };
+  }
+  return { valid: true };
+};
+
+/**
+ * Validates optional notes input
+ */
+export const validateNotes = (notes: string): { valid: boolean; error?: string } => {
+  if (notes.trim().length > MAX_NOTES_LENGTH) {
+    return { valid: false, error: `Notes must be less than ${MAX_NOTES_LENGTH} characters` };
+  }
+  return { valid: true };
 };

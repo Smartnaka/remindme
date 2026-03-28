@@ -5,6 +5,7 @@ export interface Exam {
   location?: string;
   notes?: string;
   color?: string; // Optional color for the card
+  notificationId?: string; // Scheduled exam reminder notification ID
 }
 
 export type ExamSortOption = 'date' | 'course';

@@ -363,33 +363,36 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const restoreLecture = async (lectureToRestore: Lecture): Promise<void> => {
-    // Re-schedule alarms
-    const alarmIds: string[] = [];
-    if (lectureToRestore.recurrence) {
-        // We simplified recurrence, so just attempt one
-        const newIds = await scheduleBiWeeklyNotifications(lectureToRestore, settings.lectureOffset);
-        if (newIds.length > 0) alarmIds.push(...newIds);
+    const updatedLecture = { ...lectureToRestore };
+
+    // Re-schedule recurring reminders using the correct platform strategy
+    if (updatedLecture.recurrence?.type === 'biweekly') {
+      const newIds = await scheduleBiWeeklyNotifications(updatedLecture, settings.lectureOffset);
+      updatedLecture.alarmNotificationIds = newIds.length > 0 ? newIds : undefined;
+      updatedLecture.notificationId = undefined;
     } else {
-        const primaryIds = await scheduleExactAlarmNotifications(lectureToRestore, settings.lectureOffset);
-        if (primaryIds.length > 0) alarmIds.push(...primaryIds);
+      if (Platform.OS === 'android') {
+        const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.lectureOffset);
+        updatedLecture.alarmNotificationIds = alarmIds.length > 0 ? alarmIds : undefined;
+        updatedLecture.notificationId = undefined;
+      } else {
+        const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.lectureOffset);
+        updatedLecture.notificationId = notificationId || undefined;
+        updatedLecture.alarmNotificationIds = undefined;
+      }
     }
-    
-    // Notification logic
-    let notificationId: string | undefined;
-    if (Platform.OS !== 'web') {
-        // Minimal logic, relies on alarm anyway
+
+    const twoHourId = await scheduleTwoHourReminder(updatedLecture);
+    updatedLecture.twoHourReminderId = twoHourId || undefined;
+
+    if (settings.notifyAtClassStart) {
+      const startNowId = await scheduleStartNowNotification(updatedLecture);
+      updatedLecture.startNowNotificationId = startNowId || undefined;
+    } else {
+      updatedLecture.startNowNotificationId = undefined;
     }
 
-    const twoHourId = await scheduleTwoHourReminder(lectureToRestore);
-
-    const Restored: Lecture = {
-        ...lectureToRestore,
-        alarmNotificationIds: alarmIds.length > 0 ? alarmIds : undefined,
-        notificationId: notificationId,
-        twoHourReminderId: twoHourId || undefined,
-    };
-
-    const updatedLectures = [...lectures, Restored];
+    const updatedLectures = [...lectures, updatedLecture];
     saveLecturesMutation.mutate(updatedLectures);
   };
 
@@ -400,6 +403,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
             const ids = [];
             if (l.notificationId) ids.push(cancelNotification(l.notificationId));
             if (l.twoHourReminderId) ids.push(cancelNotification(l.twoHourReminderId));
+            if (l.startNowNotificationId) ids.push(cancelNotification(l.startNowNotificationId));
             if (l.alarmNotificationIds) ids.push(cancelMultipleNotifications(l.alarmNotificationIds));
             return ids;
         }));

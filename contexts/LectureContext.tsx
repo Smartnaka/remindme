@@ -184,6 +184,40 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     }
   }, [settings.lectureOffset, settings.notifyAtClassStart, isSettingsLoading]);
 
+  const schedulePrimaryLectureReminder = async (lecture: Lecture): Promise<Pick<Lecture, 'notificationId' | 'alarmNotificationIds'>> => {
+    if (lecture.recurrence?.type === 'biweekly') {
+      const biWeeklyIds = await scheduleBiWeeklyNotifications(lecture, settings.lectureOffset);
+      return {
+        notificationId: undefined,
+        alarmNotificationIds: biWeeklyIds.length > 0 ? biWeeklyIds : undefined,
+      };
+    }
+
+    if (Platform.OS === 'android') {
+      const alarmIds = await scheduleExactAlarmNotifications(lecture, settings.lectureOffset);
+
+      // Fallback: if exact alarms are unavailable, still schedule calendar-style weekly reminders.
+      if (alarmIds.length === 0) {
+        const weeklyId = await scheduleWeeklyNotification(lecture, settings.lectureOffset);
+        return {
+          notificationId: weeklyId || undefined,
+          alarmNotificationIds: undefined,
+        };
+      }
+
+      return {
+        notificationId: undefined,
+        alarmNotificationIds: alarmIds,
+      };
+    }
+
+    const notificationId = await scheduleWeeklyNotification(lecture, settings.lectureOffset);
+    return {
+      notificationId: notificationId || undefined,
+      alarmNotificationIds: undefined,
+    };
+  };
+
   const rescheduleAllLectures = async () => {
     if (lectures.length === 0) return;
     
@@ -196,22 +230,9 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
 
         const updatedLecture = { ...oldLecture };
 
-        // Reschedule
-        if (updatedLecture.recurrence?.type === 'biweekly') {
-           const biWeeklyIds = await scheduleBiWeeklyNotifications(updatedLecture, settings.lectureOffset);
-           updatedLecture.alarmNotificationIds = biWeeklyIds;
-           updatedLecture.notificationId = undefined; 
-        } else {
-           if (Platform.OS === 'android') {
-               const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.lectureOffset);
-               updatedLecture.alarmNotificationIds = alarmIds.length > 0 ? alarmIds : undefined;
-               updatedLecture.notificationId = undefined;
-           } else {
-               const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.lectureOffset);
-               updatedLecture.notificationId = notificationId || undefined;
-               updatedLecture.alarmNotificationIds = undefined;
-           }
-        }
+        const primaryReminder = await schedulePrimaryLectureReminder(updatedLecture);
+        updatedLecture.notificationId = primaryReminder.notificationId;
+        updatedLecture.alarmNotificationIds = primaryReminder.alarmNotificationIds;
 
         const twoHourId = await scheduleTwoHourReminder(updatedLecture);
         updatedLecture.twoHourReminderId = twoHourId || undefined;
@@ -263,25 +284,9 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     };
 
-    // 1. Recurring Reminders
-    if (newLecture.recurrence?.type === 'biweekly') {
-       // Bi-weekly: Schedule individual notifications
-       const biWeeklyIds = await scheduleBiWeeklyNotifications(newLecture, settings.lectureOffset);
-       // We'll store these in alarmNotificationIds for now, or we could add a new field. 
-       // Sticking to alarmNotificationIds as a general "list of scheduled IDs".
-       newLecture.alarmNotificationIds = biWeeklyIds;
-    } else {
-       // Weekly (Standard): one system per platform to avoid duplicate firing
-       if (Platform.OS === 'android') {
-           // Android: exact alarms bypass battery optimisation and are more reliable
-           const alarmIds = await scheduleExactAlarmNotifications(newLecture, settings.lectureOffset);
-           if (alarmIds.length > 0) newLecture.alarmNotificationIds = alarmIds;
-       } else {
-           // iOS: calendar-based weekly trigger
-           const notificationId = await scheduleWeeklyNotification(newLecture, settings.lectureOffset);
-           if (notificationId) newLecture.notificationId = notificationId;
-       }
-    }
+    const primaryReminder = await schedulePrimaryLectureReminder(newLecture);
+    newLecture.notificationId = primaryReminder.notificationId;
+    newLecture.alarmNotificationIds = primaryReminder.alarmNotificationIds;
     
     // 3. 2-Hour Reminder
     const twoHourId = await scheduleTwoHourReminder(newLecture);
@@ -311,24 +316,9 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
 
     const updatedLecture = { ...oldLecture, ...updates };
 
-    // Reschedule
-    // Reschedule
-    if (updatedLecture.recurrence?.type === 'biweekly') {
-       const biWeeklyIds = await scheduleBiWeeklyNotifications(updatedLecture, settings.lectureOffset);
-       updatedLecture.alarmNotificationIds = biWeeklyIds;
-       updatedLecture.notificationId = undefined; // Clear weekly ID if switching types
-    } else {
-       // Weekly (Standard): one system per platform to avoid duplicate firing
-       if (Platform.OS === 'android') {
-           const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.lectureOffset);
-           if (alarmIds.length > 0) updatedLecture.alarmNotificationIds = alarmIds;
-           updatedLecture.notificationId = undefined; // clear any stale iOS id
-       } else {
-           const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.lectureOffset);
-           if (notificationId) updatedLecture.notificationId = notificationId;
-           updatedLecture.alarmNotificationIds = undefined; // clear any stale Android ids
-       }
-    }
+    const primaryReminder = await schedulePrimaryLectureReminder(updatedLecture);
+    updatedLecture.notificationId = primaryReminder.notificationId;
+    updatedLecture.alarmNotificationIds = primaryReminder.alarmNotificationIds;
 
     const twoHourId = await scheduleTwoHourReminder(updatedLecture);
     if (twoHourId) {
@@ -365,22 +355,9 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
   const restoreLecture = async (lectureToRestore: Lecture): Promise<void> => {
     const updatedLecture = { ...lectureToRestore };
 
-    // Re-schedule recurring reminders using the correct platform strategy
-    if (updatedLecture.recurrence?.type === 'biweekly') {
-      const newIds = await scheduleBiWeeklyNotifications(updatedLecture, settings.lectureOffset);
-      updatedLecture.alarmNotificationIds = newIds.length > 0 ? newIds : undefined;
-      updatedLecture.notificationId = undefined;
-    } else {
-      if (Platform.OS === 'android') {
-        const alarmIds = await scheduleExactAlarmNotifications(updatedLecture, settings.lectureOffset);
-        updatedLecture.alarmNotificationIds = alarmIds.length > 0 ? alarmIds : undefined;
-        updatedLecture.notificationId = undefined;
-      } else {
-        const notificationId = await scheduleWeeklyNotification(updatedLecture, settings.lectureOffset);
-        updatedLecture.notificationId = notificationId || undefined;
-        updatedLecture.alarmNotificationIds = undefined;
-      }
-    }
+    const primaryReminder = await schedulePrimaryLectureReminder(updatedLecture);
+    updatedLecture.notificationId = primaryReminder.notificationId;
+    updatedLecture.alarmNotificationIds = primaryReminder.alarmNotificationIds;
 
     const twoHourId = await scheduleTwoHourReminder(updatedLecture);
     updatedLecture.twoHourReminderId = twoHourId || undefined;
@@ -417,13 +394,17 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
   // --- Assignment Logic ---
 
   const addAssignment = async (assignment: Omit<Assignment, 'id'>): Promise<void> => {
+    const course = lectures.find(l => l.id === assignment.lectureId);
+    if (!course) {
+      throw new Error('Cannot add assignment: lecture not found');
+    }
+
     const newAssignment: Assignment = {
       ...assignment,
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     };
 
-    const course = lectures.find(l => l.id === assignment.lectureId);
-    if (course && !assignment.isCompleted) {
+    if (!assignment.isCompleted) {
         const notifId = await scheduleAssignmentNotification(newAssignment, course.courseName, settings.assignmentOffset);
         if (notifId) newAssignment.notificationId = notifId;
     }

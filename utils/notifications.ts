@@ -1,4 +1,4 @@
-import { Platform, Alert, Linking } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
@@ -7,6 +7,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Conditional logger — only logs in development builds
 const log = __DEV__ ? console.log : () => {};
+
+const getLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 if (Platform.OS !== 'web') {
   try {
@@ -88,18 +95,17 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
       const androidVersion = typeof Platform.Version === 'number' ? Platform.Version : parseInt(String(Platform.Version), 10);
       if (androidVersion >= 31) {
         try {
-          const { canScheduleExactNotifications } = await Notifications.getPermissionsAsync();
+          const perms = await Notifications.getPermissionsAsync();
+          const canScheduleExactNotifications =
+            'canScheduleExactNotifications' in perms
+              ? Boolean((perms as any).canScheduleExactNotifications)
+              : true;
           log('[Notifications] Android 12+ canScheduleExactNotifications:', canScheduleExactNotifications);
 
           if (!canScheduleExactNotifications) {
-            Alert.alert(
-              'Enable Exact Alarms',
-              "For reliable reminders when the app is closed, please enable 'Alarms & Reminders' under App Permissions in your device settings.",
-              [
-                { text: 'Later', style: 'cancel' },
-                { text: 'Open Settings', onPress: () => Linking.openSettings() },
-              ]
-            );
+            // Intentionally non-blocking: avoid repeatedly interrupting users
+            // with an alert on screens that frequently trigger permission checks.
+            log('[Notifications] Exact alarms disabled in system settings');
           }
         } catch (error) {
           log('[Notifications] Could not check exact alarm permission:', error);
@@ -269,7 +275,7 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
        const triggerDate = new Date(currentDate.getTime() - offsetMinutes * 60000);
 
        if (triggerDate > now) {
-          if (!(await isNotificationAllowed(triggerDate))) {
+          if (!(await isNotificationAllowed(triggerDate, cachedSettings))) {
             log(`[Notifications] Bi-weekly occurrence blocked by limits for ${lecture.courseName} at ${triggerDate.toLocaleString()}`);
             // Skip this occurrence if not allowed
           } else {
@@ -546,11 +552,11 @@ export const manageDailySummaryNotification = async (timeStr: string, existingId
             // --- Assignments due today ---
             const assignmentsStr = await AsyncStorage.getItem('@assignments');
             const allAssignments: any[] = assignmentsStr ? JSON.parse(assignmentsStr) : [];
-            const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const todayStr = getLocalDateKey(new Date()); // YYYY-MM-DD local
             const dueToday = allAssignments.filter((a: any) => {
                 if (a.isCompleted) return false;
                 if (!a.dueDate) return false;
-                return a.dueDate.startsWith(todayStr);
+                return getLocalDateKey(new Date(a.dueDate)) === todayStr;
             });
 
             // --- Exams today ---
@@ -558,7 +564,7 @@ export const manageDailySummaryNotification = async (timeStr: string, existingId
             const allExams: any[] = examsStr ? JSON.parse(examsStr) : [];
             const examsToday = allExams.filter((e: any) => {
                 if (!e.date) return false;
-                return e.date.startsWith(todayStr);
+                return getLocalDateKey(new Date(e.date)) === todayStr;
             });
 
             // Build body parts

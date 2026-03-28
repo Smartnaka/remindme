@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
@@ -42,6 +42,32 @@ const ensureNotificationChannel = async () => {
       sound: 'default', // Ensure sound is enabled
       enableVibrate: true,
     });
+  }
+};
+
+const canUseExactAlarmScheduling = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !Notifications) return false;
+
+  const androidVersion =
+    typeof Platform.Version === 'number'
+      ? Platform.Version
+      : parseInt(String(Platform.Version), 10);
+
+  // On Android < 12, exact alarm special access is not required.
+  if (androidVersion < 31) return true;
+
+  try {
+    const permissions = await Notifications.getPermissionsAsync();
+    const canScheduleExactNotifications =
+      'canScheduleExactNotifications' in permissions
+        ? Boolean((permissions as any).canScheduleExactNotifications)
+        : false;
+
+    log('[Notifications] canUseExactAlarmScheduling:', canScheduleExactNotifications);
+    return canScheduleExactNotifications;
+  } catch (error) {
+    log('[Notifications] Failed to read exact alarm capability:', error);
+    return false;
   }
 };
 
@@ -705,6 +731,71 @@ export const scheduleAssignmentNotification = async (assignment: Assignment, cou
      console.error('[Notifications] Error scheduling assignment notification:', error);
      return null;
    }
+};
+
+
+export const sendTestNotification = async (minutesAhead: number = 1): Promise<void> => {
+  if (Platform.OS === 'web' || !Notifications) {
+    log('[Test] Notifications not available on web');
+    return;
+  }
+
+  try {
+    log('[Test] Requesting notification permissions...');
+    const hasPermission = await requestNotificationPermissions();
+
+    if (!hasPermission) {
+      log('[Test] ❌ Permission DENIED');
+      Alert.alert(
+        "Permission Required",
+        "Please enable notifications in your device settings to receive reminders.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    log('[Test] ✅ Permission granted, scheduling test notification...');
+    await ensureNotificationChannel();
+
+    const safeMinutesAhead = Math.max(1, minutesAhead);
+    const triggerDate = new Date(Date.now() + safeMinutesAhead * 60 * 1000);
+    triggerDate.setSeconds(0, 0);
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "🔔 Test Notification",
+        body: `Scheduled for ${triggerDate.toLocaleTimeString()} (local device time).`,
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+        data: {
+          test: true,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          scheduledAtIso: triggerDate.toISOString(),
+        },
+      },
+      trigger: {
+        channelId: 'lecture-reminders',
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerDate,
+      },
+    });
+
+    log(
+      `[Test] ✅ Test notification scheduled for ${safeMinutesAhead} minute(s) ahead at ${triggerDate.toISOString()} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`
+    );
+    Alert.alert(
+      "Test Scheduled",
+      `You should receive a notification around ${triggerDate.toLocaleTimeString()}.\n\nNow verify in all states:\n• Foreground\n• Background\n• App closed`,
+      [{ text: "OK" }]
+    );
+  } catch (error) {
+    console.error('[Test] ❌ Test notification failed:', error);
+    Alert.alert(
+      "Test Failed",
+      `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      [{ text: "OK" }]
+    );
+  }
 };
 
 const getDayNumber = (dayOfWeek: string): number => {

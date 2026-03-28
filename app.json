@@ -93,6 +93,11 @@
       },
       "eas": {
         "projectId": "01b5e388-b3d0-4b99-adf0-d12e41ac2c1a"
+      },
+      "sentry": {
+        "dsn": "https://1aa5a21626fdb4d87540b29d07331284@o4511119194521600.ingest.de.sentry.io/4511120867852368",
+        "org": "smart-tech-ph",
+        "project": "remind-me"
       }
     },
     "runtimeVersion": {

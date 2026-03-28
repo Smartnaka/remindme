@@ -106,30 +106,6 @@ A modern, intuitive mobile application built with **React Native** and **Expo** 
 - `npm run ios`: specific alias for `expo start --ios`.
 - `npm run web`: specific alias for `expo start --web`.
 
-
-## 🧭 Sentry Configuration
-
-This project is configured to use the Sentry project **`remind-me`** in the **`smart-tech-ph`** organization.
-
-### Automatic setup (recommended)
-
-Run the Sentry wizard from the project root:
-
-```bash
-npx @sentry/wizard@latest -i reactNative --saas --org smart-tech-ph --project remind-me
-```
-
-### DSN
-
-If your app already has Sentry integration and only needs this project DSN:
-
-```text
-https://1aa5a21626fdb4d87540b29d07331284@o4511119194521600.ingest.de.sentry.io/4511120867852368
-```
-
-Sentry project metadata is recorded in `app.json` under `expo.extra.sentry`, and org/project defaults are in `sentry.properties`. The app initializes Sentry from `utils/sentry.ts` and wraps the root layout for automatic error capture.
-The Sentry Expo plugin and project metadata are also recorded in `app.json`, and org/project defaults are in `sentry.properties`.
-
 ## 🧪 Troubleshooting
 
 ### 1. `ERESOLVE` or Peer Dependency Error

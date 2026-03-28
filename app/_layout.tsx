@@ -21,6 +21,10 @@ import { StudyTimerProvider } from "@/contexts/StudyTimerContext";
 import { AlertProvider } from "@/contexts/AlertContext";
 import CustomAlert from "@/components/CustomAlert";
 import OnboardingCarousel from "@/components/OnboardingCarousel";
+import { initSentry, Sentry } from "@/utils/sentry";
+
+SplashScreen.preventAutoHideAsync();
+initSentry();
 
 Sentry.init({
   dsn: Constants.expoConfig?.extra?.sentry?.dsn as string,
@@ -120,6 +124,7 @@ function RootLayoutNav() {
   );
 }
 
+function RootLayout() {
 export default Sentry.wrap(function RootLayout() {
   // Only use fonts if package is available
   const [fontsLoaded] = fontLoader ? fontLoader() : [true]; // If fonts not available, consider them "loaded" (use system fonts)
@@ -194,6 +199,7 @@ export default Sentry.wrap(function RootLayout() {
       </View>
     </ErrorBoundary>
   );
+}
 });
 
 const styles = StyleSheet.create({
@@ -204,3 +210,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 });
+
+
+export default Sentry.wrap(RootLayout);

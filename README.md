@@ -127,6 +127,7 @@ If your app already has Sentry integration and only needs this project DSN:
 https://1aa5a21626fdb4d87540b29d07331284@o4511119194521600.ingest.de.sentry.io/4511120867852368
 ```
 
+Sentry project metadata is recorded in `app.json` under `expo.extra.sentry`, and org/project defaults are in `sentry.properties`. The app initializes Sentry from `utils/sentry.ts` and wraps the root layout for automatic error capture.
 The Sentry Expo plugin and project metadata are also recorded in `app.json`, and org/project defaults are in `sentry.properties`.
 
 ## 🧪 Troubleshooting

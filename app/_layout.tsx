@@ -19,8 +19,10 @@ import { StudyTimerProvider } from "@/contexts/StudyTimerContext";
 import { AlertProvider } from "@/contexts/AlertContext";
 import CustomAlert from "@/components/CustomAlert";
 import OnboardingCarousel from "@/components/OnboardingCarousel";
+import { initSentry, Sentry } from "@/utils/sentry";
 
 SplashScreen.preventAutoHideAsync();
+initSentry();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -110,7 +112,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   // Only use fonts if package is available
   const [fontsLoaded] = fontLoader ? fontLoader() : [true]; // If fonts not available, consider them "loaded" (use system fonts)
 
@@ -194,3 +196,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 });
+
+
+export default Sentry.wrap(RootLayout);

@@ -71,6 +71,32 @@ const canUseExactAlarmScheduling = async (): Promise<boolean> => {
   }
 };
 
+const canUseExactAlarmScheduling = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !Notifications) return false;
+
+  const androidVersion =
+    typeof Platform.Version === 'number'
+      ? Platform.Version
+      : parseInt(String(Platform.Version), 10);
+
+  // On Android < 12, exact alarm special access is not required.
+  if (androidVersion < 31) return true;
+
+  try {
+    const permissions = await Notifications.getPermissionsAsync();
+    const canScheduleExactNotifications =
+      'canScheduleExactNotifications' in permissions
+        ? Boolean((permissions as any).canScheduleExactNotifications)
+        : false;
+
+    log('[Notifications] canUseExactAlarmScheduling:', canScheduleExactNotifications);
+    return canScheduleExactNotifications;
+  } catch (error) {
+    log('[Notifications] Failed to read exact alarm capability:', error);
+    return false;
+  }
+};
+
 const registerNotificationCategories = async () => {
   if (Platform.OS === 'web' || !Notifications) return;
 

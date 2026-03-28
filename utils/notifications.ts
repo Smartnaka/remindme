@@ -1,4 +1,4 @@
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
@@ -45,6 +45,32 @@ const ensureNotificationChannel = async () => {
   }
 };
 
+const canUseExactAlarmScheduling = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !Notifications) return false;
+
+  const androidVersion =
+    typeof Platform.Version === 'number'
+      ? Platform.Version
+      : parseInt(String(Platform.Version), 10);
+
+  // On Android < 12, exact alarm special access is not required.
+  if (androidVersion < 31) return true;
+
+  try {
+    const permissions = await Notifications.getPermissionsAsync();
+    const canScheduleExactNotifications =
+      'canScheduleExactNotifications' in permissions
+        ? Boolean((permissions as any).canScheduleExactNotifications)
+        : false;
+
+    log('[Notifications] canUseExactAlarmScheduling:', canScheduleExactNotifications);
+    return canScheduleExactNotifications;
+  } catch (error) {
+    log('[Notifications] Failed to read exact alarm capability:', error);
+    return false;
+  }
+};
+
 const registerNotificationCategories = async () => {
   if (Platform.OS === 'web' || !Notifications) return;
 
@@ -84,7 +110,13 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
     let finalStatus = existingStatus;
 
     if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+      });
       finalStatus = status;
     }
 
@@ -95,11 +127,7 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
       const androidVersion = typeof Platform.Version === 'number' ? Platform.Version : parseInt(String(Platform.Version), 10);
       if (androidVersion >= 31) {
         try {
-          const perms = await Notifications.getPermissionsAsync();
-          const canScheduleExactNotifications =
-            'canScheduleExactNotifications' in perms
-              ? Boolean((perms as any).canScheduleExactNotifications)
-              : true;
+          const canScheduleExactNotifications = await canUseExactAlarmScheduling();
           log('[Notifications] Android 12+ canScheduleExactNotifications:', canScheduleExactNotifications);
 
           if (!canScheduleExactNotifications) {
@@ -323,6 +351,13 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
       log('[Alarms] Permission not granted');
+      return [];
+    }
+    const canUseExactAlarms = await canUseExactAlarmScheduling();
+    if (!canUseExactAlarms) {
+      // Returning [] is intentional: LectureContext falls back to weekly repeating reminders,
+      // which are more reliable than delayed inexact date alarms in preview/dev scenarios.
+      log('[Alarms] Exact alarms unavailable - forcing fallback to weekly scheduling');
       return [];
     }
 
@@ -670,60 +705,6 @@ export const scheduleAssignmentNotification = async (assignment: Assignment, cou
      console.error('[Notifications] Error scheduling assignment notification:', error);
      return null;
    }
-};
-
-
-export const sendTestNotification = async (): Promise<void> => {
-  if (Platform.OS === 'web' || !Notifications) {
-    log('[Test] Notifications not available on web');
-    return;
-  }
-
-  try {
-    log('[Test] Requesting notification permissions...');
-    const hasPermission = await requestNotificationPermissions();
-
-    if (!hasPermission) {
-      log('[Test] ❌ Permission DENIED');
-      Alert.alert(
-        "Permission Required",
-        "Please enable notifications in your device settings to receive reminders.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-
-    log('[Test] ✅ Permission granted, scheduling test notification...');
-    await ensureNotificationChannel();
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "🔔 Test Notification",
-        body: "This notification will work even when the app is closed!",
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
-        data: { test: true },
-      },
-      trigger: { 
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 5 
-      },
-    });
-
-    log('[Test] ✅ Test notification scheduled for 5 seconds from now');
-    Alert.alert(
-      "Test Scheduled",
-      "You should receive a test notification in 5 seconds. You can close the app and it will still appear!",
-      [{ text: "OK" }]
-    );
-  } catch (error) {
-    console.error('[Test] ❌ Test notification failed:', error);
-    Alert.alert(
-      "Test Failed",
-      `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      [{ text: "OK" }]
-    );
-  }
 };
 
 const getDayNumber = (dayOfWeek: string): number => {

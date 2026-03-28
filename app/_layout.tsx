@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/react-native";
+import Constants from "expo-constants";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -23,6 +25,16 @@ import { initSentry, Sentry } from "@/utils/sentry";
 
 SplashScreen.preventAutoHideAsync();
 initSentry();
+
+Sentry.init({
+  dsn: Constants.expoConfig?.extra?.sentry?.dsn as string,
+  debug: false,
+  enableAutoSessionTracking: true,
+  sessionTrackingIntervalMillis: 10000,
+  tracesSampleRate: __DEV__ ? 1.0 : 0.2,
+});
+
+SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,6 +125,7 @@ function RootLayoutNav() {
 }
 
 function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   // Only use fonts if package is available
   const [fontsLoaded] = fontLoader ? fontLoader() : [true]; // If fonts not available, consider them "loaded" (use system fonts)
 
@@ -187,6 +200,7 @@ function RootLayout() {
     </ErrorBoundary>
   );
 }
+});
 
 const styles = StyleSheet.create({
   loadingContainer: {

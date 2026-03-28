@@ -64,6 +64,11 @@ export default function AddAssignmentScreen() {
     };
 
     const handleSave = async () => {
+        if (!course) {
+            showAlert("No Course Selected", "Please select a valid lecture before creating an assignment.");
+            return;
+        }
+
         const titleValidation = validateAssignmentTitle(title);
         if (!titleValidation.valid) {
             showAlert("Validation Error", titleValidation.error!);
@@ -119,8 +124,8 @@ export default function AddAssignmentScreen() {
                 <Text style={styles.headerTitle}>New Assignment</Text>
                 <TouchableOpacity 
                     onPress={handleSave} 
-                    style={[styles.saveButtonFilled, isSaving && styles.saveButtonDisabled]}
-                    disabled={isSaving}
+                    style={[styles.saveButtonFilled, (isSaving || !course) && styles.saveButtonDisabled]}
+                    disabled={isSaving || !course}
                 >
                     <Text style={styles.saveButtonTextFilled}>{isSaving ? "Saving..." : "Save"}</Text>
                 </TouchableOpacity>

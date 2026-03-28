@@ -4,6 +4,7 @@ import { Exam } from '@/types/exam';
 import { useSettings } from './SettingsContext';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { requestNotificationPermissions } from '@/utils/notifications';
 
 const EXAM_STORAGE_KEY = '@exams';
 
@@ -59,6 +60,26 @@ export const ExamProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Schedule notification based on examOffset - only on native platforms
     if (Platform.OS !== 'web') {
+      const hasPermission = await requestNotificationPermissions();
+      if (!hasPermission) {
+        const updatedExams = [...exams, newExam].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        await saveExams(updatedExams);
+        return;
+      }
+
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('lecture-reminders', {
+          name: 'Lecture Reminders',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#00C896',
+          sound: 'default',
+          enableVibrate: true,
+        });
+      }
+
       const trigger = new Date(newExam.date);
       trigger.setMinutes(trigger.getMinutes() - settings.examOffset);
 

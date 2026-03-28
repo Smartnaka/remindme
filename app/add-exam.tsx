@@ -54,6 +54,15 @@ export default function AddExamScreen() {
     // Status Bar Logic
     const statusBarStyle = colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content';
 
+    const toLocalDateTimeInputValue = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     const handleSave = async () => {
         const courseNameValidation = validateCourseName(courseName);
         if (!courseNameValidation.valid) {
@@ -73,6 +82,7 @@ export default function AddExamScreen() {
             return;
         }
 
+        setIsSaving(true);
         try {
             await addExam({
                 courseName: courseName.trim(),
@@ -162,7 +172,7 @@ export default function AddExamScreen() {
                         <View style={styles.datePickerCard}>
                             <input
                                 type="datetime-local"
-                                value={date.toISOString().slice(0, 16)}
+                                value={toLocalDateTimeInputValue(date)}
                                 onChange={(e: any) => {
                                     const newDate = new Date(e.target.value);
                                     if (!isNaN(newDate.getTime())) {

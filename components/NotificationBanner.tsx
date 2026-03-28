@@ -8,14 +8,18 @@ import { useRouter } from 'expo-router';
 
 export default function NotificationBanner() {
   const todayLectures = useTodayLectures();
-  const { settings } = useSettings();
   const { colors } = useSettings();
   const router = useRouter();
 
   const [activeAlert, setActiveAlert] = useState<{ id: string; title: string; time: string; location?: string } | null>(null);
   const [snoozedAlerts, setSnoozedAlerts] = useState<Map<string, number>>(new Map());
   const translateY = useRef(new Animated.Value(-100)).current;
-  const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snoozedAlertsRef = useRef(snoozedAlerts);
+
+  useEffect(() => {
+    snoozedAlertsRef.current = snoozedAlerts;
+  }, [snoozedAlerts]);
 
   useEffect(() => {
     const checkUpcomingLectures = () => {
@@ -34,7 +38,7 @@ export default function NotificationBanner() {
 
       // Find a lecture starting soon (within next 15 mins) that isn't snoozed
       const upcoming = todayLectures.find(lecture => {
-        if (snoozedAlerts.has(lecture.id)) return false;
+        if (snoozedAlertsRef.current.has(lecture.id)) return false;
 
         const [hours, minutes] = lecture.startTime.split(':').map(Number);
         const lectureMinutes = hours * 60 + minutes;
@@ -60,7 +64,7 @@ export default function NotificationBanner() {
             dismissTimerRef.current = setTimeout(() => {
               hideBanner();
               dismissTimerRef.current = null;
-            }, 5000) as any;
+            }, 5000);
 
             return {
               id: upcoming.id,

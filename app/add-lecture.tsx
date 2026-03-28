@@ -234,6 +234,11 @@ export default function AddLectureScreen() {
       return;
     }
 
+    if (endDate.getTime() < startDate.getTime()) {
+      showAlert("Validation Error", "Last class date must be on or after the first class date.");
+      return;
+    }
+
     setIsSaving(true);
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

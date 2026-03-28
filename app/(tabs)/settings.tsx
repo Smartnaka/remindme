@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Modal, 
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useLectures } from '@/contexts/LectureContext';
 import { useExams } from '@/contexts/ExamContext';
@@ -22,6 +22,7 @@ export default function SettingsScreen() {
     const { lectures, clearLectures, clearAssignments } = useLectures();
     const { clearExams } = useExams();
     const { showAlert } = useCustomAlert();
+    const { bottom: bottomInset } = useSafeAreaInsets();
     
     const [manageDataModalVisible, setManageDataModalVisible] = useState(false);
     const [showSummaryPicker, setShowSummaryPicker] = useState(false);
@@ -32,7 +33,7 @@ export default function SettingsScreen() {
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickerType, setPickerType] = useState<'lecture' | 'assignment' | 'exam' | null>(null);
 
-    const styles = useMemo(() => createStyles(colors), [colors]);
+    const styles = useMemo(() => createStyles(colors, bottomInset), [colors, bottomInset]);
 
     const handleOffsetChange = (type: 'lecture' | 'assignment' | 'exam', minutes: number) => {
         if (type === 'lecture') updateSettings({ lectureOffset: minutes });
@@ -394,7 +395,7 @@ export default function SettingsScreen() {
     );
 }
 
-const createStyles = (colors: ColorTheme) => StyleSheet.create({
+const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
@@ -509,7 +510,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         borderTopRightRadius: 20,
         paddingHorizontal: 20,
         paddingTop: 24,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+        paddingBottom: Math.max(bottomInset, Platform.OS === 'ios' ? 40 : 24),
     },
     modalTitle: {
         fontSize: 18,

@@ -1,4 +1,4 @@
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
@@ -83,18 +83,23 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
 
     log('[Notifications] Permission status:', finalStatus);
 
-    // Android 12+ requires explicit permission for exact alarms
+    // Android 12+ (API 31+) requires explicit permission for exact alarms
     if (Platform.OS === 'android') {
       const androidVersion = typeof Platform.Version === 'number' ? Platform.Version : parseInt(String(Platform.Version), 10);
       if (androidVersion >= 31) {
         try {
-          // Check if we can schedule exact alarms
-          const canScheduleExactAlarms = await Notifications.getPermissionsAsync();
-          log('[Notifications] Android 12+ exact alarm check:', canScheduleExactAlarms);
+          const { canScheduleExactNotifications } = await Notifications.getPermissionsAsync();
+          log('[Notifications] Android 12+ canScheduleExactNotifications:', canScheduleExactNotifications);
 
-          // On Android 12+, guide user to enable exact alarms in settings
-          if (finalStatus === 'granted') {
-            log('[Notifications] ⚠️ IMPORTANT: On Android 12+, you must manually enable "Alarms & Reminders" permission in app settings for notifications to work when the app is closed.');
+          if (!canScheduleExactNotifications) {
+            Alert.alert(
+              'Enable Exact Alarms',
+              "For reliable reminders when the app is closed, please enable 'Alarms & Reminders' under App Permissions in your device settings.",
+              [
+                { text: 'Later', style: 'cancel' },
+                { text: 'Open Settings', onPress: () => Linking.openSettings() },
+              ]
+            );
           }
         } catch (error) {
           log('[Notifications] Could not check exact alarm permission:', error);
@@ -695,14 +700,14 @@ export const sendTestNotification = async (): Promise<void> => {
       },
       trigger: { 
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 2 
+        seconds: 5 
       },
     });
 
-    log('[Test] ✅ Test notification scheduled for 2 seconds from now');
+    log('[Test] ✅ Test notification scheduled for 5 seconds from now');
     Alert.alert(
       "Test Scheduled",
-      "You should receive a test notification in 2 seconds. You can close the app and it will still appear!",
+      "You should receive a test notification in 5 seconds. You can close the app and it will still appear!",
       [{ text: "OK" }]
     );
   } catch (error) {

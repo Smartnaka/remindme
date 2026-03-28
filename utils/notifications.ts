@@ -735,25 +735,23 @@ export const sendTestNotification = async (minutesAhead: number = 1): Promise<vo
     const triggerDate = new Date(Date.now() + safeMinutesAhead * 60 * 1000);
     triggerDate.setSeconds(0, 0);
 
-    // NOTE:
-    // On some Android devices/ROMs (seen in preview builds), passing a DATE trigger object
-    // with explicit `type/date/channelId` can throw:
-    // "Failed to schedule the notification. org.json.JSONObject".
-    // Using a plain Date trigger is the most compatible path across Expo SDK/device variants.
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "🔔 Test Notification",
         body: `Scheduled for ${triggerDate.toLocaleTimeString()} (local device time).`,
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
-        channelId: 'lecture-reminders',
         data: {
           test: true,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           scheduledAtIso: triggerDate.toISOString(),
         },
       },
-      trigger: triggerDate,
+      trigger: {
+        channelId: 'lecture-reminders',
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerDate,
+      },
     });
 
     log(

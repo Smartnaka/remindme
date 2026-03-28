@@ -44,4 +44,4 @@ jobs:
 
       - name: Publish update
 
-        run: eas update --branch preview --channel preview --message "OTA update" --non-interactive
+        run: eas update --branch preview --message "OTA update" --non-interactive

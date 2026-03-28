@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSettings } from '@/contexts/SettingsContext';
+import * as Sentry from '@sentry/react-native';
 
 interface Props {
   children: ReactNode;
@@ -43,11 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // TODO: Send error to error tracking service (Sentry, Bugsnag, etc.)
-    // Example:
-    // if (__DEV__ === false) {
-    //   Sentry.captureException(error, { extra: errorInfo });
-    // }
+    Sentry.captureException(error, { extra: errorInfo });
   }
 
   handleReset = () => {

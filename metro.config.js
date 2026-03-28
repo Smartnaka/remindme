@@ -1,6 +1,5 @@
-const fs = require("fs");
-const path = require("path");
 const { getDefaultConfig } = require("expo/metro-config");
+const { withSentryConfig } = require("@sentry/react-native/metro");
 
 const sentryMetroPath = path.join(
   __dirname,
@@ -10,9 +9,4 @@ const sentryMetroPath = path.join(
   "metro.js"
 );
 
-if (fs.existsSync(sentryMetroPath)) {
-  const { getSentryExpoConfig } = require("@sentry/react-native/metro");
-  module.exports = getSentryExpoConfig(__dirname);
-} else {
-  module.exports = getDefaultConfig(__dirname);
-}
+module.exports = withSentryConfig(config);

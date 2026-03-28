@@ -1,12 +1,6 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withSentryConfig } = require("@sentry/react-native/metro");
 
-const sentryMetroPath = path.join(
-  __dirname,
-  "node_modules",
-  "@sentry",
-  "react-native",
-  "metro.js"
-);
+const config = getDefaultConfig(__dirname);
 
 module.exports = withSentryConfig(config);

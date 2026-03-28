@@ -1,5 +1,26 @@
 
-import { getDateForNextOccurrence } from '../../utils/dateTime';
+import { getDateForNextOccurrence, parseTime } from '../../utils/dateTime';
+
+describe('parseTime', () => {
+    it('parses a valid HH:MM string', () => {
+        expect(parseTime('09:30')).toEqual({ hours: 9, minutes: 30 });
+        expect(parseTime('00:00')).toEqual({ hours: 0, minutes: 0 });
+        expect(parseTime('23:59')).toEqual({ hours: 23, minutes: 59 });
+    });
+
+    it('returns zeros for an empty string', () => {
+        expect(parseTime('')).toEqual({ hours: 0, minutes: 0 });
+    });
+
+    it('returns zeros for a malformed string with no colon', () => {
+        expect(parseTime('1230')).toEqual({ hours: 0, minutes: 0 });
+    });
+
+    it('returns zeros for a fully invalid string', () => {
+        expect(parseTime('invalid')).toEqual({ hours: 0, minutes: 0 });
+    });
+});
+
 
 describe('getDateForNextOccurrence', () => {
     // Mock Date to a fixed time: Wednesday, Jan 1, 2025, 10:00 AM

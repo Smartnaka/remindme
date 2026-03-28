@@ -21,8 +21,16 @@ export const getCurrentDayOfWeek = (): DayOfWeek => {
 };
 
 export const parseTime = (timeString: string): TimeSlot => {
-  const [hours, minutes] = timeString.split(':').map(Number);
-  return { hours, minutes };
+  const parts = timeString?.split(':');
+  if (!parts || parts.length < 2) {
+    return { hours: 0, minutes: 0 };
+  }
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  return {
+    hours: isNaN(hours) ? 0 : hours,
+    minutes: isNaN(minutes) ? 0 : minutes,
+  };
 };
 
 export const formatTime = (timeSlot: TimeSlot): string => {

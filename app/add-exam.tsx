@@ -9,6 +9,7 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import { useCustomAlert } from '@/contexts/AlertContext';
+import { validateCourseName, validateLocation, validateNotes } from '@/utils/validation';
 
 export default function AddExamScreen() {
     const router = useRouter();
@@ -54,17 +55,30 @@ export default function AddExamScreen() {
     const statusBarStyle = colors.cardBackground === '#F8F9FA' ? 'dark-content' : 'light-content';
 
     const handleSave = async () => {
-        if (!courseName.trim()) {
-            showAlert('Validation Error', 'Please enter a course name');
+        const courseNameValidation = validateCourseName(courseName);
+        if (!courseNameValidation.valid) {
+            showAlert('Validation Error', courseNameValidation.error!);
+            return;
+        }
+
+        const locationValidation = validateLocation(location);
+        if (!locationValidation.valid) {
+            showAlert('Validation Error', locationValidation.error!);
+            return;
+        }
+
+        const notesValidation = validateNotes(notes);
+        if (!notesValidation.valid) {
+            showAlert('Validation Error', notesValidation.error!);
             return;
         }
 
         try {
             await addExam({
-                courseName,
+                courseName: courseName.trim(),
                 date: date.toISOString(),
-                location,
-                notes
+                location: location.trim() || undefined,
+                notes: notes.trim() || undefined,
             });
             isSubmitted.current = true;
             router.back();

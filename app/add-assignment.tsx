@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import { useCustomAlert } from '@/contexts/AlertContext';
+import { validateAssignmentTitle, validateDescription } from '@/utils/validation';
 
 export default function AddAssignmentScreen() {
     const router = useRouter();
@@ -63,8 +64,15 @@ export default function AddAssignmentScreen() {
     };
 
     const handleSave = async () => {
-        if (!title.trim()) {
-            showAlert("Validation Error", "Please enter an assignment title.");
+        const titleValidation = validateAssignmentTitle(title);
+        if (!titleValidation.valid) {
+            showAlert("Validation Error", titleValidation.error!);
+            return;
+        }
+
+        const descValidation = validateDescription(description);
+        if (!descValidation.valid) {
+            showAlert("Validation Error", descValidation.error!);
             return;
         }
 

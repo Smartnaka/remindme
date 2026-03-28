@@ -57,45 +57,66 @@ export const ExamProvider = ({ children }: { children: React.ReactNode }) => {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     };
 
-    // Sort implementation
-    const updatedExams = [...exams, newExam].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-
-    await saveExams(updatedExams);
-
     // Schedule notification based on examOffset - only on native platforms
     if (Platform.OS !== 'web') {
       const trigger = new Date(newExam.date);
       trigger.setMinutes(trigger.getMinutes() - settings.examOffset);
 
       if (trigger > new Date()) {
-        const notificationId = await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Upcoming Exam! 📝',
-            body: `You have an exam for ${newExam.courseName} in ${settings.examOffset >= 1440 ? Math.floor(settings.examOffset / 1440) + ' days' : settings.examOffset + ' minutes'}.`,
-            data: { examId: newExam.id },
-          },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
-            date: trigger,
-            channelId: 'lecture-reminders',
-          },
-        });
-        
-        // Save the notification ID (we need to add this property if it doesn't exist, but we can dynamically add it for now or just trust we'll clean them all on delete via standard clearing if we enhance Exam type)
+        try {
+          const notificationId = await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'Upcoming Exam! 📝',
+              body: `You have an exam for ${newExam.courseName} in ${settings.examOffset >= 1440 ? Math.floor(settings.examOffset / 1440) + ' days' : settings.examOffset + ' minutes'}.`,
+              data: { examId: newExam.id },
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DATE,
+              date: trigger,
+              channelId: 'lecture-reminders',
+            },
+          });
+          // Persist the notification ID so it can be cancelled on delete
+          newExam.notificationId = notificationId;
+        } catch (error) {
+          console.error('Failed to schedule exam notification', error);
+        }
       }
     }
+
+    // Sort implementation
+    const updatedExams = [...exams, newExam].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    await saveExams(updatedExams);
   };
 
   const deleteExam = async (id: string) => {
+    const exam = exams.find(e => e.id === id);
+    if (exam?.notificationId && Platform.OS !== 'web') {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(exam.notificationId);
+      } catch (error) {
+        console.error('Failed to cancel exam notification', error);
+      }
+    }
     const updatedExams = exams.filter(e => e.id !== id);
     await saveExams(updatedExams);
   };
 
   const clearExams = async () => {
     try {
-      // Clear from storage and state
+      // Cancel all scheduled exam notifications
+      if (Platform.OS !== 'web' && exams.length > 0) {
+        await Promise.all(
+          exams
+            .filter(e => e.notificationId)
+            .map(e => Notifications.cancelScheduledNotificationAsync(e.notificationId!).catch(err => {
+              console.error('Failed to cancel exam notification', err);
+            }))
+        );
+      }
       await AsyncStorage.removeItem(EXAM_STORAGE_KEY);
       setExams([]);
     } catch (error) {

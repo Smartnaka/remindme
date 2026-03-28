@@ -548,7 +548,7 @@ export const manageDailySummaryNotification = async (timeStr: string, existingId
             const allAssignments: any[] = assignmentsStr ? JSON.parse(assignmentsStr) : [];
             const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
             const dueToday = allAssignments.filter((a: any) => {
-                if (a.completed) return false;
+                if (a.isCompleted) return false;
                 if (!a.dueDate) return false;
                 return a.dueDate.startsWith(todayStr);
             });

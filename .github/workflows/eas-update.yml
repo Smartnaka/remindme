@@ -16,10 +16,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Set up Expo and run EAS Update
         uses: expo/expo-github-action@v8
@@ -28,4 +24,3 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish update
-        run: eas update --auto --non-interactive

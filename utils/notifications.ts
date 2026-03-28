@@ -45,6 +45,32 @@ const ensureNotificationChannel = async () => {
   }
 };
 
+const canUseExactAlarmScheduling = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !Notifications) return false;
+
+  const androidVersion =
+    typeof Platform.Version === 'number'
+      ? Platform.Version
+      : parseInt(String(Platform.Version), 10);
+
+  // On Android < 12, exact alarm special access is not required.
+  if (androidVersion < 31) return true;
+
+  try {
+    const permissions = await Notifications.getPermissionsAsync();
+    const canScheduleExactNotifications =
+      'canScheduleExactNotifications' in permissions
+        ? Boolean((permissions as any).canScheduleExactNotifications)
+        : false;
+
+    log('[Notifications] canUseExactAlarmScheduling:', canScheduleExactNotifications);
+    return canScheduleExactNotifications;
+  } catch (error) {
+    log('[Notifications] Failed to read exact alarm capability:', error);
+    return false;
+  }
+};
+
 const registerNotificationCategories = async () => {
   if (Platform.OS === 'web' || !Notifications) return;
 
@@ -84,7 +110,13 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
     let finalStatus = existingStatus;
 
     if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+      });
       finalStatus = status;
     }
 
@@ -95,11 +127,7 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
       const androidVersion = typeof Platform.Version === 'number' ? Platform.Version : parseInt(String(Platform.Version), 10);
       if (androidVersion >= 31) {
         try {
-          const perms = await Notifications.getPermissionsAsync();
-          const canScheduleExactNotifications =
-            'canScheduleExactNotifications' in perms
-              ? Boolean((perms as any).canScheduleExactNotifications)
-              : true;
+          const canScheduleExactNotifications = await canUseExactAlarmScheduling();
           log('[Notifications] Android 12+ canScheduleExactNotifications:', canScheduleExactNotifications);
 
           if (!canScheduleExactNotifications) {
@@ -323,6 +351,13 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
       log('[Alarms] Permission not granted');
+      return [];
+    }
+    const canUseExactAlarms = await canUseExactAlarmScheduling();
+    if (!canUseExactAlarms) {
+      // Returning [] is intentional: LectureContext falls back to weekly repeating reminders,
+      // which are more reliable than delayed inexact date alarms in preview/dev scenarios.
+      log('[Alarms] Exact alarms unavailable - forcing fallback to weekly scheduling');
       return [];
     }
 
@@ -673,7 +708,7 @@ export const scheduleAssignmentNotification = async (assignment: Assignment, cou
 };
 
 
-export const sendTestNotification = async (): Promise<void> => {
+export const sendTestNotification = async (minutesAhead: number = 1): Promise<void> => {
   if (Platform.OS === 'web' || !Notifications) {
     log('[Test] Notifications not available on web');
     return;
@@ -696,24 +731,37 @@ export const sendTestNotification = async (): Promise<void> => {
     log('[Test] ✅ Permission granted, scheduling test notification...');
     await ensureNotificationChannel();
 
+    const safeMinutesAhead = Math.max(1, minutesAhead);
+    const triggerDate = new Date(Date.now() + safeMinutesAhead * 60 * 1000);
+    triggerDate.setSeconds(0, 0);
+
+    // NOTE:
+    // On some Android devices/ROMs (seen in preview builds), passing a DATE trigger object
+    // with explicit `type/date/channelId` can throw:
+    // "Failed to schedule the notification. org.json.JSONObject".
+    // Using a plain Date trigger is the most compatible path across Expo SDK/device variants.
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "🔔 Test Notification",
-        body: "This notification will work even when the app is closed!",
+        body: `Scheduled for ${triggerDate.toLocaleTimeString()} (local device time).`,
         sound: true,
         priority: Notifications.AndroidNotificationPriority.HIGH,
-        data: { test: true },
+        channelId: 'lecture-reminders',
+        data: {
+          test: true,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          scheduledAtIso: triggerDate.toISOString(),
+        },
       },
-      trigger: { 
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 5 
-      },
+      trigger: triggerDate,
     });
 
-    log('[Test] ✅ Test notification scheduled for 5 seconds from now');
+    log(
+      `[Test] ✅ Test notification scheduled for ${safeMinutesAhead} minute(s) ahead at ${triggerDate.toISOString()} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`
+    );
     Alert.alert(
       "Test Scheduled",
-      "You should receive a test notification in 5 seconds. You can close the app and it will still appear!",
+      `You should receive a notification around ${triggerDate.toLocaleTimeString()}.\n\nNow verify in all states:\n• Foreground\n• Background\n• App closed`,
       [{ text: "OK" }]
     );
   } catch (error) {

@@ -9,9 +9,11 @@ jest.mock('expo-notifications', () => ({
     scheduleNotificationAsync: jest.fn(() => Promise.resolve('test-notification-id')),
     setNotificationHandler: jest.fn(),
     setNotificationCategoryAsync: jest.fn(),
+    setNotificationChannelAsync: jest.fn(),
     cancelScheduledNotificationAsync: jest.fn(),
-    getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+    getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted', canScheduleExactNotifications: true })),
     requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+    AndroidImportance: { MAX: 'max' },
     AndroidNotificationPriority: { HIGH: 'high' },
     SchedulableTriggerInputTypes: { WEEKLY: 'weekly', DATE: 'date', DAILY: 'daily' }
 }));
@@ -40,6 +42,10 @@ describe('Notifications Logic', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({
+          status: 'granted',
+          canScheduleExactNotifications: true,
+        });
     });
 
     it('scheduleWeeklyNotification schedules with correct parameters', async () => {
@@ -122,6 +128,47 @@ describe('Notifications Logic', () => {
             const ids = await scheduleBiWeeklyNotifications(weeklyLecture);
             expect(ids).toHaveLength(0);
             expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
-        });
       });
+
+      it('falls back when exact alarms are unavailable on Android 12+', async () => {
+        jest.resetModules();
+        jest.doMock('react-native', () => ({
+          Platform: { OS: 'android', Version: 34 },
+          Alert: { alert: jest.fn() },
+        }));
+
+        jest.doMock('expo-notifications', () => ({
+          scheduleNotificationAsync: jest.fn(() => Promise.resolve('test-notification-id')),
+          setNotificationHandler: jest.fn(),
+          setNotificationCategoryAsync: jest.fn(),
+          setNotificationChannelAsync: jest.fn(),
+          cancelScheduledNotificationAsync: jest.fn(),
+          getPermissionsAsync: jest.fn(() =>
+            Promise.resolve({ status: 'granted', canScheduleExactNotifications: false })
+          ),
+          requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+          AndroidImportance: { MAX: 'max' },
+          AndroidNotificationPriority: { HIGH: 'high' },
+          SchedulableTriggerInputTypes: { WEEKLY: 'weekly', DATE: 'date', DAILY: 'daily' }
+        }));
+
+        let assertionPromise: Promise<void> | undefined;
+        jest.isolateModules(() => {
+          const notifications = require('../../utils/notifications');
+          const expoNotifications = require('expo-notifications');
+
+          const androidLecture: Lecture = {
+            ...mockLecture,
+            dayOfWeek: 'Monday',
+            startTime: '10:00',
+          };
+
+          assertionPromise = notifications.scheduleExactAlarmNotifications(androidLecture, 15).then((ids: string[]) => {
+            expect(ids).toHaveLength(0);
+            expect(expoNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+          });
+        });
+        await assertionPromise;
+      });
+    });
 });

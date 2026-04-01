@@ -13,7 +13,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import Constants from 'expo-constants';
 import { useCustomAlert } from '@/contexts/AlertContext';
-import { sendTestNotification } from '@/utils/notifications';
 
 const NOTIFICATION_OPTIONS = [5, 10, 15, 30, 45, 60];
 const EXAM_NOTIFICATION_OPTIONS = [15, 30, 60, 120, 1440];
@@ -27,13 +26,10 @@ export default function SettingsScreen() {
     
     const [manageDataModalVisible, setManageDataModalVisible] = useState(false);
     const [showSummaryPicker, setShowSummaryPicker] = useState(false);
-    const [showQuietStartPicker, setShowQuietStartPicker] = useState(false);
-    const [showQuietEndPicker, setShowQuietEndPicker] = useState(false);
     const [showSemesterStartPicker, setShowSemesterStartPicker] = useState(false);
     const [showSemesterEndPicker, setShowSemesterEndPicker] = useState(false);
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickerType, setPickerType] = useState<'lecture' | 'assignment' | 'exam' | null>(null);
-    const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
     const styles = useMemo(() => createStyles(colors, bottomInset), [colors, bottomInset]);
 
@@ -71,36 +67,11 @@ export default function SettingsScreen() {
         return d;
     };
 
-    const getQuietDate = (timeStr: string) => {
-        const [hours, minutes] = (timeStr || '00:00').split(':').map(Number);
-        const d = new Date();
-        d.setHours(hours || 0, minutes || 0, 0, 0);
-        return d;
-    };
-
     const getSemesterDate = (dateStr?: string) => dateStr ? new Date(dateStr) : new Date();
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return 'Not set';
         return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    const handleQuietStartChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') setShowQuietStartPicker(false);
-        if (selectedDate) {
-            const hours = selectedDate.getHours().toString().padStart(2, '0');
-            const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
-            updateSettings({ quietHoursStart: `${hours}:${minutes}` });
-        }
-    };
-
-    const handleQuietEndChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') setShowQuietEndPicker(false);
-        if (selectedDate) {
-            const hours = selectedDate.getHours().toString().padStart(2, '0');
-            const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
-            updateSettings({ quietHoursEnd: `${hours}:${minutes}` });
-        }
     };
 
     const handleSemesterStartChange = (event: any, selectedDate?: Date) => {
@@ -151,17 +122,6 @@ export default function SettingsScreen() {
         if (minutes >= 1440) return `${Math.floor(minutes / 1440)} day${minutes >= 2880 ? 's' : ''}`;
         if (minutes >= 60) return `${Math.floor(minutes / 60)} hour${minutes >= 120 ? 's' : ''}`;
         return `${minutes} min`;
-    };
-
-    const handleSendTestNotification = async () => {
-        if (isSendingTestNotification) return;
-
-        try {
-            setIsSendingTestNotification(true);
-            await sendTestNotification(1);
-        } finally {
-            setIsSendingTestNotification(false);
-        }
     };
 
     // Simple row component
@@ -283,45 +243,7 @@ export default function SettingsScreen() {
                         </>
                     )}
 
-                    <View style={styles.divider} />
-
-                    <SwitchRow
-                        label="Quiet Hours"
-                        subtitle="Block notifications during sleep"
-                        value={settings.quietHoursEnabled}
-                        onValueChange={(val) => updateSettings({ quietHoursEnabled: val })}
-                    />
-
-                    {settings.quietHoursEnabled && (
-                        <>
-                            <View style={styles.divider} />
-                            <SettingRow label="Start" value={formatTime(settings.quietHoursStart || '22:00')} onPress={() => setShowQuietStartPicker(true)} />
-                            {showQuietStartPicker && (
-                                <DateTimePicker value={getQuietDate(settings.quietHoursStart || '22:00')} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleQuietStartChange} />
-                            )}
-                            <View style={styles.divider} />
-                            <SettingRow label="End" value={formatTime(settings.quietHoursEnd || '07:00')} onPress={() => setShowQuietEndPicker(true)} />
-                            {showQuietEndPicker && (
-                                <DateTimePicker value={getQuietDate(settings.quietHoursEnd || '07:00')} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleQuietEndChange} />
-                            )}
-                        </>
-                    )}
-
-                    <View style={styles.divider} />
-
-                    <TouchableOpacity
-                        style={styles.testButton}
-                        onPress={handleSendTestNotification}
-                        activeOpacity={0.7}
-                        disabled={isSendingTestNotification}
-                    >
-                        <Ionicons name="notifications-outline" size={16} color={colors.primary} />
-                        <Text style={styles.testButtonText}>
-                            {isSendingTestNotification ? 'Scheduling…' : 'Send Test Notification (1 min)'}
-                        </Text>
-                    </TouchableOpacity>
                 </View>
-                <Text style={styles.sectionHint}>Use test reminder to verify delivery in foreground, background, and when app is closed.</Text>
 
                 {/* DATA */}
                 <Text style={styles.sectionTitle}>Data</Text>
@@ -571,24 +493,5 @@ const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet
         fontSize: 16,
         fontFamily: 'Inter_600SemiBold',
         color: colors.textDark,
-    },
-    testButton: {
-        minHeight: 48,
-        marginHorizontal: 12,
-        marginVertical: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.primary + '66',
-        backgroundColor: colors.primary + '12',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingHorizontal: 12,
-    },
-    testButtonText: {
-        fontSize: 14,
-        fontFamily: 'Inter_600SemiBold',
-        color: colors.primary,
     },
 });

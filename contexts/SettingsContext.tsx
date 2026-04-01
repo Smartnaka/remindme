@@ -85,22 +85,12 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
                     delete parsed.notificationOffset;
                 }
                 
-                // Remove legacy quiet-hours fields if present
-                delete parsed.quietHoursEnabled;
-                delete parsed.quietHoursStart;
-                delete parsed.quietHoursEnd;
-
                 // Set defaults for newly added fields if missing
                 if (parsed.dailySummaryEnabled === undefined) parsed.dailySummaryEnabled = defaultSettings.dailySummaryEnabled;
                 if (parsed.reduceMotion === undefined) parsed.reduceMotion = defaultSettings.reduceMotion;
                 if (parsed.hasOnboarded === undefined) parsed.hasOnboarded = defaultSettings.hasOnboarded;
-                if (parsed.notifyAtClassStart === undefined) parsed.notifyAtClassStart = defaultSettings.notifyAtClassStart;
 
-                const sanitizedSettings = { ...defaultSettings, ...parsed };
-                setSettings(sanitizedSettings);
-
-                // Persist sanitized settings to keep storage in sync with the current schema
-                await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizedSettings));
+                setSettings({ ...defaultSettings, ...parsed });
             }
         } catch (error) {
             console.error('[SettingsContext] Error loading settings:', error);

@@ -26,8 +26,6 @@ export default function SettingsScreen() {
     
     const [manageDataModalVisible, setManageDataModalVisible] = useState(false);
     const [showSummaryPicker, setShowSummaryPicker] = useState(false);
-    const [showQuietStartPicker, setShowQuietStartPicker] = useState(false);
-    const [showQuietEndPicker, setShowQuietEndPicker] = useState(false);
     const [showSemesterStartPicker, setShowSemesterStartPicker] = useState(false);
     const [showSemesterEndPicker, setShowSemesterEndPicker] = useState(false);
     const [pickerVisible, setPickerVisible] = useState(false);
@@ -69,36 +67,11 @@ export default function SettingsScreen() {
         return d;
     };
 
-    const getQuietDate = (timeStr: string) => {
-        const [hours, minutes] = (timeStr || '00:00').split(':').map(Number);
-        const d = new Date();
-        d.setHours(hours || 0, minutes || 0, 0, 0);
-        return d;
-    };
-
     const getSemesterDate = (dateStr?: string) => dateStr ? new Date(dateStr) : new Date();
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return 'Not set';
         return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    const handleQuietStartChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') setShowQuietStartPicker(false);
-        if (selectedDate) {
-            const hours = selectedDate.getHours().toString().padStart(2, '0');
-            const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
-            updateSettings({ quietHoursStart: `${hours}:${minutes}` });
-        }
-    };
-
-    const handleQuietEndChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') setShowQuietEndPicker(false);
-        if (selectedDate) {
-            const hours = selectedDate.getHours().toString().padStart(2, '0');
-            const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
-            updateSettings({ quietHoursEnd: `${hours}:${minutes}` });
-        }
     };
 
     const handleSemesterStartChange = (event: any, selectedDate?: Date) => {

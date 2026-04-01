@@ -45,6 +45,15 @@ const ensureNotificationChannel = async () => {
   }
 };
 
+const hasNotificationAuthorization = (status: string): boolean => {
+  return status === 'granted' || status === 'provisional';
+};
+
+const ensureNotificationSchedulingReady = async (): Promise<boolean> => {
+  await ensureNotificationChannel();
+  return requestNotificationPermissions();
+};
+
 const canUseExactAlarmScheduling = async (): Promise<boolean> => {
   if (Platform.OS !== 'android' || !Notifications) return false;
 
@@ -109,7 +118,7 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
-    if (existingStatus !== 'granted') {
+    if (!hasNotificationAuthorization(existingStatus)) {
       const { status } = await Notifications.requestPermissionsAsync({
         ios: {
           allowAlert: true,
@@ -141,10 +150,10 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
       }
     }
 
-    if (finalStatus === 'granted') {
+    if (hasNotificationAuthorization(finalStatus)) {
       await registerNotificationCategories();
     }
-    return finalStatus === 'granted';
+    return hasNotificationAuthorization(finalStatus);
   } catch (error) {
     console.error('[Notifications] Error requesting permissions:', error);
     return false;
@@ -171,30 +180,6 @@ const isNotificationAllowed = async (triggerDate: Date, cachedSettings?: any): P
       if (triggerDate > semEnd) return false;
     }
 
-    // Check Quiet Hours
-    if (settings.quietHoursEnabled && settings.quietHoursStart && settings.quietHoursEnd) {
-      const [startH, startM] = settings.quietHoursStart.split(':').map(Number);
-      const [endH, endM] = settings.quietHoursEnd.split(':').map(Number);
-      
-      const triggerH = triggerDate.getHours();
-      const triggerM = triggerDate.getMinutes();
-
-      const triggerMinutes = triggerH * 60 + triggerM;
-      const startMinutes = startH * 60 + startM;
-      const endMinutes = endH * 60 + endM;
-
-      // Guard: if start === end, the range is invalid — don't block
-      if (startMinutes === endMinutes) return true;
-
-      if (startMinutes > endMinutes) {
-        // Crosses midnight (e.g. 22:00 to 07:00)
-        if (triggerMinutes >= startMinutes || triggerMinutes < endMinutes) return false;
-      } else {
-        // Same day (e.g. 08:00 to 12:00)
-        if (triggerMinutes >= startMinutes && triggerMinutes < endMinutes) return false;
-      }
-    }
-
     return true;
   } catch (e) {
     return true; // fail open
@@ -208,8 +193,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
   }
 
   try {
-    await ensureNotificationChannel();
-    const hasPermission = await requestNotificationPermissions();
+    const hasPermission = await ensureNotificationSchedulingReady();
     if (!hasPermission) {
       log('[Notifications] Permission not granted');
       return null;
@@ -221,7 +205,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
     const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000);
 
     if (!(await isNotificationAllowed(triggerDate))) {
-      log('[Notifications] Blocked by Quiet Hours or Semester limits');
+      log('[Notifications] Blocked by Semester limits');
       return null;
     }
 
@@ -262,8 +246,7 @@ export const scheduleBiWeeklyNotifications = async (lecture: Lecture, offsetMinu
   if (Platform.OS === 'web' || !Notifications) return [];
 
   try {
-    await ensureNotificationChannel();
-    const hasPermission = await requestNotificationPermissions();
+    const hasPermission = await ensureNotificationSchedulingReady();
     if (!hasPermission) return [];
 
     const notificationIds: string[] = [];
@@ -347,8 +330,7 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
   }
 
   try {
-    await ensureNotificationChannel();
-    const hasPermission = await requestNotificationPermissions();
+    const hasPermission = await ensureNotificationSchedulingReady();
     if (!hasPermission) {
       log('[Alarms] Permission not granted');
       return [];
@@ -446,13 +428,16 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
   if (Platform.OS === 'web' || !Notifications) return null;
 
   try {
+    const hasPermission = await ensureNotificationSchedulingReady();
+    if (!hasPermission) return null;
+
     const offsetMinutes = 120;
     const nextMsg = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
     const triggerDate = new Date(nextMsg.getTime() - offsetMinutes * 60000);
 
-    // Check quiet hours and semester bounds
+    // Check semester bounds
     if (!(await isNotificationAllowed(triggerDate))) {
-      log('[Notifications] 2hr reminder blocked by quiet hours or semester limits');
+      log('[Notifications] 2hr reminder blocked by semester limits');
       return null;
     }
 
@@ -487,16 +472,15 @@ export const scheduleStartNowNotification = async (lecture: Lecture): Promise<st
   if (Platform.OS === 'web' || !Notifications) return null;
 
   try {
-    await ensureNotificationChannel();
-    const hasPermission = await requestNotificationPermissions();
+    const hasPermission = await ensureNotificationSchedulingReady();
     if (!hasPermission) return null;
 
     // offset = 0 means fire at the exact class start time
     const nextOccurrence = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, 0);
-    const triggerDate = nextOccurrence; // No offset subtraction
+      const triggerDate = nextOccurrence; // No offset subtraction
 
     if (!(await isNotificationAllowed(triggerDate))) {
-      log('[Notifications] Start-now reminder blocked by quiet hours or semester limits');
+      log('[Notifications] Start-now reminder blocked by semester limits');
       return null;
     }
 
@@ -558,6 +542,9 @@ export const manageDailySummaryNotification = async (timeStr: string, existingId
     if (Platform.OS === 'web' || !Notifications) return null;
 
     try {
+        const hasPermission = await ensureNotificationSchedulingReady();
+        if (!hasPermission) return existingId || null;
+
         if (existingId) {
             await Notifications.cancelScheduledNotificationAsync(existingId);
         }
@@ -674,7 +661,7 @@ export const scheduleAssignmentNotification = async (assignment: Assignment, cou
    if (Platform.OS === 'web' || !Notifications) return null;
 
    try {
-     const hasPermission = await requestNotificationPermissions();
+     const hasPermission = await ensureNotificationSchedulingReady();
      if (!hasPermission) return null;
 
      const dueDate = new Date(assignment.dueDate);
@@ -716,7 +703,7 @@ export const sendTestNotification = async (minutesAhead: number = 1): Promise<vo
 
   try {
     log('[Test] Requesting notification permissions...');
-    const hasPermission = await requestNotificationPermissions();
+    const hasPermission = await ensureNotificationSchedulingReady();
 
     if (!hasPermission) {
       log('[Test] ❌ Permission DENIED');
@@ -729,8 +716,6 @@ export const sendTestNotification = async (minutesAhead: number = 1): Promise<vo
     }
 
     log('[Test] ✅ Permission granted, scheduling test notification...');
-    await ensureNotificationChannel();
-
     const safeMinutesAhead = Math.max(1, minutesAhead);
     const triggerDate = new Date(Date.now() + safeMinutesAhead * 60 * 1000);
     triggerDate.setSeconds(0, 0);

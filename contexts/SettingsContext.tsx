@@ -15,9 +15,6 @@ interface Settings {
     dailySummaryNotificationId?: string;
     themeMode: 'automatic' | 'light' | 'dark';
     lastNotificationCheckDate?: string; // ISO date string YYYY-MM-DD
-    quietHoursEnabled?: boolean;
-    quietHoursStart?: string; // "HH:MM"
-    quietHoursEnd?: string; // "HH:MM"
     semesterStart?: string; // ISO date string YYYY-MM-DD
     semesterEnd?: string; // ISO date string YYYY-MM-DD
     dailySummaryEnabled?: boolean;
@@ -33,9 +30,6 @@ const defaultSettings: Settings = {
     dailySummaryTime: "07:00",
     themeMode: 'automatic',
     lastNotificationCheckDate: '',
-    quietHoursEnabled: false,
-    quietHoursStart: '22:00',
-    quietHoursEnd: '07:00',
     dailySummaryEnabled: true,
     reduceMotion: false,
     hasOnboarded: false,
@@ -92,9 +86,6 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
                 }
                 
                 // Set defaults for newly added fields if missing
-                if (parsed.quietHoursEnabled === undefined) parsed.quietHoursEnabled = defaultSettings.quietHoursEnabled;
-                if (parsed.quietHoursStart === undefined) parsed.quietHoursStart = defaultSettings.quietHoursStart;
-                if (parsed.quietHoursEnd === undefined) parsed.quietHoursEnd = defaultSettings.quietHoursEnd;
                 if (parsed.dailySummaryEnabled === undefined) parsed.dailySummaryEnabled = defaultSettings.dailySummaryEnabled;
                 if (parsed.reduceMotion === undefined) parsed.reduceMotion = defaultSettings.reduceMotion;
                 if (parsed.hasOnboarded === undefined) parsed.hasOnboarded = defaultSettings.hasOnboarded;

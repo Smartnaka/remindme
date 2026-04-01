@@ -4,12 +4,12 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LectureProvider } from "@/contexts/LectureContext";
 import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { ErrorBoundary } from "@/app/components/ErrorBoundary";
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { requestNotificationPermissions, handleNotificationResponse } from "@/utils/notifications";
 import { useEffect, useRef } from "react";
 import * as Notifications from 'expo-notifications';
@@ -52,6 +52,8 @@ try {
 
 function RootLayoutNav() {
   const { theme, colors, settings, updateSettings, isLoading: isSettingsLoading } = useSettings();
+  const insets = useSafeAreaInsets();
+  const androidBottomInset = Platform.OS === 'android' ? Math.max(insets.bottom, 12) : 0;
 
   // Request permissions once onboarded (or passively if already onboarded)
   useEffect(() => {
@@ -88,7 +90,10 @@ function RootLayoutNav() {
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} backgroundColor="transparent" translucent={true} />
       <Stack screenOptions={{ 
         headerBackTitle: "Back", 
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: {
+          backgroundColor: colors.background,
+          paddingBottom: androidBottomInset,
+        },
         animation: settings.reduceMotion ? 'none' : 'default',
       }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

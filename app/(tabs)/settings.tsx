@@ -243,6 +243,30 @@ export default function SettingsScreen() {
                         </>
                     )}
 
+                    <View style={styles.divider} />
+
+                    <SwitchRow
+                        label="Quiet Hours"
+                        subtitle="Block notifications during sleep"
+                        value={settings.quietHoursEnabled}
+                        onValueChange={(val) => updateSettings({ quietHoursEnabled: val })}
+                    />
+
+                    {settings.quietHoursEnabled && (
+                        <>
+                            <View style={styles.divider} />
+                            <SettingRow label="Start" value={formatTime(settings.quietHoursStart || '22:00')} onPress={() => setShowQuietStartPicker(true)} />
+                            {showQuietStartPicker && (
+                                <DateTimePicker value={getQuietDate(settings.quietHoursStart || '22:00')} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleQuietStartChange} />
+                            )}
+                            <View style={styles.divider} />
+                            <SettingRow label="End" value={formatTime(settings.quietHoursEnd || '07:00')} onPress={() => setShowQuietEndPicker(true)} />
+                            {showQuietEndPicker && (
+                                <DateTimePicker value={getQuietDate(settings.quietHoursEnd || '07:00')} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleQuietEndChange} />
+                            )}
+                        </>
+                    )}
+
                 </View>
 
                 {/* DATA */}

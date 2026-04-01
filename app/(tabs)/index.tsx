@@ -10,7 +10,6 @@ import SwipeableLectureRow from '@/components/SwipeableLectureRow';
 import { getCurrentDayOfWeek, formatTimeAMPM } from '@/utils/dateTime';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import NetInfo from '@react-native-community/netinfo';
 import { ColorTheme } from '@/types/theme';
 import { Lecture } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
@@ -39,15 +38,6 @@ export default function TodayScreen() {
     }, 60000); // Update every minute
 
     return () => clearInterval(intervalId);
-  }, []);
-
-  // Offline Detection
-  const [isOffline, setIsOffline] = useState(false);
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsOffline(!state.isConnected);
-    });
-    return () => unsubscribe();
   }, []);
 
   // FAB Pulsing Animation for new users
@@ -203,12 +193,6 @@ export default function TodayScreen() {
             <Text style={styles.headerTitle}>Today</Text>
           </View>
           <View style={styles.headerActions}>
-            {isOffline && (
-              <View style={styles.offlineBadge}>
-                <Ionicons name="cloud-offline" size={12} color="#FFF" />
-                <Text style={styles.offlineText}>Offline</Text>
-              </View>
-            )}
             <TouchableOpacity
               style={styles.iconButton}
               activeOpacity={0.7}
@@ -677,22 +661,6 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   iconButton: {
     padding: 4,
-  },
-  offlineBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.error,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 4,
-  },
-  offlineText: {
-    color: '#FFF',
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
   },
   notificationDot: {
     position: 'absolute',

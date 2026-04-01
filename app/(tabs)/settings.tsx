@@ -13,7 +13,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import Constants from 'expo-constants';
 import { useCustomAlert } from '@/contexts/AlertContext';
-import { sendTestNotification } from '@/utils/notifications';
 
 const NOTIFICATION_OPTIONS = [5, 10, 15, 30, 45, 60];
 const EXAM_NOTIFICATION_OPTIONS = [15, 30, 60, 120, 1440];
@@ -33,7 +32,6 @@ export default function SettingsScreen() {
     const [showSemesterEndPicker, setShowSemesterEndPicker] = useState(false);
     const [pickerVisible, setPickerVisible] = useState(false);
     const [pickerType, setPickerType] = useState<'lecture' | 'assignment' | 'exam' | null>(null);
-    const [isSendingTestNotification, setIsSendingTestNotification] = useState(false);
 
     const styles = useMemo(() => createStyles(colors, bottomInset), [colors, bottomInset]);
 
@@ -151,17 +149,6 @@ export default function SettingsScreen() {
         if (minutes >= 1440) return `${Math.floor(minutes / 1440)} day${minutes >= 2880 ? 's' : ''}`;
         if (minutes >= 60) return `${Math.floor(minutes / 60)} hour${minutes >= 120 ? 's' : ''}`;
         return `${minutes} min`;
-    };
-
-    const handleSendTestNotification = async () => {
-        if (isSendingTestNotification) return;
-
-        try {
-            setIsSendingTestNotification(true);
-            await sendTestNotification(1);
-        } finally {
-            setIsSendingTestNotification(false);
-        }
     };
 
     // Simple row component
@@ -307,21 +294,7 @@ export default function SettingsScreen() {
                         </>
                     )}
 
-                    <View style={styles.divider} />
-
-                    <TouchableOpacity
-                        style={styles.testButton}
-                        onPress={handleSendTestNotification}
-                        activeOpacity={0.7}
-                        disabled={isSendingTestNotification}
-                    >
-                        <Ionicons name="notifications-outline" size={16} color={colors.primary} />
-                        <Text style={styles.testButtonText}>
-                            {isSendingTestNotification ? 'Scheduling…' : 'Send Test Notification (1 min)'}
-                        </Text>
-                    </TouchableOpacity>
                 </View>
-                <Text style={styles.sectionHint}>Use test reminder to verify delivery in foreground, background, and when app is closed.</Text>
 
                 {/* DATA */}
                 <Text style={styles.sectionTitle}>Data</Text>
@@ -571,24 +544,5 @@ const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet
         fontSize: 16,
         fontFamily: 'Inter_600SemiBold',
         color: colors.textDark,
-    },
-    testButton: {
-        minHeight: 48,
-        marginHorizontal: 12,
-        marginVertical: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.primary + '66',
-        backgroundColor: colors.primary + '12',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingHorizontal: 12,
-    },
-    testButtonText: {
-        fontSize: 14,
-        fontFamily: 'Inter_600SemiBold',
-        color: colors.primary,
     },
 });

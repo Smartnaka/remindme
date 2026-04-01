@@ -13,7 +13,7 @@ A modern, intuitive mobile application built with **React Native** and **Expo** 
 - **🔔 Advanced Hybrid Reminders**:
   - _Cross-Platform:_ Works reliably via local notifications for iOS and exact alarms for Android.
   - _Customization:_ Set notification offsets for your classes, assignments, and exams.
-  - _Quiet Hours & Semester Limits:_ Automatically silence notifications outside class terms or during the night.
+  - _Semester Limits:_ Automatically silence notifications outside class terms.
   - _Daily Summary:_ Get a morning brief of your classes and assignments for the day.
 - **🎨 Personalization**:
   - Assign custom colors to courses for quick visual identification.

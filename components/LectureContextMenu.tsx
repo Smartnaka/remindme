@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TouchableWithoutFeedback, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TouchableWithoutFeedback, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSettings } from '@/contexts/SettingsContext';
 import { ColorTheme } from '@/types/theme';
 import { Lecture } from '@/types/lecture';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface LectureContextMenuProps {
     visible: boolean;
@@ -24,7 +25,8 @@ export default function LectureContextMenu({
     onDelete
 }: LectureContextMenuProps) {
     const { colors } = useSettings();
-    const styles = useMemo(() => createStyles(colors), [colors]);
+    const insets = useSafeAreaInsets();
+    const styles = useMemo(() => createStyles(colors, insets.bottom), [colors, insets.bottom]);
 
     if (!visible || !lecture) return null;
 
@@ -45,6 +47,8 @@ export default function LectureContextMenu({
             visible={visible}
             animationType="fade"
             onRequestClose={onClose}
+            statusBarTranslucent
+            navigationBarTranslucent
         >
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.overlay}>
@@ -109,7 +113,7 @@ export default function LectureContextMenu({
     );
 }
 
-const createStyles = (colors: ColorTheme) => StyleSheet.create({
+const createStyles = (colors: ColorTheme, bottomInset: number) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.4)',
@@ -120,7 +124,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         paddingHorizontal: 20,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+        paddingBottom: Platform.OS === 'ios' ? 40 : Math.max(bottomInset + 12, 24),
         paddingTop: 12,
     },
     dragHandle: {

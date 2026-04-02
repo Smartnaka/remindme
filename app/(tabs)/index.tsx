@@ -141,8 +141,7 @@ export default function TodayScreen() {
 
   const handleUndoDelete = () => {
     if (deletedLecture) {
-      // Re-insert from context
-      const { restoreLecture } = require('@/contexts/LectureContext');
+      // Use context function directly to avoid runtime module-call crashes
       restoreLecture(deletedLecture);
     }
     setUndoToastVisible(false);

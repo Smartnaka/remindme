@@ -1,20 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import { Lecture, DayOfWeek } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
 import { 
   scheduleWeeklyNotification, 
   cancelNotification, 
   requestNotificationPermissions, 
-  scheduleExactAlarmNotifications, 
   cancelMultipleNotifications,
   scheduleTwoHourReminder,
   scheduleStartNowNotification,
   manageDailySummaryNotification,
   scheduleBiWeeklyNotifications,
-  scheduleAssignmentNotification
+  scheduleAssignmentNotification,
+  getScheduledNotificationsDebug
 } from '@/utils/notifications';
 import { getCurrentDayOfWeek } from '@/utils/dateTime';
 
@@ -193,24 +193,6 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
       };
     }
 
-    if (Platform.OS === 'android') {
-      const alarmIds = await scheduleExactAlarmNotifications(lecture, settings.lectureOffset);
-
-      // Fallback: if exact alarms are unavailable, still schedule calendar-style weekly reminders.
-      if (alarmIds.length === 0) {
-        const weeklyId = await scheduleWeeklyNotification(lecture, settings.lectureOffset);
-        return {
-          notificationId: weeklyId || undefined,
-          alarmNotificationIds: undefined,
-        };
-      }
-
-      return {
-        notificationId: undefined,
-        alarmNotificationIds: alarmIds,
-      };
-    }
-
     const notificationId = await scheduleWeeklyNotification(lecture, settings.lectureOffset);
     return {
       notificationId: notificationId || undefined,
@@ -248,6 +230,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     }
     
     saveLecturesMutation.mutate(updatedLectures);
+    await getScheduledNotificationsDebug('rescheduleAllLectures');
   };
 
   // Update rescheduleRef on every render so the AppState listener always
@@ -300,6 +283,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
 
     const updatedLectures = [...lectures, newLecture];
     saveLecturesMutation.mutate(updatedLectures);
+    await getScheduledNotificationsDebug(`addLecture:${newLecture.id}`);
   };
 
   const updateLecture = async (id: string, updates: Partial<Lecture>): Promise<void> => {
@@ -338,6 +322,7 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
     const updatedLectures = [...lectures];
     updatedLectures[lectureIndex] = updatedLecture;
     saveLecturesMutation.mutate(updatedLectures);
+    await getScheduledNotificationsDebug(`updateLecture:${updatedLecture.id}`);
   };
 
   const deleteLecture = async (id: string): Promise<void> => {

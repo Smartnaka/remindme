@@ -130,7 +130,8 @@ describe('Notifications Logic', () => {
             expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
       });
 
-      it('falls back when exact alarms are unavailable on Android 12+', async () => {
+      it('schedules DATE alarms on Android even when exact alarm special access is unavailable', async () => {
+        jest.useFakeTimers().setSystemTime(new Date('2024-01-01T08:00:00.000Z'));
         jest.resetModules();
         jest.doMock('react-native', () => ({
           Platform: { OS: 'android', Version: 34 },
@@ -164,11 +165,12 @@ describe('Notifications Logic', () => {
           };
 
           assertionPromise = notifications.scheduleExactAlarmNotifications(androidLecture, 15).then((ids: string[]) => {
-            expect(ids).toHaveLength(0);
-            expect(expoNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+            expect(ids).toHaveLength(4);
+            expect(expoNotifications.scheduleNotificationAsync).toHaveBeenCalled();
           });
         });
         await assertionPromise;
+        jest.useRealTimers();
       });
     });
 });

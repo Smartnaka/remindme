@@ -70,26 +70,6 @@ export const getScheduledNotificationsDebug = async (label: string): Promise<voi
   }
 };
 
-export const debugScheduledNotifications = async (): Promise<void> => {
-  if (Platform.OS === 'web' || !Notifications) return;
-  if (typeof Notifications.getAllScheduledNotificationsAsync !== 'function') return;
-
-  try {
-    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-    const lines = scheduled.slice(0, 20).map((n, i) => {
-      const content = n.content as any;
-      return `${i + 1}. ${content?.title ?? 'Untitled'} | ${JSON.stringify(n.trigger)}`;
-    });
-    const summary = lines.length > 0 ? lines.join('\n') : 'No scheduled notifications.';
-    log(`[Notifications][debugScheduledNotifications]\n${summary}`);
-    if (__DEV__) {
-      Alert.alert('Scheduled Notifications', `Count: ${scheduled.length}\n\n${summary}`);
-    }
-  } catch (error) {
-    logError('[Notifications] debugScheduledNotifications failed:', error);
-  }
-};
-
 const canUseExactAlarmScheduling = async (): Promise<boolean> => {
   if (Platform.OS !== 'android' || !Notifications) return false;
 

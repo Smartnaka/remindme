@@ -1,14 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import { Lecture, DayOfWeek } from '@/types/lecture';
 import { Assignment } from '@/types/assignment';
 import { 
   scheduleWeeklyNotification, 
   cancelNotification, 
   requestNotificationPermissions, 
-  scheduleExactAlarmNotifications,
   cancelMultipleNotifications,
   scheduleTwoHourReminder,
   scheduleStartNowNotification,
@@ -191,14 +190,6 @@ export const LectureProvider = ({ children }: { children: React.ReactNode }) => 
       return {
         notificationId: undefined,
         alarmNotificationIds: biWeeklyIds.length > 0 ? biWeeklyIds : undefined,
-      };
-    }
-
-    if (Platform.OS === 'android') {
-      const alarmIds = await scheduleExactAlarmNotifications(lecture, settings.lectureOffset);
-      return {
-        notificationId: undefined,
-        alarmNotificationIds: alarmIds.length > 0 ? alarmIds : undefined,
       };
     }
 

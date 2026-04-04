@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Conditional logger — only logs in development builds
 const log = __DEV__ ? console.log : () => {};
+const logError = (...args: any[]) => console.error(...args);
 
 const getLocalDateKey = (date: Date): string => {
   const year = date.getFullYear();
@@ -52,6 +53,41 @@ const hasNotificationAuthorization = (status: string): boolean => {
 const ensureNotificationSchedulingReady = async (): Promise<boolean> => {
   await ensureNotificationChannel();
   return requestNotificationPermissions();
+};
+
+export const getScheduledNotificationsDebug = async (label: string): Promise<void> => {
+  if (Platform.OS === 'web' || !Notifications) return;
+  if (typeof Notifications.getAllScheduledNotificationsAsync !== 'function') return;
+
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    log(`[Notifications][${label}] Scheduled count: ${scheduled.length}`);
+    scheduled.slice(0, 50).forEach((n, index) => {
+      log(`[Notifications][${label}] #${index + 1} id=${n.identifier} trigger=${JSON.stringify(n.trigger)}`);
+    });
+  } catch (error) {
+    log('[Notifications] Failed to inspect scheduled notifications:', error);
+  }
+};
+
+export const debugScheduledNotifications = async (): Promise<void> => {
+  if (Platform.OS === 'web' || !Notifications) return;
+  if (typeof Notifications.getAllScheduledNotificationsAsync !== 'function') return;
+
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const lines = scheduled.slice(0, 20).map((n, i) => {
+      const content = n.content as any;
+      return `${i + 1}. ${content?.title ?? 'Untitled'} | ${JSON.stringify(n.trigger)}`;
+    });
+    const summary = lines.length > 0 ? lines.join('\n') : 'No scheduled notifications.';
+    log(`[Notifications][debugScheduledNotifications]\n${summary}`);
+    if (__DEV__) {
+      Alert.alert('Scheduled Notifications', `Count: ${scheduled.length}\n\n${summary}`);
+    }
+  } catch (error) {
+    logError('[Notifications] debugScheduledNotifications failed:', error);
+  }
 };
 
 const canUseExactAlarmScheduling = async (): Promise<boolean> => {
@@ -199,6 +235,14 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
       return null;
     }
 
+    // Android weekly repeating alarms can be aggressively deferred in Doze mode.
+    // For reliability, map this API to DATE-based scheduling via exact-alarm strategy.
+    if (Platform.OS === 'android') {
+      const ids = await scheduleExactAlarmNotifications(lecture, offsetMinutes);
+      return ids[0] ?? null;
+    }
+
+    log(`[Notifications] scheduleWeeklyNotification lecture=${lecture.id} (${lecture.courseName}) day=${lecture.dayOfWeek} time=${lecture.startTime} offset=${offsetMinutes}`);
     // Correctly calculate the trigger date by subtracting the offset
     // We pass the offset to ensure getDateForNextOccurrence returns a date where (date - offset) is in the future
     const nextMsg = getDateForNextOccurrence(lecture.dayOfWeek, lecture.startTime, offsetMinutes);
@@ -213,7 +257,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
     // triggerDate.getDay() returns 0-6 (Sun-Sat)
     const triggerWeekday = triggerDate.getDay() + 1;
 
-    log(`[Notifications] Scheduling param: Weekday ${triggerWeekday}, Hour ${triggerDate.getHours()}, Minute ${triggerDate.getMinutes()}`);
+    log(`[Notifications] Scheduling weekly param: Weekday ${triggerWeekday}, Hour ${triggerDate.getHours()}, Minute ${triggerDate.getMinutes()}, now=${new Date().toISOString()}, tz=${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -236,7 +280,7 @@ export const scheduleWeeklyNotification = async (lecture: Lecture, offsetMinutes
     log(`[Notifications] Scheduled notification for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()} (Offset: ${offsetMinutes}m)`);
     return notificationId;
   } catch (error) {
-    console.error('[Notifications] Error scheduling notification:', error);
+    logError('[Notifications] Error scheduling weekly notification:', error);
     return null;
   }
 };
@@ -336,12 +380,7 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
       return [];
     }
     const canUseExactAlarms = await canUseExactAlarmScheduling();
-    if (!canUseExactAlarms) {
-      // Returning [] is intentional: LectureContext falls back to weekly repeating reminders,
-      // which are more reliable than delayed inexact date alarms in preview/dev scenarios.
-      log('[Alarms] Exact alarms unavailable - forcing fallback to weekly scheduling');
-      return [];
-    }
+    log(`[Alarms] Exact alarm special access available=${canUseExactAlarms}. Scheduling DATE alarms regardless.`);
 
     const notificationIds: string[] = [];
     const now = new Date();
@@ -396,6 +435,13 @@ export const scheduleExactAlarmNotifications = async (lecture: Lecture, offsetMi
   }
 };
 
+export const shouldUseExactAlarmStrategy = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !Notifications) return false;
+  const canUseExact = await canUseExactAlarmScheduling();
+  log(`[Alarms] shouldUseExactAlarmStrategy=${canUseExact}`);
+  return canUseExact;
+};
+
 export const cancelNotification = async (notificationId: string): Promise<void> => {
   if (Platform.OS === 'web' || !Notifications) {
     return;
@@ -441,25 +487,34 @@ export const scheduleTwoHourReminder = async (lecture: Lecture): Promise<string 
       return null;
     }
 
-    const triggerWeekday = triggerDate.getDay() + 1;
+    const trigger =
+      Platform.OS === 'android'
+        ? {
+            channelId: 'lecture-reminders',
+            type: Notifications.SchedulableTriggerInputTypes.DATE as any,
+            date: triggerDate,
+          }
+        : {
+            channelId: 'lecture-reminders',
+            type: Notifications.SchedulableTriggerInputTypes.WEEKLY as any,
+            weekday: triggerDate.getDay() + 1,
+            hour: triggerDate.getHours(),
+            minute: triggerDate.getMinutes(),
+          };
 
     const notificationId = await Notifications.scheduleNotificationAsync({
-       content: {
+      content: {
         title: `Upcoming: ${lecture.courseName}`,
         body: `Class starts in 2 hours${lecture.location ? ` at ${lecture.location}` : ''}. Don't forget your materials!`,
         data: { lectureId: lecture.id, type: '2hr-reminder' },
         sound: true,
         categoryIdentifier: 'reminder',
       },
-      trigger: {
-        channelId: 'lecture-reminders',
-        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-        weekday: triggerWeekday,
-        hour: triggerDate.getHours(),
-        minute: triggerDate.getMinutes(),
-      },
+      trigger: trigger as any,
     });
-    log(`[Notifications] Scheduled 2hr reminder for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
+    log(
+      `[Notifications] Scheduled 2hr reminder (${Platform.OS}) for ${lecture.courseName} at ${triggerDate.toLocaleString()}`
+    );
     return notificationId;
   } catch (error) {
     log('[Notifications] Error scheduling 2hr reminder: ' + error);
@@ -484,54 +539,29 @@ export const scheduleStartNowNotification = async (lecture: Lecture): Promise<st
       return null;
     }
 
-    if (Platform.OS === 'android') {
-      // Android: use exact date trigger (more reliable)
-      const now = new Date();
-      if (triggerDate <= now) {
-        // Already passed this week, schedule for next week
-        triggerDate.setDate(triggerDate.getDate() + 7);
-      }
+    // Use a weekly repeating trigger on both platforms.
+    // This avoids one-shot DATE alarms being dropped or going stale when the app
+    // is not relaunched frequently enough.
+    const triggerWeekday = triggerDate.getDay() + 1;
 
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `${lecture.courseName} is starting NOW`,
-          body: `${lecture.location ? `${lecture.location} • ` : ''}Tap to mark attendance`,
-          data: { lectureId: lecture.id, type: 'start-now' },
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.MAX,
-          categoryIdentifier: 'reminder',
-        },
-        trigger: {
-          channelId: 'lecture-reminders',
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: triggerDate,
-        },
-      });
-      log(`[Notifications] Scheduled start-now for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
-      return notificationId;
-    } else {
-      // iOS: use weekly repeating trigger
-      const triggerWeekday = triggerDate.getDay() + 1;
-
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `${lecture.courseName} is starting NOW`,
-          body: `${lecture.location ? `${lecture.location} • ` : ''}Tap to mark attendance`,
-          data: { lectureId: lecture.id, type: 'start-now' },
-          sound: true,
-          categoryIdentifier: 'reminder',
-        },
-        trigger: {
-          channelId: 'lecture-reminders',
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-          weekday: triggerWeekday,
-          hour: triggerDate.getHours(),
-          minute: triggerDate.getMinutes(),
-        },
-      });
-      log(`[Notifications] Scheduled start-now for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
-      return notificationId;
-    }
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `${lecture.courseName} is starting NOW`,
+        body: `${lecture.location ? `${lecture.location} • ` : ''}Tap to mark attendance`,
+        data: { lectureId: lecture.id, type: 'start-now' },
+        sound: true,
+        categoryIdentifier: 'reminder',
+      },
+      trigger: {
+        channelId: 'lecture-reminders',
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: triggerWeekday,
+        hour: triggerDate.getHours(),
+        minute: triggerDate.getMinutes(),
+      },
+    });
+    log(`[Notifications] Scheduled start-now weekly for ${lecture.courseName} at ${triggerDate.toLocaleTimeString()}`);
+    return notificationId;
   } catch (error) {
     log('[Notifications] Error scheduling start-now: ' + error);
     return null;

@@ -1,132 +1,159 @@
-# Lecture Reminder App 🎓
+# RemindMe 🎓
 
-> **Internal Codename:** RemindMe  
-> **Version:** 1.0.0
+> **Version:** 1.2.0
 
 A modern, intuitive mobile application built with **React Native** and **Expo** to help students manage their academic schedules, exams, and assignments.
 
-**Core Value Proposition:** Never miss a lecture again with a smart hybrid notification system (Calendar + Alarm) that works reliably across iOS and Android.
+**Never miss a lecture again** — RemindMe uses a smart hybrid notification system (Calendar + Alarm) that works reliably across iOS and Android.
 
 ## ✨ Features
 
-- **📅 Smart Scheduling**: Easily add and organize your weekly and bi-weekly lectures, as well as track assignments and exams.
+- **📅 Smart Scheduling**: Add and organize weekly and bi-weekly lectures, track assignments with due dates, and manage upcoming exams.
 - **🔔 Advanced Hybrid Reminders**:
-  - _Cross-Platform:_ Works reliably via local notifications for iOS and exact alarms for Android.
-  - _Customization:_ Set notification offsets for your classes, assignments, and exams.
-  - _Semester Limits:_ Automatically silence notifications outside class terms.
-  - _Daily Summary:_ Get a morning brief of your classes and assignments for the day.
+  - _Cross-Platform:_ Local notifications for iOS and exact alarms for Android.
+  - _Customizable offsets:_ Choose how far in advance to be notified for classes, assignments, and exams.
+  - _Semester limits:_ Notifications are automatically silenced outside your class term.
+  - _Daily summary:_ A morning brief of the day's classes and assignments.
+- **⏱️ Study Timer**: Built-in Pomodoro-style study timer with a live status bar.
 - **🎨 Personalization**:
   - Assign custom colors to courses for quick visual identification.
   - `Light` / `Dark` / `Automatic` themes.
   - `Reduce Motion` support for accessible screen transitions.
 - **💾 Complete Data Control**:
-  - Offline-first architecture utilizing local storage.
-  - Export all your app data (Lectures, Exams, Assignments, Settings) to JSON.
-  - Safely clear out data when a semester ends.
-- **⚡ Haptic UI**: Tactile interactions for saving, errors, and selection events.
+  - Offline-first architecture using local storage.
+  - Export all app data (Lectures, Exams, Assignments, Settings) to JSON.
+  - Safely clear data when a semester ends.
+- **⚡ Haptic UI**: Tactile feedback for saving, errors, and selection events.
+- **🎉 Onboarding**: First-launch carousel to get new users up to speed quickly.
 
 ## 🛠️ Technical Stack
 
-- **Framework**: [React Native](https://reactnative.dev/)
-- **Platform**: [Expo SDK 54](https://expo.dev/) (Managed Workflow)
-- **Routing**: `expo-router` (File-based navigation)
-- **State Management**: React Context (`LectureContext`, `SettingsContext`)
-- **Data Persistence**: `@react-native-async-storage/async-storage`
-- **Date Handling**: `dayjs`
-- **Styling**: `StyleSheet` with custom design tokens.
+| Layer | Technology |
+|---|---|
+| Framework | [React Native](https://reactnative.dev/) |
+| Platform | [Expo SDK 54](https://expo.dev/) (Managed Workflow) |
+| Routing | `expo-router` (file-based navigation) |
+| State Management | React Context API |
+| Data Persistence | `@react-native-async-storage/async-storage` |
+| Date Handling | `dayjs` |
+| Icons | `lucide-react-native` |
+| Styling | `StyleSheet` with custom design tokens |
 
 ## 📂 Project Structure
 
-```bash
+```
 /
-├── app/                    # Expo Router pages (screens)
-│   ├── (tabs)/             # Main tab navigation (index, week, exams, settings)
-│   ├── add-lecture.tsx     # Screen for creating/editing lectures
-│   ├── notifications.tsx   # Notification history view
+├── app/                        # Expo Router screens
+│   ├── (tabs)/                 # Bottom-tab navigation
+│   │   ├── index.tsx           # Today / upcoming lectures
+│   │   ├── week.tsx            # Weekly schedule view
+│   │   ├── exams.tsx           # Exams & assignments tracker
+│   │   └── settings.tsx        # App preferences
+│   ├── add-lecture.tsx         # Create / edit a lecture
+│   ├── add-assignment.tsx      # Create / edit an assignment
+│   ├── add-exam.tsx            # Create / edit an exam
+│   ├── notifications.tsx       # Notification history
+│   ├── study-timer.tsx         # Study / Pomodoro timer
+│   └── modal.tsx               # Generic modal screen
+├── components/                 # Reusable UI components
+│   ├── LectureCard.tsx         # Display card for a lecture
+│   ├── ExamCard.tsx            # Display card for an exam
+│   ├── LiveLectureCard.tsx     # Real-time in-progress lecture card
+│   ├── NextLectureCard.tsx     # Upcoming lecture preview
+│   ├── SwipeableLectureRow.tsx # Swipe-to-delete lecture row
+│   ├── ColorPicker.tsx         # Custom color selection grid
+│   ├── MiniTimerBar.tsx        # Persistent study timer status bar
+│   ├── OnboardingCarousel.tsx  # First-launch onboarding slides
+│   ├── ConfettiCelebration.tsx # Celebration animation
 │   └── ...
-├── components/             # Reusable UI components
-│   ├── ColorPicker.tsx     # Custom color selection grid
-│   ├── LectureCard.tsx     # Display card for individual lectures
-│   └── ...
-├── contexts/               # Global State logic
-│   ├── LectureContext.tsx  # Handles storage, CRUD, and notification logic for lectures
-│   ├── AssignmentContext.tsx # Centralized assignment state management
-│   ├── ExamContext.tsx     # Centralized exam state management
-│   └── SettingsContext.tsx # Handles Theme and User Preferences
-├── constants/              # App-wide constants
-│   ├── Colors.ts           # Light/Dark mode color tokens
-│   └── ...
-├── types/                  # TypeScript definitions
-│   ├── lecture.ts          # Data models (Lecture, DayOfWeek)
-│   └── ...
-├── utils/                  # Helper logic
-│   ├── validation.ts       # Input validation rules
-│   └── notifications.ts    # Complex notification scheduling logic
-└── .npmrc                  # Configuration for legacy peer dependencies
+├── contexts/                   # Global state (React Context)
+│   ├── LectureContext.tsx      # Lecture CRUD & notification scheduling
+│   ├── ExamContext.tsx         # Exam state management
+│   ├── SettingsContext.tsx     # Theme & user preferences
+│   ├── StudyTimerContext.tsx   # Study timer state
+│   └── AlertContext.tsx        # In-app alert/toast state
+├── constants/                  # App-wide constants
+│   └── Colors.ts               # Light/Dark mode color tokens
+├── types/                      # TypeScript type definitions
+│   └── lecture.ts              # Data models (Lecture, DayOfWeek, …)
+├── utils/                      # Pure helper functions
+│   ├── notifications.ts        # Notification scheduling logic
+│   ├── validation.ts           # Input validation rules
+│   ├── assignmentUtils.ts      # Assignment helper functions
+│   ├── calendar.ts             # Calendar integration helpers
+│   └── dateTime.ts             # Date/time formatting utilities
+└── .npmrc                      # Sets legacy-peer-deps=true
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Node.js**: (LTS version recommended)
-- **Expo Go**: Installed on your physical device (iOS/Android).
+- **Node.js** LTS
+- **Expo Go** installed on your iOS or Android device (for physical device testing)
 
 ### Installation
 
-1.  **Clone the repository:**
+1. **Clone the repository:**
 
-    ```bash
-    git clone <repository-url>
-    cd lecture-reminder-app
-    ```
+   ```bash
+   git clone https://github.com/Smartnaka/remindme.git
+   cd remindme
+   ```
 
-2.  **Install dependencies:**
+2. **Install dependencies:**
 
-    > **IMPORTANT:** This project relies on an `.npmrc` file to set `legacy-peer-deps=true`. This is required to resolve a conflict between `React 19` and `lucide-react-native`.
+   > **Note:** The `.npmrc` file in this repo sets `legacy-peer-deps=true` automatically, which is required to resolve a peer-dependency conflict between React 19 and `lucide-react-native`.
 
-    ```bash
-    npm install
-    # OR if you prefer to be explicit
-    npm install --legacy-peer-deps
-    ```
+   ```bash
+   npm install
+   ```
 
-3.  **Start the server:**
-    ```bash
-    npx expo start
-    ```
-    - Press `a` to run on Android Emulator.
-    - Press `i` to run on iOS Simulator.
-    - Scan the QR code with Expo Go to run on physical device.
+3. **Start the development server:**
 
-## 🔧 Scripts
+   ```bash
+   npx expo start
+   ```
 
-- `npm start`: specific alias for `expo start`.
-- `npm run android`: specific alias for `expo start --android`.
-- `npm run ios`: specific alias for `expo start --ios`.
-- `npm run web`: specific alias for `expo start --web`.
+   | Key | Action |
+   |-----|--------|
+   | `a` | Open on Android Emulator |
+   | `i` | Open on iOS Simulator |
+   | QR code | Scan with Expo Go on a physical device |
+
+## 🔧 Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm start` | Start the Expo development server |
+| `npm run android` | Start and open on Android |
+| `npm run ios` | Start and open on iOS |
+| `npm run web` | Start and open in the browser |
+| `npm test` | Run the Jest test suite |
 
 ## 🧪 Troubleshooting
 
-### 1. `ERESOLVE` or Peer Dependency Error
+### `ERESOLVE` / peer dependency error
 
-If you see an error about `lucide-react-native` and `react@19`:
+The `.npmrc` file should handle this automatically. If the error still appears, run:
 
-- **Fix:** Ensure the `.npmrc` file exists in the root directory with `legacy-peer-deps=true`.
-- **Manual Fix:** Run `npm install --legacy-peer-deps`.
+```bash
+npm install --legacy-peer-deps
+```
 
-### 2. Notifications not firing on Android
+### Notifications not firing on Android
 
-- **Cause:** Battery optimization often kills background processes.
-- **Fix:** This app requests `SCHEDULE_EXACT_ALARM` permissions. Ensure you grant it notifications access when prompted on the first launch.
+Battery optimization can kill background processes. Make sure to grant the `SCHEDULE_EXACT_ALARM` permission when prompted on first launch.
 
-### 3. "Port already in use"
+### "Port already in use"
 
-- **Cause:** Another Metro bundler instance is running.
-- **Fix:** Run `npx expo start --clear` to reset the cache and use a new port.
+Another Metro bundler instance is running. Clear the cache with:
+
+```bash
+npx expo start --clear
+```
 
 ## 📌 Planning & QA
 
-- See [Proposed Features & Bug Check Guide](./FEATURES_AND_BUG_CHECKLIST.md) for roadmap ideas and a reusable pre-release checklist.
-
-- https://discord.com/invite/czJjHCcA?utm_source=Discord%20Widget&utm_medium=Connect
+- See [Proposed Features & Bug Check Guide](./FEATURES_AND_BUG_CHECKLIST.md) for the roadmap and a reusable pre-release checklist.
+- Join the community on [Discord](https://discord.com/invite/czJjHCcA?utm_source=Discord%20Widget&utm_medium=Connect).

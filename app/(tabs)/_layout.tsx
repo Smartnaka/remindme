@@ -9,8 +9,11 @@ export default function TabLayout() {
   const { colors } = useSettings();
   const insets = useSafeAreaInsets();
 
-  // On Android, ensure the tab bar sits above the system navigation bar
+  // Follow platform touch-target guidance:
+  // iOS tabs should be at least 44pt high, Android at least 48dp.
+  const minTabItemHeight = Platform.OS === "ios" ? 44 : 48;
   const androidBottomPadding = Math.max(insets.bottom, 8);
+  const iosBottomPadding = Math.max(insets.bottom, 12);
 
   return (
     <Tabs
@@ -22,13 +25,22 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.cardBackground,
           borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? 24 : androidBottomPadding,
-          height: Platform.OS === 'ios' ? 85 : Platform.OS === 'web' ? 65 : (60 + androidBottomPadding),
+          paddingTop: Platform.OS === "ios" ? 8 : 10,
+          paddingBottom: Platform.OS === "ios" ? iosBottomPadding : androidBottomPadding,
+          height:
+            Platform.OS === "ios"
+              ? 49 + iosBottomPadding
+              : Platform.OS === "web"
+                ? 68
+                : 56 + androidBottomPadding,
+        },
+        tabBarItemStyle: {
+          minHeight: minTabItemHeight,
+          paddingHorizontal: 6,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600' as const,
+          fontWeight: "600" as const,
           marginTop: 4,
         },
       }}

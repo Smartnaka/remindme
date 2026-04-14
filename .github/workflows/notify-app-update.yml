@@ -41,16 +41,7 @@ jobs:
         run: |
           echo "Sending app update notifications..."
 
-          BASE_URL="${API_URL%/}"
-          if [[ "$BASE_URL" == */api/notify-app-update ]]; then
-            ENDPOINT="$BASE_URL"
-          else
-            ENDPOINT="$BASE_URL/api/notify-app-update"
-          fi
-
-          echo "Endpoint: $ENDPOINT"
-
-          RESPONSE=$(curl -L --max-redirs 5 -X POST "$ENDPOINT" \
+          RESPONSE=$(curl -X POST "$API_URL/api/notify-app-update" \
             -H "Content-Type: application/json" \
             -H "x-github-actions-secret: $APP_ACTIONS_SECRET" \
             -d '{
@@ -59,7 +50,7 @@ jobs:
               "branch": "${{ inputs.branch }}"
             }' \
             -w "\nHTTP_STATUS:%{http_code}" \
-            -sS)
+            -s)
 
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d':' -f2)
           BODY=$(echo "$RESPONSE" | sed '/HTTP_STATUS/d')

@@ -55,8 +55,7 @@ Add these repository secrets:
 - `APP_ACTIONS_SECRET`
   - Random long secret string; same value must exist in backend env.
 - `API_URL`
-  - Base URL for backend, e.g. `https://api.remindme.app` (no trailing slash preferred).
-  - If you store a full endpoint URL by mistake, workflow now normalizes it automatically.
+  - Base URL for backend, e.g. `https://api.remindme.app`.
 
 ### Verify workflows are present
 

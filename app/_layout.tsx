@@ -19,6 +19,8 @@ import { StudyTimerProvider } from "@/contexts/StudyTimerContext";
 import { AlertProvider } from "@/contexts/AlertContext";
 import CustomAlert from "@/components/CustomAlert";
 import OnboardingCarousel from "@/components/OnboardingCarousel";
+import { AppUpdateProvider } from "@/contexts/AppUpdateContext";
+import useLinking from "@/hooks/useLinking";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,6 +54,7 @@ try {
 
 function RootLayoutNav() {
   const { theme, colors, settings, updateSettings, isLoading: isSettingsLoading } = useSettings();
+  useLinking();
 
   // Request permissions once onboarded (or passively if already onboarded)
   useEffect(() => {
@@ -166,20 +169,22 @@ function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
               <SettingsProvider>
-              <AlertProvider>
-                <LectureProvider>
-                  <ExamProvider>
-                    <StudyTimerProvider>
-                      <>
-                        <RootLayoutNav />
-                        <NotificationBanner />
-                        <CustomAlert />
-                      </>
-                    </StudyTimerProvider>
-                  </ExamProvider>
-                </LectureProvider>
-              </AlertProvider>
-            </SettingsProvider>
+                <AlertProvider>
+                  <LectureProvider>
+                    <ExamProvider>
+                      <StudyTimerProvider>
+                        <AppUpdateProvider>
+                          <>
+                            <RootLayoutNav />
+                            <NotificationBanner />
+                            <CustomAlert />
+                          </>
+                        </AppUpdateProvider>
+                      </StudyTimerProvider>
+                    </ExamProvider>
+                  </LectureProvider>
+                </AlertProvider>
+              </SettingsProvider>
             </SafeAreaProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

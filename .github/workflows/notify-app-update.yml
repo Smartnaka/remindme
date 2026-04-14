@@ -1,0 +1,65 @@
+name: Notify App Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Notification message to send to users
+        required: true
+        type: string
+        default: A new update is available. Restart the app to get the latest improvements.
+      platform:
+        description: Platform (android, ios, or all)
+        required: true
+        type: string
+        default: android
+      branch:
+        description: Update branch
+        required: true
+        type: string
+        default: preview
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.APP_ACTIONS_SECRET }}" ]; then
+            echo "❌ APP_ACTIONS_SECRET is missing"
+            exit 1
+          fi
+          if [ -z "${{ secrets.API_URL }}" ]; then
+            echo "❌ API_URL is missing"
+            exit 1
+          fi
+
+      - name: Send notification to users
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          APP_ACTIONS_SECRET: ${{ secrets.APP_ACTIONS_SECRET }}
+        run: |
+          echo "Sending app update notifications..."
+
+          RESPONSE=$(curl -X POST "$API_URL/api/notify-app-update" \
+            -H "Content-Type: application/json" \
+            -H "x-github-actions-secret: $APP_ACTIONS_SECRET" \
+            -d '{
+              "message": "${{ inputs.message }}",
+              "platform": "${{ inputs.platform }}",
+              "branch": "${{ inputs.branch }}"
+            }' \
+            -w "\nHTTP_STATUS:%{http_code}" \
+            -s)
+
+          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d':' -f2)
+          BODY=$(echo "$RESPONSE" | sed '/HTTP_STATUS/d')
+
+          echo "Response: $BODY"
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Successfully sent update notifications"
+          else
+            echo "❌ Failed to send notifications (HTTP $HTTP_STATUS)"
+            exit 1
+          fi

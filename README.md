@@ -131,6 +131,16 @@ A modern, intuitive mobile application built with **React Native** and **Expo** 
 | `npm run web` | Start and open in the browser |
 | `npm test` | Run the Jest test suite |
 
+## 🔄 OTA CI/CD (EAS + Push Notifications)
+
+A production-ready OTA update + user-notification flow has been added:
+
+- GitHub workflow publishes OTA update to the `preview` branch on push to `main`
+- Follow-up workflow calls your backend to broadcast update notifications
+- App listens for update notification taps and prompts users to install updates in-app
+
+See setup + backend instructions in [docs/expo-ota-cicd.md](./docs/expo-ota-cicd.md).
+
 ## 🧪 Troubleshooting
 
 ### `ERESOLVE` / peer dependency error

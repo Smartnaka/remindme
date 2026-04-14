@@ -1,47 +1,61 @@
 name: EAS Update
 
 on:
-
   push:
-
     branches:
-
       - main
 
 jobs:
-
   eas-update:
-
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     steps:
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "❌ EXPO_TOKEN is missing"
+            exit 1
+          fi
 
       - name: Checkout repository
-
         uses: actions/checkout@v4
 
       - name: Set up Node.js
-
         uses: actions/setup-node@v4
-
         with:
-
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
-
         run: npm ci
 
-      - name: Set up Expo and run EAS Update
-
+      - name: Setup EAS
         uses: expo/expo-github-action@v8
-
         with:
-
           eas-version: latest
-
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Publish update
+      - name: Publish EAS update
+        env:
+          EAS_SKIP_AUTO_FINGERPRINT: "1"
+        run: eas update --branch preview --platform android --message "Auto-update from GitHub Action" --non-interactive
 
-        run: eas update --branch preview --message "OTA update" --non-interactive
+      - name: Trigger notification workflow
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "notify-app-update.yml",
+              ref: "main",
+              inputs: {
+                message: "A new version of RemindMe is available. Tap to update now.",
+                platform: "android",
+                branch: "preview"
+              }
+            });

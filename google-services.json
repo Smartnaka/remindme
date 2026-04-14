@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "797526786980",
+    "project_id": "remindme-455c5",
+    "storage_bucket": "remindme-455c5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797526786980:android:0eca313c812366d612b731",
+        "android_client_info": {
+          "package_name": "app.remindme.remindme"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkf7Eei9NeoiTe1KjJ9I0P2k6NhTGTE5Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

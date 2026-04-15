@@ -260,6 +260,7 @@ export default function SettingsScreen() {
                 </View>
 
                 <Text style={styles.versionText}>RemindMe v{Constants.expoConfig?.version || '1.0.0'}</Text>
+                <Text style={styles.builtByText}>Built by Adeoti Israel</Text>
 
             </ScrollView>
 
@@ -448,6 +449,14 @@ const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet
         fontFamily: 'Inter_400Regular',
         fontSize: 13,
         marginTop: 32,
+    },
+    builtByText: {
+        textAlign: 'center',
+        color: colors.textMuted,
+        fontFamily: 'Inter_400Regular',
+        fontSize: 13,
+        marginTop: 4,
+        marginBottom: 8,
     },
     modalOverlay: {
         flex: 1,

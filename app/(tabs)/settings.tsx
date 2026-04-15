@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Modal, Switch, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Modal, Switch, Linking, ActivityIndicator } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,6 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import Constants from 'expo-constants';
 import { useCustomAlert } from '@/contexts/AlertContext';
+import { useAppUpdate } from '@/contexts/AppUpdateContext';
 
 const NOTIFICATION_OPTIONS = [5, 10, 15, 30, 45, 60];
 const EXAM_NOTIFICATION_OPTIONS = [15, 30, 60, 120, 1440];
@@ -22,6 +23,7 @@ export default function SettingsScreen() {
     const { lectures, clearLectures, clearAssignments } = useLectures();
     const { clearExams } = useExams();
     const { showAlert } = useCustomAlert();
+    const { checkForUpdates, isChecking } = useAppUpdate();
     const { bottom: bottomInset } = useSafeAreaInsets();
     
     const [manageDataModalVisible, setManageDataModalVisible] = useState(false);
@@ -257,9 +259,20 @@ export default function SettingsScreen() {
                 <Text style={styles.sectionTitle}>About</Text>
                 <View style={styles.card}>
                     <SettingRow label="Feedback & Bug Report" onPress={() => Linking.openURL('mailto:support@remindme.app')} rightElement={<Ionicons name="open-outline" size={18} color={colors.textMuted} />} />
+                    <View style={styles.divider} />
+                    <SettingRow
+                        label="Check for Updates"
+                        onPress={() => checkForUpdates(true).catch(console.error)}
+                        rightElement={
+                            isChecking
+                                ? <ActivityIndicator size="small" color={colors.textMuted} />
+                                : <Ionicons name="refresh-outline" size={18} color={colors.textMuted} />
+                        }
+                    />
                 </View>
 
                 <Text style={styles.versionText}>RemindMe v{Constants.expoConfig?.version || '1.0.0'}</Text>
+                <Text style={styles.builtByText}>Built by Smartnaka</Text>
 
             </ScrollView>
 
@@ -448,6 +461,15 @@ const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet
         fontFamily: 'Inter_400Regular',
         fontSize: 13,
         marginTop: 32,
+    },
+    builtByText: {
+        textAlign: 'center',
+        color: colors.textMuted,
+        fontFamily: 'Inter_400Regular',
+        fontSize: 12,
+        marginTop: 4,
+        marginBottom: 8,
+        opacity: 0.7,
     },
     modalOverlay: {
         flex: 1,

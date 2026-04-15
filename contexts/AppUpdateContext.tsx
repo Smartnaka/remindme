@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import * as Updates from "expo-updates";
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   StyleSheet,
   Text,
@@ -31,7 +32,7 @@ export const AppUpdateProvider = ({ children }: { children: React.ReactNode }) =
   const [isUpdating, setIsUpdating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const checkForUpdates = useCallback(async (_alertFeedback: boolean = false) => {
+  const checkForUpdates = useCallback(async (alertFeedback: boolean = false) => {
     if (__DEV__) return;
 
     setIsChecking(true);
@@ -39,9 +40,14 @@ export const AppUpdateProvider = ({ children }: { children: React.ReactNode }) =
       const update = await Updates.checkForUpdateAsync();
       if (update.isAvailable) {
         setIsModalOpen(true);
+      } else if (alertFeedback) {
+        Alert.alert("Up to date", "You're already on the latest version of RemindMe.");
       }
     } catch (error) {
       console.warn("[AppUpdate] Failed to check for updates", error);
+      if (alertFeedback) {
+        Alert.alert("Update check failed", "Could not check for updates. Please try again later.");
+      }
     } finally {
       setIsChecking(false);
     }

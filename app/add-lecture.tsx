@@ -159,10 +159,6 @@ export default function AddLectureScreen() {
   };
 
   const handleStartTimeChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowStartPicker(false);
-    }
-
     if (selectedDate) {
       setStartTime(dateToTimeString(selectedDate));
       if (Platform.OS !== "web") {
@@ -172,10 +168,6 @@ export default function AddLectureScreen() {
   };
 
   const handleEndTimeChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowEndPicker(false);
-    }
-
     if (selectedDate) {
       setEndTime(dateToTimeString(selectedDate));
       if (Platform.OS !== "web") {

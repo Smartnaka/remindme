@@ -5,7 +5,6 @@ import { useRouter, Stack, useNavigation, useLocalSearchParams } from 'expo-rout
 import { useSettings } from '@/contexts/SettingsContext';
 import { useExams } from '@/contexts/ExamContext';
 import { Ionicons } from '@expo/vector-icons';
-import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
 import { useCustomAlert } from '@/contexts/AlertContext';
@@ -99,36 +98,6 @@ export default function AddExamScreen() {
         }
     };
 
-    const showAndroidDatePicker = () => {
-        DateTimePickerAndroid.open({
-            value: date,
-            mode: 'date',
-            onChange: (_, selectedDate) => {
-                if (selectedDate) {
-                    const newDate = new Date(selectedDate);
-                    // Preserve time
-                    newDate.setHours(date.getHours());
-                    newDate.setMinutes(date.getMinutes());
-
-                    // Show Time Picker immediately after
-                    DateTimePickerAndroid.open({
-                        value: newDate,
-                        mode: 'time',
-                        is24Hour: false,
-                        onChange: (_, selectedTime) => {
-                            if (selectedTime) {
-                                const finalDate = new Date(newDate);
-                                finalDate.setHours(selectedTime.getHours());
-                                finalDate.setMinutes(selectedTime.getMinutes());
-                                setDate(finalDate);
-                            }
-                        }
-                    });
-                }
-            }
-        });
-    };
-
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <Stack.Screen options={{ headerShown: false }} />
@@ -192,7 +161,7 @@ export default function AddExamScreen() {
                                 }}
                             />
                         </View>
-                    ) : Platform.OS === 'ios' ? (
+                    ) : (
                         <View style={styles.datePickerCard}>
                             <DateTimePicker
                                 value={date}
@@ -203,22 +172,6 @@ export default function AddExamScreen() {
                                 textColor={colors.textDark}
                             />
                         </View>
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.androidDateButton}
-                            onPress={showAndroidDatePicker}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons name="calendar" size={20} color={colors.primary} />
-                            <Text style={styles.androidDateText}>
-                                {date.toLocaleDateString('en-US', {
-                                    month: 'short', day: 'numeric', year: 'numeric',
-                                    hour: 'numeric', minute: '2-digit'
-                                })}
-                            </Text>
-                            <View style={{ flex: 1 }} />
-                            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                        </TouchableOpacity>
                     )}
                 </View>
 
@@ -326,18 +279,6 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         borderRadius: 16,
         padding: 16,
         overflow: 'hidden',
-    },
-    androidDateButton: {
-        backgroundColor: colors.cardBackground,
-        borderRadius: 12,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    androidDateText: {
-        fontSize: 16,
-        color: colors.textDark,
-        marginLeft: 12,
     },
     pastDateWarning: {
         flexDirection: 'row',

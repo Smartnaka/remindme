@@ -40,7 +40,6 @@ export default function SettingsScreen() {
     };
 
     const handleSummaryTimeChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') setShowSummaryPicker(false);
         if (selectedDate) {
             const hours = selectedDate.getHours().toString().padStart(2, '0');
             const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
@@ -238,7 +237,7 @@ export default function SettingsScreen() {
                             <View style={styles.divider} />
                             <SettingRow label="Summary Time" value={formatTime(settings.dailySummaryTime || '07:00')} onPress={() => setShowSummaryPicker(true)} />
                             {showSummaryPicker && (
-                                <DateTimePicker value={getSummaryDate()} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleSummaryTimeChange} />
+                                <DateTimePicker value={getSummaryDate()} mode="time" display="spinner" onChange={handleSummaryTimeChange} />
                             )}
                         </>
                     )}

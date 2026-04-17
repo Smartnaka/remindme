@@ -15,134 +15,116 @@ interface LiveLectureCardProps {
 export default function LiveLectureCard({ lecture, onPress }: LiveLectureCardProps) {
     const { colors } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
+    const accentColor = lecture.color || DEFAULT_LECTURE_COLOR;
 
     return (
         <TouchableOpacity
             style={styles.container}
             onPress={onPress}
-            activeOpacity={0.9}
+            activeOpacity={0.75}
         >
-            {/* Color Accent Bar */}
-            <View style={[styles.colorAccent, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
+            {/* Left color accent stripe */}
+            <View style={[styles.stripe, { backgroundColor: accentColor }]} />
 
-            <View style={styles.header}>
-                <View style={styles.badge}>
-                    <Ionicons name="radio-outline" size={14} color="#FFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.badgeText}>LIVE NOW</Text>
-                </View>
-                <View style={styles.iconContainer}>
-                    <Ionicons name="school" size={24} color={colors.primary} />
-                </View>
-            </View>
-
-            <Text style={styles.courseName} numberOfLines={2}>
-                {lecture.courseName}
-            </Text>
-
-            <View style={styles.detailsContainer}>
-                {lecture.location && (
-                    <View style={styles.row}>
-                        <Ionicons name="location-sharp" size={18} color={colors.textDark} style={{ opacity: 0.7 }} />
-                        <Text style={styles.detailText}>{lecture.location}</Text>
+            <View style={styles.body}>
+                {/* Live badge row */}
+                <View style={styles.badgeRow}>
+                    <View style={[styles.badge, { backgroundColor: accentColor + '20' }]}>
+                        <View style={[styles.pulseDot, { backgroundColor: accentColor }]} />
+                        <Text style={[styles.badgeText, { color: accentColor }]}>LIVE NOW</Text>
                     </View>
-                )}
+                </View>
 
-                <View style={styles.row}>
-                    <Ionicons name="time" size={18} color={colors.textDark} style={{ opacity: 0.7 }} />
+                {/* Course name */}
+                <Text style={styles.courseName} numberOfLines={2}>{lecture.courseName}</Text>
+
+                {/* Details */}
+                <View style={styles.detailsRow}>
+                    <Ionicons name="time-outline" size={14} color={colors.textMuted} />
                     <Text style={styles.detailText}>
                         {formatTimeAMPM(lecture.startTime)} – {formatTimeAMPM(lecture.endTime)}
                     </Text>
+                    {lecture.location ? (
+                        <>
+                            <Text style={styles.detailSeparator}>·</Text>
+                            <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                            <Text style={styles.detailText}>{lecture.location}</Text>
+                        </>
+                    ) : null}
                 </View>
             </View>
 
-            {/* Decorative circle */}
-            <View style={styles.decorativeCircle} />
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} style={styles.chevron} />
         </TouchableOpacity>
     );
 }
 
 const createStyles = (colors: ColorTheme) => StyleSheet.create({
     container: {
-        backgroundColor: colors.primary + '15', // Ultra light green background (15% opacity)
-        borderRadius: 24,
-        padding: 24,
-        marginBottom: 24,
-        borderWidth: 1,
-        borderColor: colors.primary,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    colorAccent: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: 5,
-        borderTopLeftRadius: 24,
-        borderBottomLeftRadius: 24,
-    },
-    header: {
+        backgroundColor: colors.cardBackground,
+        borderRadius: 16,
+        marginBottom: 8,
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 16,
+        alignItems: 'center',
+        overflow: 'hidden',
+        minHeight: 80,
+    },
+    stripe: {
+        width: 4,
+        alignSelf: 'stretch',
+    },
+    body: {
+        flex: 1,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        gap: 6,
+    },
+    badgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 2,
     },
     badge: {
-        backgroundColor: colors.primary, // Solid green
-        borderRadius: 20,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
         flexDirection: 'row',
         alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 20,
+        gap: 5,
+    },
+    pulseDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
     },
     badgeText: {
-        color: '#FFF',
+        fontSize: 11,
         fontFamily: 'Inter_700Bold',
-        fontSize: 12,
-        letterSpacing: 0.5,
-    },
-    iconContainer: {
-        width: 44,
-        height: 44,
-        backgroundColor: '#FFFFFF', // Constant white for cleanliness in light/dark
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
+        letterSpacing: 0.4,
     },
     courseName: {
-        fontSize: 24,
-        fontFamily: 'Inter_800ExtraBold',
+        fontSize: 17,
+        fontFamily: 'Inter_700Bold',
         color: colors.textDark,
-        marginBottom: 20,
-        lineHeight: 30,
+        lineHeight: 22,
     },
-    detailsContainer: {
-        gap: 12,
-    },
-    row: {
+    detailsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 5,
     },
     detailText: {
-        fontSize: 16,
-        color: colors.textDark,
-        fontFamily: 'Inter_500Medium',
-        opacity: 0.9,
+        fontSize: 13,
+        color: colors.textMuted,
+        fontFamily: 'Inter_400Regular',
     },
-    decorativeCircle: {
-        position: 'absolute',
-        bottom: -40,
-        right: -40,
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        backgroundColor: colors.primary,
-        opacity: 0.1,
-        zIndex: -1,
-    }
+    detailSeparator: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginHorizontal: 2,
+    },
+    chevron: {
+        marginRight: 14,
+        opacity: 0.4,
+    },
 });

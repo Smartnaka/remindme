@@ -15,31 +15,37 @@ export default function useLinking() {
       response: Notifications.NotificationResponse | null | undefined,
       isFromListener: boolean = false
     ) => {
-      if (!response) return;
+      try {
+        if (!response) return;
 
-      const actionType = response.notification.request.content.data?.actionType;
-      if (!isUpdateAction(actionType)) return;
+        const actionType = response.notification.request.content.data?.actionType;
+        if (!isUpdateAction(actionType)) return;
 
-      const notificationId = response.notification.request.identifier;
+        const notificationId = response.notification.request.identifier;
 
-      if (!isFromListener) {
-        // Deduplicate stale responses from getLastNotificationResponseAsync: after
-        // the user taps an update notification the response is persisted by Expo
-        // and would re-trigger checkForUpdates on every subsequent app open.  We
-        // store the last-handled ID and skip it to avoid that redundancy.  Live
-        // taps via addNotificationResponseReceivedListener (isFromListener=true)
-        // always bypass this check, so new notification taps always work.
-        const lastHandledId = await AsyncStorage.getItem(LAST_HANDLED_NOTIFICATION_KEY);
-        if (lastHandledId === notificationId) return;
-        await AsyncStorage.setItem(LAST_HANDLED_NOTIFICATION_KEY, notificationId);
+        if (!isFromListener) {
+          // Deduplicate stale responses from getLastNotificationResponseAsync: after
+          // the user taps an update notification the response is persisted by Expo
+          // and would re-trigger checkForUpdates on every subsequent app open.  We
+          // store the last-handled ID and skip it to avoid that redundancy.  Live
+          // taps via addNotificationResponseReceivedListener (isFromListener=true)
+          // always bypass this check, so new notification taps always work.
+          const lastHandledId = await AsyncStorage.getItem(LAST_HANDLED_NOTIFICATION_KEY);
+          if (lastHandledId === notificationId) return;
+          await AsyncStorage.setItem(LAST_HANDLED_NOTIFICATION_KEY, notificationId);
+        }
+
+        await checkForUpdates(true);
+      } catch (error) {
+        console.error("Failed to handle notification response", error);
       }
-
-      await checkForUpdates(true);
     };
 
-    void Notifications.getLastNotificationResponseAsync().then((response) =>
-      handleNotificationResponse(response, false)
-    );
+    void Notifications.getLastNotificationResponseAsync()
+      .then((response) => handleNotificationResponse(response, false))
+      .catch((error) => {
+        console.error("Failed to get last notification response", error);
+      });
 
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       void handleNotificationResponse(response, true);

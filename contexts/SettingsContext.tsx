@@ -109,14 +109,14 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         });
     }, []);
 
-    const toggleTheme = async () => {
+    const toggleTheme = useCallback(async () => {
         // Cycle: Automatic -> Light -> Dark -> Automatic
         const modes: ('automatic' | 'light' | 'dark')[] = ['automatic', 'light', 'dark'];
         const currentIndex = modes.indexOf(settings.themeMode);
         const nextMode = modes[(currentIndex + 1) % modes.length];
 
         await updateSettings({ themeMode: nextMode });
-    }
+    }, [settings.themeMode, updateSettings]);
 
     return (
         <SettingsContext.Provider value={{ settings, updateSettings, isLoading, colors, toggleTheme, theme: activeTheme }}>

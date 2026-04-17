@@ -240,176 +240,215 @@ export default function WeeklyScheduleScreen() {
   );
 }
 
-const createStyles = (colors: ColorTheme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.cardBackground === '#F8F9FA' ? '#F2F2F7' : '#000000',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 8,
-  },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: colors.textDark,
-    letterSpacing: -0.5,
-    fontFamily: 'Inter_800ExtraBold',
-  },
+const createStyles = (colors: ColorTheme) => {
+  const isDark = colors.background === '#000000';
 
-  // Date strip
-  dateStrip: {
-    flexGrow: 0,
-  },
-  dateStripContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    gap: 8,
-  },
-  datePill: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    backgroundColor: colors.cardBackground,
-    minWidth: 52,
-  },
-  datePillSelected: {
-    backgroundColor: colors.primary,
-  },
-  datePillDay: {
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    color: colors.textMuted,
-    letterSpacing: 0.3,
-  },
-  datePillDaySelected: {
-    color: '#FFFFFF',
-  },
-  datePillNum: {
-    fontSize: 17,
-    fontFamily: 'Inter_700Bold',
-    color: colors.textDark,
-    marginTop: 2,
-  },
-  datePillNumSelected: {
-    color: '#FFFFFF',
-  },
-  todayDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-    marginTop: 4,
-  },
-  todayDotSelected: {
-    backgroundColor: '#FFFFFF',
-  },
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDark ? '#000000' : '#F2F2F7',
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 12,
+    },
+    headerTitle: {
+      fontSize: 34,
+      fontWeight: '800',
+      color: colors.textDark,
+      letterSpacing: -0.5,
+      fontFamily: 'Inter_700Bold',
+    },
 
-  // Day label row
-  dayLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  dayLabelText: {
-    fontSize: 20,
-    fontFamily: 'Inter_700Bold',
-    color: colors.textDark,
-  },
-  classCountText: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: colors.textMuted,
-  },
+    // Date strip
+    dateStrip: {
+      flexGrow: 0,
+    },
+    dateStripContent: {
+      paddingHorizontal: 16,
+      paddingTop: 4,
+      paddingBottom: 12,
+      gap: 8,
+    },
+    datePill: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 16,
+      backgroundColor: colors.cardBackground,
+      minWidth: 52,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: isDark ? 0.25 : 0.06,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    datePillSelected: {
+      backgroundColor: colors.primary,
+      ...Platform.select({
+        ios: {
+          shadowOpacity: isDark ? 0.4 : 0.2,
+          shadowRadius: 6,
+        },
+        android: {
+          elevation: 4,
+        },
+      }),
+    },
+    datePillDay: {
+      fontSize: 11,
+      fontFamily: 'Inter_600SemiBold',
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+    },
+    datePillDaySelected: {
+      color: '#FFFFFF',
+    },
+    datePillNum: {
+      fontSize: 18,
+      fontFamily: 'Inter_700Bold',
+      color: colors.textDark,
+      marginTop: 2,
+    },
+    datePillNumSelected: {
+      color: '#FFFFFF',
+    },
+    todayDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: colors.primary,
+      marginTop: 4,
+    },
+    todayDotSelected: {
+      backgroundColor: '#FFFFFF',
+    },
 
-  // Scroll / content
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-  },
+    // Day label row
+    dayLabelRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 12,
+    },
+    dayLabelText: {
+      fontSize: 22,
+      fontFamily: 'Inter_700Bold',
+      color: colors.textDark,
+      letterSpacing: -0.3,
+    },
+    classCountText: {
+      fontSize: 13,
+      fontFamily: 'Inter_400Regular',
+      color: colors.textMuted,
+    },
 
-  // Empty state
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 60,
-    gap: 8,
-  },
-  emptyStateEmoji: {
-    fontSize: 40,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter_600SemiBold',
-    color: colors.textDark,
-  },
-  emptyStateSubtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
+    // Scroll / content
+    scrollView: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: 16,
+      paddingTop: 8,
+    },
 
-  // Cards
-  cardList: {
-    gap: 0,
-  },
-  cardGap: {
-    height: 10,
-  },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  cardAccent: {
-    width: 4,
-    borderTopLeftRadius: 14,
-    borderBottomLeftRadius: 14,
-  },
-  cardBody: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    gap: 4,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardCourseName: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: colors.textDark,
-    flex: 1,
-    marginRight: 4,
-  },
-  cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaIcon: {
-    marginTop: 1,
-  },
-  cardTime: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: colors.textMuted,
-  },
-  cardLocation: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: colors.textMuted,
-  },
-});
+    // Empty state
+    emptyState: {
+      alignItems: 'center',
+      paddingTop: 80,
+      gap: 12,
+    },
+    emptyStateEmoji: {
+      fontSize: 48,
+    },
+    emptyStateTitle: {
+      fontSize: 18,
+      fontFamily: 'Inter_600SemiBold',
+      color: colors.textDark,
+      letterSpacing: -0.2,
+    },
+    emptyStateSubtitle: {
+      fontSize: 14,
+      fontFamily: 'Inter_400Regular',
+      color: colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+
+    // Cards
+    cardList: {
+      gap: 0,
+    },
+    cardGap: {
+      height: 12,
+    },
+    card: {
+      flexDirection: 'row',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 16,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDark ? 0.3 : 0.08,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 3,
+        },
+      }),
+    },
+    cardAccent: {
+      width: 5,
+      borderTopLeftRadius: 16,
+      borderBottomLeftRadius: 16,
+    },
+    cardBody: {
+      flex: 1,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      gap: 6,
+    },
+    cardTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    cardCourseName: {
+      fontSize: 17,
+      fontFamily: 'Inter_700Bold',
+      color: colors.textDark,
+      flex: 1,
+      marginRight: 4,
+      letterSpacing: -0.2,
+    },
+    cardMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    metaIcon: {
+      marginTop: 1,
+    },
+    cardTime: {
+      fontSize: 13,
+      fontFamily: 'Inter_400Regular',
+      color: isDark ? '#AEAEB2' : '#636366',
+    },
+    cardLocation: {
+      fontSize: 13,
+      fontFamily: 'Inter_400Regular',
+      color: isDark ? '#AEAEB2' : '#636366',
+    },
+  });
+};

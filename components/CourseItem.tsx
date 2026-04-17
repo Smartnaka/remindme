@@ -18,72 +18,38 @@ export default memo(function CourseItem({ lecture, onPress, onLongPress, isNext 
     const { colors } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
-    // Determine icon based on simple logic or random for variety
-    const getIconName = (name: string) => {
-        const lower = name.toLowerCase();
-        if (lower.includes('math')) return 'calculator-outline';
-        if (lower.includes('art')) return 'color-palette-outline';
-        if (lower.includes('history')) return 'book-outline';
-        if (lower.includes('computer') || lower.includes('code')) return 'terminal-outline';
-        if (lower.includes('science')) return 'flask-outline';
-        if (lower.includes('market') || lower.includes('business')) return 'megaphone-outline';
-        return 'school-outline';
-    };
-
     return (
         <TouchableOpacity
             style={styles.container}
             onPress={onPress}
             onLongPress={onLongPress}
-            activeOpacity={0.7}
+            activeOpacity={0.6}
         >
-            {/* Color Accent Bar */}
-            <View style={[styles.colorAccent, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
-
-            <View style={[styles.iconBox, isNext && styles.iconBoxNext]}>
-                <Ionicons
-                    name={getIconName(lecture.courseName)}
-                    size={24}
-                    color={isNext ? colors.primary : colors.textMuted}
-                />
-            </View>
+            {/* Color dot indicator */}
+            <View style={[styles.colorDot, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
 
             <View style={styles.content}>
                 <View style={styles.headerRow}>
                     <Text style={styles.courseName} numberOfLines={1}>{lecture.courseName}</Text>
-                    {isNext && (
-                        <View style={styles.nextBadge}>
-                            <Text style={styles.nextText}>NEXT</Text>
-                        </View>
-                    )}
-                </View>
-
-                <View style={styles.detailsRow}>
-                    {lecture.location && (
-                        <View style={styles.metaItem}>
-                            <Ionicons name="location-outline" size={12} color={colors.textMuted} />
-                            <Text style={styles.metaText} numberOfLines={1}>{lecture.location}</Text>
-                        </View>
-                    )}
-                </View>
-
-                <View style={[styles.metaItem, { marginTop: 4 }]}>
-                    <Ionicons name="time-outline" size={12} color={colors.textMuted} />
-                    <Text style={styles.metaText}>
-                        {formatTimeAMPM(lecture.startTime)} – {formatTimeAMPM(lecture.endTime)}
+                    <Text style={styles.timeText}>
+                        {formatTimeAMPM(lecture.startTime)}
                     </Text>
+                </View>
+
+                <View style={styles.subtitleRow}>
+                    {lecture.location ? (
+                        <Text style={styles.subtitleText} numberOfLines={1}>
+                            {lecture.location} · {formatTimeAMPM(lecture.startTime)}–{formatTimeAMPM(lecture.endTime)}
+                        </Text>
+                    ) : (
+                        <Text style={styles.subtitleText}>
+                            {formatTimeAMPM(lecture.startTime)}–{formatTimeAMPM(lecture.endTime)}
+                        </Text>
+                    )}
                 </View>
             </View>
 
-            {isNext ? null : (
-                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={{ opacity: 0.5 }} />
-            )}
-
-            {isNext && (
-                // If next, simpler visual or maybe a specific button if the design calls for it
-                // but per design, just the badge is usually enough
-                <View />
-            )}
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={styles.chevron} />
         </TouchableOpacity>
     );
 });
@@ -93,36 +59,15 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.cardBackground,
-        padding: 16,
-        borderRadius: 20,
-        marginBottom: 16,
-        gap: 16,
-        // Subtle shadow
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        paddingVertical: 13,
+        paddingHorizontal: 16,
+        gap: 14,
     },
-    colorAccent: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: 4,
-        borderTopLeftRadius: 20,
-        borderBottomLeftRadius: 20,
-    },
-    iconBox: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: colors.background,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    iconBoxNext: {
-        backgroundColor: colors.primary + '15', // Light tint
+    colorDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        flexShrink: 0,
     },
     content: {
         flex: 1,
@@ -132,39 +77,30 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 4,
+        marginBottom: 2,
     },
     courseName: {
-        fontSize: 16,
-        fontFamily: 'Inter_700Bold',
+        fontSize: 15,
+        fontFamily: 'Inter_600SemiBold',
         color: colors.textDark,
         flex: 1,
         marginRight: 8,
     },
-    nextBadge: {
-        backgroundColor: colors.primary,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 6,
+    timeText: {
+        fontSize: 13,
+        fontFamily: 'Inter_400Regular',
+        color: colors.textMuted,
     },
-    nextText: {
-        color: colors.primary === '#00ff00' ? '#000' : '#FFF',
-        fontSize: 10,
-        fontFamily: 'Inter_800ExtraBold',
-    },
-    detailsRow: {
+    subtitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
     },
-    metaItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    metaText: {
+    subtitleText: {
         fontSize: 13,
         color: colors.textMuted,
-        fontFamily: 'Inter_500Medium',
-    }
+        fontFamily: 'Inter_400Regular',
+    },
+    chevron: {
+        opacity: 0.3,
+    },
 });

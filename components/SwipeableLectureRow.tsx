@@ -72,7 +72,6 @@ export default memo(function SwipeableLectureRow({ children, onDelete }: Swipeab
 const styles = StyleSheet.create({
     rightActionContainer: {
         width: 80,
-        marginBottom: 16, // Matches CourseItem margin
         marginLeft: 8,
     },
     rightAction: {
@@ -80,7 +79,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FF3B30', // System Red
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 20, // Matches CourseItem radius
+        borderRadius: 10,
     },
     deleteButton: {
         width: '100%',

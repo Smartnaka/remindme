@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -58,10 +58,10 @@ export default function WeeklyScheduleScreen() {
   const { lectures, deleteLecture, restoreLecture } = useLectures();
   const { colors } = useSettings();
 
-  const today = useMemo(() => new Date(), []);
-  const todayISO = useMemo(() => toISODate(today), [today]);
+  const today = new Date();
+  const todayISO = toISODate(today);
 
-  const dateList = useMemo(() => buildDateList(today), [today]);
+  const dateList = useMemo(() => buildDateList(today), [todayISO]);
 
   const [selectedISO, setSelectedISO] = useState<string>(todayISO);
 
@@ -70,8 +70,6 @@ export default function WeeklyScheduleScreen() {
   const [deletedLecture, setDeletedLecture] = useState<Lecture | null>(null);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
-
-  const dateStripRef = useRef<ScrollView>(null);
 
   const selectedDate = useMemo(
     () => dateList.find(d => toISODate(d) === selectedISO) ?? today,
@@ -124,7 +122,6 @@ export default function WeeklyScheduleScreen() {
 
       {/* Horizontal date strip */}
       <ScrollView
-        ref={dateStripRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.dateStripContent}

@@ -116,7 +116,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     iconBox: {
         width: 50,
         height: 50,
-        borderRadius: 16,
+        borderRadius: 25,
         backgroundColor: colors.background,
         alignItems: 'center',
         justifyContent: 'center',

@@ -4,6 +4,21 @@ import { getDateForNextOccurrence } from '../../utils/dateTime';
 import * as Notifications from 'expo-notifications';
 import { Lecture } from '../../types/lecture';
 
+// Mock expo-constants
+jest.mock('expo-constants', () => ({
+    __esModule: true,
+    default: {
+        expoConfig: {
+            extra: {
+                eas: {
+                    projectId: 'test-project-id',
+                },
+            },
+        },
+        easConfig: { projectId: 'test-project-id' },
+    },
+}));
+
 // Mock dependencies
 jest.mock('expo-notifications', () => ({
     scheduleNotificationAsync: jest.fn(() => Promise.resolve('test-notification-id')),

@@ -57,6 +57,18 @@ Add these repository secrets:
 - `API_URL`
   - Base URL for backend, e.g. `https://api.remindme.app`.
 
+### Set EXPO_PUBLIC_API_URL in eas.json
+
+In `eas.json`, under the `preview` (and `production`) profile `env`, set your backend URL:
+
+```json
+"env": {
+  "EXPO_PUBLIC_API_URL": "https://api.remindme.app"
+}
+```
+
+This bakes the backend URL into the app at build time so the app can register push tokens automatically when users grant notification permission.
+
 ### Verify workflows are present
 
 - `.github/workflows/eas-update.yml`
@@ -140,12 +152,44 @@ Install package in backend project:
 npm install expo-server-sdk
 ```
 
+### 4a) Token registration endpoint
+
+Add a route to receive and store push tokens from the app:
+
+`app/api/register-push-token/route.ts`
+
+```ts
+import { NextRequest, NextResponse } from "next/server";
+import { saveExpoPushToken } from "@/server/notifications";
+
+export async function POST(request: NextRequest) {
+  try {
+    const { token, platform } = await request.json();
+    if (!token || typeof token !== "string") {
+      return NextResponse.json({ error: "Invalid token" }, { status: 400 });
+    }
+    await saveExpoPushToken(token, platform);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to register token" }, { status: 500 });
+  }
+}
+```
+
+The app automatically calls this endpoint (at `EXPO_PUBLIC_API_URL/api/register-push-token`) each time the user grants notification permission **and** whenever the push token changes. Tokens are deduplicated in the app before sending, so re-registration only happens when the token rotates.
+
+### 4b) Notification service
+
 Add a notification service:
 
 ```ts
 import { Expo } from "expo-server-sdk";
 
 const expo = new Expo();
+
+export async function saveExpoPushToken(token: string, platform: string): Promise<void> {
+  // TODO: upsert into your DB by token value
+}
 
 export async function sendPushNotificationToAllUsers(payload: {
   title: string;
@@ -182,8 +226,9 @@ async function getAllExpoPushTokensFromDb(): Promise<string[]> {
 
 ### Token lifecycle checklist
 
-- Save Expo token when app registers notifications.
-- Upsert token by user/device.
+- ✅ App registers push token on first permission grant (automatic via `registerExpoPushToken`).
+- ✅ App re-registers only when the token changes (deduplicated via AsyncStorage).
+- Upsert token by device in the backend (use `token` as the unique key).
 - Mark invalid tokens inactive when Expo returns `DeviceNotRegistered`.
 
 ---

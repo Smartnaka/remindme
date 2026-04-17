@@ -20,7 +20,8 @@
       },
       "channel": "preview",
       "env": {
-        "EXPO_NO_HERMES_DEBUGGER": "1"
+        "EXPO_NO_HERMES_DEBUGGER": "1",
+        "EXPO_PUBLIC_API_URL": ""
       }
     },
     "production": {

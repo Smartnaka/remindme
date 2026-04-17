@@ -4,6 +4,7 @@ import { Assignment } from '@/types/assignment';
 import { getDateForNextOccurrence, parseTime } from './dateTime';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 // Conditional logger — only logs in development builds
 const log = __DEV__ ? console.log : () => {};
@@ -124,6 +125,57 @@ const registerNotificationCategories = async () => {
   ]);
 };
 
+const PUSH_TOKEN_STORAGE_KEY = '@expoPushToken';
+
+export const registerExpoPushToken = async (): Promise<void> => {
+  if (Platform.OS === 'web' || !Notifications) return;
+
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (!apiUrl) {
+    log('[Notifications] EXPO_PUBLIC_API_URL not configured, skipping push token registration');
+    return;
+  }
+
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (!hasNotificationAuthorization(status)) return;
+
+    const projectId: string | undefined =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      Constants.easConfig?.projectId;
+
+    if (!projectId) {
+      logError('[Notifications] EAS projectId not found, cannot register push token');
+      return;
+    }
+
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+    const token = tokenData.data;
+    if (!token) return;
+
+    const storedToken = await AsyncStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
+    if (storedToken === token) {
+      log('[Notifications] Push token unchanged, skipping registration');
+      return;
+    }
+
+    const response = await fetch(`${apiUrl}/api/register-push-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, platform: Platform.OS }),
+    });
+
+    if (response.ok) {
+      await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
+      log('[Notifications] Push token registered successfully');
+    } else {
+      logError('[Notifications] Failed to register push token, HTTP status:', response.status);
+    }
+  } catch (error) {
+    logError('[Notifications] Error registering push token:', error);
+  }
+};
+
 export const requestNotificationPermissions = async (): Promise<boolean> => {
   if (Platform.OS === 'web' || !Notifications) {
     log('[Notifications] Notifications not available, skipping permissions');
@@ -168,6 +220,7 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
 
     if (hasNotificationAuthorization(finalStatus)) {
       await registerNotificationCategories();
+      void registerExpoPushToken();
     }
     return hasNotificationAuthorization(finalStatus);
   } catch (error) {

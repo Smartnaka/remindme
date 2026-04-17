@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type AppUpdateContextType = {
   checkForUpdates: (alertFeedback?: boolean) => Promise<void>;
@@ -30,6 +31,7 @@ export const AppUpdateProvider = ({ children }: { children: React.ReactNode }) =
   const [isChecking, setIsChecking] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const checkForUpdates = useCallback(async (_alertFeedback: boolean = false) => {
     if (__DEV__) return;
@@ -98,7 +100,7 @@ export const AppUpdateProvider = ({ children }: { children: React.ReactNode }) =
         visible={isModalOpen}
         onRequestClose={() => setIsModalOpen(false)}
       >
-        <View style={styles.overlay}>
+        <View style={[styles.overlay, { paddingBottom: insets.bottom + 82 }]}>
           <View style={styles.card}>
             <Text style={styles.title}>Update available</Text>
             <Text style={styles.subtitle}>
@@ -134,7 +136,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.45)",
     justifyContent: "flex-end",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   card: {
     borderRadius: 20,

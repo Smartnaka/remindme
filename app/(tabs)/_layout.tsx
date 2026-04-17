@@ -5,6 +5,14 @@ import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/contexts/SettingsContext";
 
+// Base height of the interactive tab bar area (icon + label row), before
+// the device's bottom safe-area inset is added.
+const TAB_BAR_BASE_HEIGHT = Platform.select({
+  ios: 60,
+  android: 62,
+  default: 64, // web
+});
+
 export default function TabLayout() {
   const { colors } = useSettings();
   const insets = useSafeAreaInsets();
@@ -12,8 +20,17 @@ export default function TabLayout() {
   // Follow platform touch-target guidance:
   // iOS tabs should be at least 44pt high, Android at least 48dp.
   const minTabItemHeight = Platform.OS === "ios" ? 44 : 48;
-  const androidBottomPadding = Math.max(insets.bottom, 8);
-  const iosBottomPadding = Math.max(insets.bottom, 12);
+
+  // Bottom padding = safe-area inset so content never overlaps the home
+  // indicator (iOS) or the gesture navigation bar (Android).
+  // We deliberately do NOT force an artificial minimum so the tab bar
+  // doesn't over-pad on devices that report insets.bottom === 0
+  // (e.g. Android 3-button nav where the nav bar height is already
+  // accounted for by the system).
+  const bottomInset = insets.bottom;
+
+  // Total tab bar height = visible area + device inset.
+  const tabBarHeight = TAB_BAR_BASE_HEIGHT + bottomInset;
 
   return (
     <Tabs
@@ -23,20 +40,37 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.background,
+          // Subtle top border – only needed on iOS; Android elevation handles the
+          // visual separation, so a border there would be redundant.
           borderTopColor: colors.cardBackground,
-          borderTopWidth: 1,
-          paddingTop: Platform.OS === "ios" ? 8 : 10,
-          paddingBottom: Platform.OS === "ios" ? iosBottomPadding : androidBottomPadding,
-          height:
-            Platform.OS === "ios"
-              ? 49 + iosBottomPadding
-              : Platform.OS === "web"
-                ? 68
-                : 56 + androidBottomPadding,
+          borderTopWidth: Platform.OS === "ios" ? 0.5 : 0,
+          // Rounded top corners for a modern, premium look
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          // Vertical rhythm: a small fixed top pad + dynamic bottom pad
+          paddingTop: 8,
+          paddingBottom: bottomInset,
+          height: tabBarHeight,
+          // Platform-specific depth cues
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.07,
+              shadowRadius: 8,
+            },
+            android: {
+              // elevation replaces both border and shadow on Android
+              elevation: 8,
+            },
+          }),
         },
         tabBarItemStyle: {
           minHeight: minTabItemHeight,
           paddingHorizontal: 6,
+          // Keep icon + label vertically centred within the visible area
+          justifyContent: "center",
+          alignItems: "center",
         },
         tabBarLabelStyle: {
           fontSize: 12,

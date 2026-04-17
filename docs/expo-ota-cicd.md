@@ -59,7 +59,9 @@ Add these repository secrets:
 
 ### Set EXPO_PUBLIC_API_URL in eas.json
 
-In `eas.json`, under the `preview` (and `production`) profile `env`, set your backend URL:
+`EXPO_PUBLIC_API_URL` is **the base URL of your Next.js backend** (the same server that handles the `notify-app-update` route). For example, if your backend is deployed at `https://api.remindme.app`, that is the value to use.
+
+In `eas.json`, under both the `preview` and `production` profile `env`, set:
 
 ```json
 "env": {
@@ -67,7 +69,7 @@ In `eas.json`, under the `preview` (and `production`) profile `env`, set your ba
 }
 ```
 
-This bakes the backend URL into the app at build time so the app can register push tokens automatically. `registerExpoPushToken` is called on every app launch via `requestNotificationPermissions`; it deduplicates using AsyncStorage and only calls the backend when the device token has changed.
+This bakes the backend URL into the app at build time so the app can automatically register its Expo push token with your backend when notification permission is granted. `registerExpoPushToken` deduplicates using AsyncStorage and only calls the backend when the device token has changed.
 
 ### Verify workflows are present
 
@@ -146,29 +148,45 @@ Deploy backend after adding this.
 
 ## 4) Manual push-broadcast implementation
 
-Install package in backend project:
+> **Note:** The `expo-server-sdk` package and `server/notifications.ts` are already set up in your backend. You only need to add token storage support to `server/token-store.ts` and create the `register-push-token` route below.
 
-```bash
-npm install expo-server-sdk
+### 4a) Add `saveExpoPushToken` to your existing `server/token-store.ts`
+
+Your `server/token-store.ts` already exports `getAllExpoPushTokensFromDb` and `markExpoTokensInactive`. Add a `saveExpoPushToken` function alongside them to upsert incoming device tokens:
+
+```ts
+import { Expo } from "expo-server-sdk";
+
+// Add this function next to getAllExpoPushTokensFromDb and markExpoTokensInactive:
+export async function saveExpoPushToken(token: string, platform: string): Promise<void> {
+  if (!Expo.isExpoPushToken(token)) {
+    throw new Error(`Invalid Expo push token: ${token}`);
+  }
+  // TODO: upsert into your DB — use `token` as the unique key, store `platform` alongside it
+  // Example (Prisma): await db.pushToken.upsert({ where: { token }, update: { platform }, create: { token, platform } })
+}
 ```
 
-### 4a) Token registration endpoint
+### 4b) Add the token registration route
 
-Add a route to receive and store push tokens from the app:
+Create a new route that the RemindMe app calls automatically when a user grants notification permission:
 
 `app/api/register-push-token/route.ts`
 
 ```ts
 import { NextRequest, NextResponse } from "next/server";
-import { saveExpoPushToken } from "@/server/notifications";
+import { saveExpoPushToken } from "@/server/token-store";
+import { Expo } from "expo-server-sdk";
 
 export async function POST(request: NextRequest) {
   try {
     const { token, platform } = await request.json();
-    if (!token || typeof token !== "string") {
-      return NextResponse.json({ error: "Invalid token" }, { status: 400 });
+
+    if (!token || typeof token !== "string" || !Expo.isExpoPushToken(token)) {
+      return NextResponse.json({ error: "Invalid Expo push token" }, { status: 400 });
     }
-    await saveExpoPushToken(token, platform);
+
+    await saveExpoPushToken(token, platform ?? "android");
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Failed to register token" }, { status: 500 });
@@ -176,60 +194,14 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-The app automatically calls this endpoint (at `EXPO_PUBLIC_API_URL/api/register-push-token`) each time the user grants notification permission **and** whenever the push token changes. Tokens are deduplicated in the app before sending, so re-registration only happens when the token rotates.
-
-### 4b) Notification service
-
-Add a notification service:
-
-```ts
-import { Expo } from "expo-server-sdk";
-
-const expo = new Expo();
-
-export async function saveExpoPushToken(token: string, platform: string): Promise<void> {
-  // TODO: upsert into your DB by token value
-}
-
-export async function sendPushNotificationToAllUsers(payload: {
-  title: string;
-  body: string;
-  sound?: "default";
-  data?: Record<string, unknown>;
-}) {
-  const tokens = await getAllExpoPushTokensFromDb();
-
-  const messages = tokens
-    .filter((token) => Expo.isExpoPushToken(token))
-    .map((token) => ({
-      to: token,
-      title: payload.title,
-      body: payload.body,
-      sound: payload.sound ?? "default",
-      data: payload.data ?? {},
-    }));
-
-  const chunks = expo.chunkPushNotifications(messages);
-
-  for (const chunk of chunks) {
-    await expo.sendPushNotificationsAsync(chunk);
-  }
-
-  return { sent: messages.length };
-}
-
-async function getAllExpoPushTokensFromDb(): Promise<string[]> {
-  // TODO: implement with your DB
-  return [];
-}
-```
+The RemindMe app calls `POST /api/register-push-token` automatically on every launch after notification permission is granted. It deduplicates on-device using AsyncStorage, so the request only reaches your backend when the token is new or has rotated (e.g., after an app reinstall).
 
 ### Token lifecycle checklist
 
-- ✅ App registers push token on first permission grant (automatic via `registerExpoPushToken`).
+- ✅ App registers push token automatically on every launch via `registerExpoPushToken`.
 - ✅ App re-registers only when the token changes (deduplicated via AsyncStorage).
-- Upsert token by device in the backend (use `token` as the unique key).
-- Mark invalid tokens inactive when Expo returns `DeviceNotRegistered`.
+- Upsert token by its value in `saveExpoPushToken` in `server/token-store.ts`.
+- `markExpoTokensInactive` (already in `token-store.ts`) should be called when Expo returns `DeviceNotRegistered`.
 
 ---
 

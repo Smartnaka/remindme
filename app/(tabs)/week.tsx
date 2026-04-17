@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -52,6 +52,120 @@ function dateToDayOfWeek(d: Date): DayOfWeek {
   const index = jsDay === 0 ? 6 : jsDay - 1;
   return DAYS_OF_WEEK[index];
 }
+
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+interface DatePillProps {
+  iso: string;
+  isSelected: boolean;
+  isToday: boolean;
+  dayAbbrev: string;
+  dateNum: number;
+  onPress: () => void;
+  pillStyle: StyleProp<ViewStyle>;
+  pillSelectedStyle: StyleProp<ViewStyle>;
+  dayTextStyle: StyleProp<TextStyle>;
+  dayTextSelectedStyle: StyleProp<TextStyle>;
+  numTextStyle: StyleProp<TextStyle>;
+  numTextSelectedStyle: StyleProp<TextStyle>;
+  todayDotStyle: StyleProp<ViewStyle>;
+  todayDotSelectedStyle: StyleProp<ViewStyle>;
+}
+
+const DatePill = React.memo(({
+  iso,
+  isSelected,
+  isToday,
+  dayAbbrev,
+  dateNum,
+  onPress,
+  pillStyle,
+  pillSelectedStyle,
+  dayTextStyle,
+  dayTextSelectedStyle,
+  numTextStyle,
+  numTextSelectedStyle,
+  todayDotStyle,
+  todayDotSelectedStyle,
+}: DatePillProps) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.88,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 200,
+      friction: 10,
+    }).start();
+  }, [scaleAnim]);
+
+  return (
+    <AnimatedTouchable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
+      style={[pillStyle, isSelected && pillSelectedStyle, { transform: [{ scale: scaleAnim }] }]}
+    >
+      <Text style={[dayTextStyle, isSelected && dayTextSelectedStyle]}>
+        {dayAbbrev}
+      </Text>
+      <Text style={[numTextStyle, isSelected && numTextSelectedStyle]}>
+        {dateNum}
+      </Text>
+      {isToday && (
+        <View style={[todayDotStyle, isSelected && todayDotSelectedStyle]} />
+      )}
+    </AnimatedTouchable>
+  );
+});
+
+interface AnimatedCardProps {
+  style: StyleProp<ViewStyle>;
+  onPress: () => void;
+  children: React.ReactNode;
+}
+
+const AnimatedCard = React.memo(({ style, onPress, children }: AnimatedCardProps) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.97,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 200,
+      friction: 10,
+    }).start();
+  }, [scaleAnim]);
+
+  return (
+    <AnimatedTouchable
+      style={[style, { transform: [{ scale: scaleAnim }] }]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
+    >
+      {children}
+    </AnimatedTouchable>
+  );
+});
 
 export default function WeeklyScheduleScreen() {
   const router = useRouter();
@@ -135,22 +249,23 @@ export default function WeeklyScheduleScreen() {
           const dateNum = d.getDate();
 
           return (
-            <TouchableOpacity
+            <DatePill
               key={iso}
+              iso={iso}
+              isSelected={isSelected}
+              isToday={isToday}
+              dayAbbrev={dayAbbrev}
+              dateNum={dateNum}
               onPress={() => handleDateSelect(iso)}
-              activeOpacity={0.7}
-              style={[styles.datePill, isSelected && styles.datePillSelected]}
-            >
-              <Text style={[styles.datePillDay, isSelected && styles.datePillDaySelected]}>
-                {dayAbbrev}
-              </Text>
-              <Text style={[styles.datePillNum, isSelected && styles.datePillNumSelected]}>
-                {dateNum}
-              </Text>
-              {isToday && (
-                <View style={[styles.todayDot, isSelected && styles.todayDotSelected]} />
-              )}
-            </TouchableOpacity>
+              pillStyle={styles.datePill}
+              pillSelectedStyle={styles.datePillSelected}
+              dayTextStyle={styles.datePillDay}
+              dayTextSelectedStyle={styles.datePillDaySelected}
+              numTextStyle={styles.datePillNum}
+              numTextSelectedStyle={styles.datePillNumSelected}
+              todayDotStyle={styles.todayDot}
+              todayDotSelectedStyle={styles.todayDotSelected}
+            />
           );
         })}
       </ScrollView>
@@ -190,10 +305,9 @@ export default function WeeklyScheduleScreen() {
               return (
                 <View key={lecture.id}>
                   <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
-                    <TouchableOpacity
+                    <AnimatedCard
                       style={styles.card}
                       onPress={() => handleLecturePress(lecture.id)}
-                      activeOpacity={0.75}
                     >
                       <View style={[styles.cardAccent, { backgroundColor: accentColor }]} />
                       <View style={styles.cardBody}>
@@ -216,7 +330,7 @@ export default function WeeklyScheduleScreen() {
                           </View>
                         ) : null}
                       </View>
-                    </TouchableOpacity>
+                    </AnimatedCard>
                   </SwipeableLectureRow>
                   {index < dayLectures.length - 1 && <View style={styles.cardGap} />}
                 </View>

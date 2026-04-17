@@ -67,7 +67,7 @@ In `eas.json`, under the `preview` (and `production`) profile `env`, set your ba
 }
 ```
 
-This bakes the backend URL into the app at build time so the app can register push tokens automatically when users grant notification permission.
+This bakes the backend URL into the app at build time so the app can register push tokens automatically. `registerExpoPushToken` is called on every app launch via `requestNotificationPermissions`; it deduplicates using AsyncStorage and only calls the backend when the device token has changed.
 
 ### Verify workflows are present
 

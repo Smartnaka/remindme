@@ -138,7 +138,10 @@ export const registerExpoPushToken = async (): Promise<void> => {
 
   try {
     const { status } = await Notifications.getPermissionsAsync();
-    if (!hasNotificationAuthorization(status)) return;
+    if (!hasNotificationAuthorization(status)) {
+      log('[Notifications] Notification permission not granted, skipping push token registration');
+      return;
+    }
 
     const projectId: string | undefined =
       Constants.expoConfig?.extra?.eas?.projectId ??
@@ -159,11 +162,17 @@ export const registerExpoPushToken = async (): Promise<void> => {
       return;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
     const response = await fetch(`${apiUrl}/api/register-push-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, platform: Platform.OS }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);

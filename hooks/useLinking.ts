@@ -23,9 +23,12 @@ export default function useLinking() {
       const notificationId = response.notification.request.identifier;
 
       if (!isFromListener) {
-        // For getLastNotificationResponseAsync, deduplicate by ID so a stale
-        // tap does not re-trigger checkForUpdates on every subsequent app open
-        // after the update has already been applied.
+        // Deduplicate stale responses from getLastNotificationResponseAsync: after
+        // the user taps an update notification the response is persisted by Expo
+        // and would re-trigger checkForUpdates on every subsequent app open.  We
+        // store the last-handled ID and skip it to avoid that redundancy.  Live
+        // taps via addNotificationResponseReceivedListener (isFromListener=true)
+        // always bypass this check, so new notification taps always work.
         const lastHandledId = await AsyncStorage.getItem(LAST_HANDLED_NOTIFICATION_KEY);
         if (lastHandledId === notificationId) return;
         await AsyncStorage.setItem(LAST_HANDLED_NOTIFICATION_KEY, notificationId);

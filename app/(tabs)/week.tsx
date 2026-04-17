@@ -537,34 +537,36 @@ const createStyles = (colors: ColorTheme) => {
       gap: 0,
     },
     cardGap: {
-      height: 12,
+      height: 14,
     },
     card: {
       flexDirection: 'row',
       backgroundColor: colors.cardBackground,
-      borderRadius: 16,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
       ...Platform.select({
         ios: {
           shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDark ? 0.3 : 0.08,
-          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: isDark ? 0.32 : 0.10,
+          shadowRadius: 12,
         },
         android: {
-          elevation: 3,
+          elevation: 5,
         },
       }),
     },
     cardAccent: {
       width: 5,
-      borderTopLeftRadius: 16,
-      borderBottomLeftRadius: 16,
+      borderTopLeftRadius: 18,
+      borderBottomLeftRadius: 18,
     },
     cardBody: {
       flex: 1,
-      paddingVertical: 14,
+      paddingVertical: 16,
       paddingHorizontal: 16,
-      gap: 6,
+      gap: 7,
     },
     cardTop: {
       flexDirection: 'row',
@@ -572,30 +574,30 @@ const createStyles = (colors: ColorTheme) => {
       justifyContent: 'space-between',
     },
     cardCourseName: {
-      fontSize: 17,
+      fontSize: 16,
       fontFamily: 'Inter_700Bold',
       color: colors.textDark,
       flex: 1,
-      marginRight: 4,
-      letterSpacing: -0.2,
+      marginRight: 6,
+      letterSpacing: -0.3,
     },
     cardMeta: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: 5,
     },
     metaIcon: {
-      marginTop: 1,
+      opacity: 0.65,
     },
     cardTime: {
       fontSize: 13,
-      fontFamily: 'Inter_400Regular',
-      color: isDark ? '#AEAEB2' : '#636366',
+      fontFamily: 'Inter_500Medium',
+      color: isDark ? '#AEAEB2' : '#6C6C70',
     },
     cardLocation: {
       fontSize: 13,
-      fontFamily: 'Inter_400Regular',
-      color: isDark ? '#AEAEB2' : '#636366',
+      fontFamily: 'Inter_500Medium',
+      color: isDark ? '#AEAEB2' : '#6C6C70',
     },
   });
 };

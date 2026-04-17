@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StatusBar, Modal, DeviceEventEmitter } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StatusBar, Modal, DeviceEventEmitter, Pressable } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTodayLectures, useLectures } from '@/contexts/LectureContext';
@@ -20,6 +20,10 @@ import MiniTimerBar from '@/components/MiniTimerBar';
 
 import LectureContextMenu from '@/components/LectureContextMenu';
 import { FlatList } from 'react-native';
+
+// Design tokens for alpha overlays
+const ICON_BORDER_ALPHA = '18';   // ~9% opacity border
+const CARD_BORDER_ALPHA = '12';   // ~7% opacity card border
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -655,7 +659,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   headerContent: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 14,
+    paddingBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
@@ -665,7 +669,8 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     color: colors.textMuted,
     marginBottom: 3,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    opacity: 0.7,
   },
   headerTitle: {
     fontSize: 34,
@@ -683,17 +688,28 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     padding: 0,
   },
   iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.textMuted + ICON_BORDER_ALPHA,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+      },
+      android: { elevation: 3 },
+    }),
   },
   notificationDot: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: 7,
+    right: 7,
     width: 7,
     height: 7,
     borderRadius: 3.5,
@@ -703,7 +719,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   headerDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.textMuted + '30',
+    backgroundColor: colors.textMuted + '28',
     marginHorizontal: 0,
   },
   scrollView: {
@@ -719,15 +735,18 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     color: colors.textMuted,
     marginBottom: 20,
     paddingHorizontal: 20,
+    opacity: 0.75,
   },
   sectionHeader: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
     color: colors.textMuted,
-    letterSpacing: 0.6,
-    marginBottom: 6,
-    marginTop: 24,
+    letterSpacing: 1.0,
+    marginBottom: 8,
+    marginTop: 28,
     paddingHorizontal: 20,
+    textTransform: 'uppercase',
+    opacity: 0.7,
   },
   groupedCard: {
     paddingHorizontal: 16,
@@ -738,23 +757,25 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     backgroundColor: colors.cardBackground,
     overflow: 'hidden',
     marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: colors.textMuted + CARD_BORDER_ALPHA,
   },
   groupedCardTop: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   groupedCardMiddle: {
     borderRadius: 0,
   },
   groupedCardBottom: {
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
     marginBottom: 8,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.textMuted + '25',
-    marginLeft: 40,
+    backgroundColor: colors.textMuted + '22',
+    marginLeft: 42,
   },
   emptyState: {
     alignItems: 'center',
@@ -787,8 +808,8 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     lineHeight: 20,
   },
   emptyButton: {
-    paddingVertical: 11,
-    paddingHorizontal: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
     backgroundColor: colors.primary,
     borderRadius: 22,
   },
@@ -802,23 +823,27 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     marginTop: 24,
   },
   nextClassHeader: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
     color: colors.textMuted,
-    letterSpacing: 0.6,
+    letterSpacing: 1.0,
     marginBottom: 8,
     marginLeft: 4,
     alignSelf: 'flex-start',
+    textTransform: 'uppercase',
+    opacity: 0.7,
   },
   nextClassCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
     width: '100%',
+    borderWidth: 1,
+    borderColor: colors.textMuted + CARD_BORDER_ALPHA,
   },
   nextClassInfo: {
     flex: 1,
@@ -834,6 +859,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Inter_400Regular',
     color: colors.textMuted,
+    opacity: 0.8,
   },
   swipeHint: {
     fontSize: 12,
@@ -842,7 +868,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     textAlign: 'left',
     marginTop: 10,
     marginBottom: 4,
-    opacity: 0.7,
+    opacity: 0.55,
     paddingHorizontal: 20,
   },
   fabContainer: {
@@ -852,17 +878,21 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     zIndex: 100,
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.45,
+        shadowRadius: 12,
+      },
+      android: { elevation: 10 },
+    }),
   },
   fabPulseDot: {
     position: 'absolute',
@@ -902,6 +932,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     color: colors.textMuted,
     textAlign: 'center',
+    opacity: 0.8,
   },
   // Deadline styles (Apple Reminders-inspired)
   deadlineCard: {
@@ -959,7 +990,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   // Legacy / unused stubs kept to avoid TS errors in case of missed refs
   sectionContainer: { marginBottom: 0 },
-  groupedList: { borderRadius: 12, overflow: 'hidden' },
+  groupedList: { borderRadius: 16, overflow: 'hidden' },
   groupedItem: { backgroundColor: colors.cardBackground, padding: 16 },
   deadlineRow: { flexDirection: 'row', alignItems: 'center' },
   deadlineBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },

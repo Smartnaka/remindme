@@ -218,8 +218,6 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 6,
     paddingHorizontal: 12,
-    minWidth: 56,
-    minHeight: 56,
     position: "relative",
   },
   activePill: {

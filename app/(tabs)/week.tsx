@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -179,6 +179,32 @@ export default function WeeklyScheduleScreen() {
 
   const [selectedISO, setSelectedISO] = useState<string>(todayISO);
 
+  // Animation values for class list fade-in + slide-up on date change
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    fadeAnim.setValue(0);
+    slideAnim.setValue(10);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [selectedISO, fadeAnim, slideAnim]);
+
   // Action States
   const [undoToastVisible, setUndoToastVisible] = useState(false);
   const [deletedLecture, setDeletedLecture] = useState<Lecture | null>(null);
@@ -227,6 +253,11 @@ export default function WeeklyScheduleScreen() {
   };
 
   const isSelectedDayToday = selectedISO === todayISO;
+
+  const classListAnimStyle = useMemo(
+    () => ({ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }),
+    [fadeAnim, slideAnim],
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -288,7 +319,8 @@ export default function WeeklyScheduleScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {dayLectures.length === 0 ? (
+        <Animated.View style={classListAnimStyle}>
+          {dayLectures.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateEmoji}>{isSelectedDayToday ? '🎉' : '📭'}</Text>
             <Text style={styles.emptyStateTitle}>
@@ -338,6 +370,7 @@ export default function WeeklyScheduleScreen() {
             })}
           </View>
         )}
+        </Animated.View>
         <View style={{ height: 40 }} />
       </ScrollView>
 

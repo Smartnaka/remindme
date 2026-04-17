@@ -59,13 +59,13 @@ Add these repository secrets:
 
 ### Set EXPO_PUBLIC_API_URL in eas.json
 
-`EXPO_PUBLIC_API_URL` is **the base URL of your Next.js backend** (the same server that handles the `notify-app-update` route). For example, if your backend is deployed at `https://api.remindme.app`, that is the value to use.
+`EXPO_PUBLIC_API_URL` is **the base URL of your Next.js backend** (the same server that handles the `notify-app-update` route). For RemindMe this is `https://remindme-backend.vercel.app`.
 
 In `eas.json`, under both the `preview` and `production` profile `env`, set:
 
 ```json
 "env": {
-  "EXPO_PUBLIC_API_URL": "https://api.remindme.app"
+  "EXPO_PUBLIC_API_URL": "https://remindme-backend.vercel.app"
 }
 ```
 

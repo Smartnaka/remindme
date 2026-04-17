@@ -21,7 +21,7 @@
       "channel": "preview",
       "env": {
         "EXPO_NO_HERMES_DEBUGGER": "1",
-        "EXPO_PUBLIC_API_URL": ""
+        "EXPO_PUBLIC_API_URL": "https://remindme-backend.vercel.app"
       }
     },
     "production": {
@@ -31,7 +31,7 @@
         "gradleCommand": ":app:assembleRelease"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": ""
+        "EXPO_PUBLIC_API_URL": "https://remindme-backend.vercel.app"
       }
     }
   },

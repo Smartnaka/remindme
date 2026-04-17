@@ -12,13 +12,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSettings } from "@/contexts/SettingsContext";
 
 // Visible content area height (icon + label row)
-const TAB_BAR_CONTENT_HEIGHT = 62;
+const TAB_BAR_CONTENT_HEIGHT = 56;
 
 // Horizontal margin so the bar floats inset from screen edges
 const TAB_BAR_HORIZONTAL_MARGIN = 16;
 
 // Gap between the bottom of the bar and the safe-area boundary
 const TAB_BAR_BOTTOM_MARGIN = 10;
+
+// Opacity for inactive tab items
+const INACTIVE_TAB_OPACITY = 0.55;
 
 export default function FloatingTabBar({
   state,
@@ -96,12 +99,12 @@ export default function FloatingTabBar({
             Platform.select({
               ios: {
                 shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.12,
-                shadowRadius: 16,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.15,
+                shadowRadius: 20,
               },
               android: {
-                elevation: 12,
+                elevation: 14,
               },
             }),
           ]}
@@ -125,6 +128,7 @@ export default function FloatingTabBar({
               const iconColor = isFocused ? colors.primary : colors.textMuted;
               const labelColor = isFocused ? colors.primary : colors.textMuted;
               const iconScale = isFocused ? 1.05 : 1;
+              const inactiveOpacity = isFocused ? 1 : INACTIVE_TAB_OPACITY;
 
               return (
                 <TouchableOpacity
@@ -141,7 +145,7 @@ export default function FloatingTabBar({
                   <Animated.View
                     style={[
                       styles.tabItem,
-                      { transform: [{ scale: scaleAnims[index] }] },
+                      { transform: [{ scale: scaleAnims[index] }], opacity: inactiveOpacity },
                     ]}
                   >
                     {/* Active pill background */}
@@ -215,9 +219,9 @@ const styles = StyleSheet.create({
   tabItem: {
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 6,
-    paddingBottom: 6,
-    paddingHorizontal: 12,
+    paddingTop: 5,
+    paddingBottom: 5,
+    paddingHorizontal: 16,
     position: "relative",
   },
   activePill: {

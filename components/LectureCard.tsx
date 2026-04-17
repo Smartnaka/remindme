@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { formatTimeAMPM, isLectureNow, getNextLectureTime } from '@/utils/dateTime';
@@ -14,7 +14,7 @@ interface LectureCardProps {
   showTimeUntil?: boolean;
 }
 
-export default function LectureCard({ lecture, onPress, showTimeUntil = false }: LectureCardProps) {
+export default memo(function LectureCard({ lecture, onPress, showTimeUntil = false }: LectureCardProps) {
   const { colors } = useSettings();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isNow = isLectureNow(lecture.startTime, lecture.endTime);
@@ -90,7 +90,7 @@ export default function LectureCard({ lecture, onPress, showTimeUntil = false }:
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 const createStyles = (colors: ColorTheme) => StyleSheet.create({
   card: {

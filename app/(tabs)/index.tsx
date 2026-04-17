@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StatusBar, Modal, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -90,12 +90,12 @@ export default function TodayScreen() {
   const todayDateString = new Date().toISOString().split('T')[0];
   const hasUnreadNotifications = false; // Mock dot removed for HCI clarity
 
-  const handleNotificationPress = () => {
+  const handleNotificationPress = useCallback(() => {
     updateSettings({ lastNotificationCheckDate: todayDateString });
     router.push('/notifications');
-  };
+  }, [todayDateString, updateSettings, router]);
 
-  const handleFabPress = () => {
+  const handleFabPress = useCallback(() => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -113,42 +113,42 @@ export default function TodayScreen() {
     ]).start();
     setFabMenuMode('options');
     setFabMenuVisible(true);
-  };
+  }, [fabScale]);
 
-  const navigateTo = (route: any) => {
+  const navigateTo = useCallback((route: any) => {
     setFabMenuVisible(false);
     setTimeout(() => {
       router.push(route);
     }, Platform.OS === 'ios' ? 200 : 0);
-  }
+  }, [router]);
 
-  const handleDeleteClass = (lecture: Lecture) => {
+  const handleDeleteClass = useCallback((lecture: Lecture) => {
     // 1. Save data for undo
     setDeletedLecture(lecture);
     // 2. Actually delete it
     deleteLecture(lecture.id);
     // 3. Show Toast
     setUndoToastVisible(true);
-  };
+  }, [deleteLecture]);
 
-  const handleLongPress = (lecture: Lecture) => {
+  const handleLongPress = useCallback((lecture: Lecture) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     setContextLecture(lecture);
     setContextMenuVisible(true);
-  };
+  }, []);
 
-  const handleUndoDelete = () => {
+  const handleUndoDelete = useCallback(() => {
     if (deletedLecture) {
       // Use context function directly to avoid runtime module-call crashes
       restoreLecture(deletedLecture);
     }
     setUndoToastVisible(false);
     setDeletedLecture(null);
-  };
+  }, [deletedLecture, restoreLecture]);
 
-  const handleCompleteAssignment = (assignment: Assignment) => {
+  const handleCompleteAssignment = useCallback((assignment: Assignment) => {
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     // Temporarily hide it from the list immediately
@@ -158,9 +158,9 @@ export default function TodayScreen() {
 
     // Commit the change to the database backend
     updateAssignment(assignment.id, { isCompleted: true });
-  };
+  }, [updateAssignment]);
 
-  const handleUndoCompleteAssignment = () => {
+  const handleUndoCompleteAssignment = useCallback(() => {
     if (completedAssignment) {
       // Revert the change in the database backend
       updateAssignment(completedAssignment.id, { isCompleted: false });
@@ -173,7 +173,7 @@ export default function TodayScreen() {
     }
     setAssignmentUndoToastVisible(false);
     setCompletedAssignment(null);
-  };
+  }, [completedAssignment, updateAssignment]);
 
   const currentDate = new Date();
   const dateString = currentDate.toLocaleDateString('en-US', {

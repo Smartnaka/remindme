@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LectureProvider } from "@/contexts/LectureContext";
@@ -11,7 +11,6 @@ import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native
 import { ErrorBoundary } from "@/app/components/ErrorBoundary";
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { requestNotificationPermissions, handleNotificationResponse } from "@/utils/notifications";
-import { useEffect, useRef } from "react";
 import * as Notifications from 'expo-notifications';
 import NotificationBanner from "@/components/NotificationBanner";
 import { ExamProvider } from "@/contexts/ExamContext";

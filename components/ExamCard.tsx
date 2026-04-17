@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Exam } from '@/types/exam';
 import { ColorTheme } from '@/types/theme';
@@ -12,7 +12,7 @@ interface ExamCardProps {
   exam: Exam;
 }
 
-export default function ExamCard({ exam }: ExamCardProps) {
+export default memo(function ExamCard({ exam }: ExamCardProps) {
   const { colors } = useSettings();
   const { deleteExam } = useExams();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -104,7 +104,7 @@ export default function ExamCard({ exam }: ExamCardProps) {
       />
     </>
   );
-}
+});
 
 const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {

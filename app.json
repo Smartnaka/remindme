@@ -23,6 +23,7 @@
       "bundleIdentifier": "app.remindme.remindme",
       "userInterfaceStyle": "automatic",
       "icon": "./assets/images/icon.png",
+      "jsEngine": "hermes",
       "infoPlist": {
         "NSCalendarsUsageDescription": "RemindMe needs access to your calendar to sync your lecture schedule.",
         "NSRemindersUsageDescription": "RemindMe needs access to reminders to set alerts for your lectures."
@@ -31,6 +32,7 @@
     "android": {
       "enableProguardInReleaseBuilds": true,
       "enableShrinkResourcesInReleaseBuilds": true,
+      "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, memo } from 'react';
 import { Animated, View, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ interface SwipeableLectureRowProps {
     onDelete: () => void;
 }
 
-export default function SwipeableLectureRow({ children, onDelete }: SwipeableLectureRowProps) {
+export default memo(function SwipeableLectureRow({ children, onDelete }: SwipeableLectureRowProps) {
     const { colors } = useSettings();
     const swipeableRef = useRef<Swipeable>(null);
 
@@ -67,7 +67,7 @@ export default function SwipeableLectureRow({ children, onDelete }: SwipeableLec
             {children}
         </Swipeable>
     );
-}
+});
 
 const styles = StyleSheet.create({
     rightActionContainer: {

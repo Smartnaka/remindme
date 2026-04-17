@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Lecture } from '@/types/lecture';
 import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAMPM } from '@/utils/dateTime';
 import { DEFAULT_LECTURE_COLOR } from '@/constants/colors';
+import { ColorTheme } from '@/types/theme';
 
 interface CourseItemProps {
     lecture: Lecture;
@@ -13,7 +14,7 @@ interface CourseItemProps {
     isNext?: boolean;
 }
 
-export default function CourseItem({ lecture, onPress, onLongPress, isNext = false }: CourseItemProps) {
+export default memo(function CourseItem({ lecture, onPress, onLongPress, isNext = false }: CourseItemProps) {
     const { colors } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -85,9 +86,7 @@ export default function CourseItem({ lecture, onPress, onLongPress, isNext = fal
             )}
         </TouchableOpacity>
     );
-}
-
-import { ColorTheme } from '@/types/theme';
+});
 
 const createStyles = (colors: ColorTheme) => StyleSheet.create({
     container: {

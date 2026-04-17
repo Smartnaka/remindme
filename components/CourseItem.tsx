@@ -4,7 +4,6 @@ import { Lecture } from '@/types/lecture';
 import { useSettings } from '@/contexts/SettingsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAMPM } from '@/utils/dateTime';
-import { DEFAULT_LECTURE_COLOR } from '@/constants/colors';
 import { ColorTheme } from '@/types/theme';
 
 interface CourseItemProps {
@@ -25,8 +24,8 @@ export default memo(function CourseItem({ lecture, onPress, onLongPress, isNext 
             onLongPress={onLongPress}
             activeOpacity={0.6}
         >
-            {/* Color dot indicator */}
-            <View style={[styles.colorDot, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
+            {/* Course color dot — reflects the color chosen when the class was created */}
+            <View style={[styles.colorDot, { backgroundColor: lecture.color || colors.primary }]} />
 
             <View style={styles.content}>
                 <View style={styles.headerRow}>
@@ -64,9 +63,9 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         gap: 14,
     },
     colorDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
         flexShrink: 0,
     },
     content: {

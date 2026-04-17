@@ -322,8 +322,10 @@ export default function TodayScreen() {
           listData.push({ type: 'all_done', count: pastLectures.length, id: 'all_done' });
         }
 
-        if (isDoneForToday && pastLectures.length > 0) {
-          listData.push({ type: 'header', title: 'COMPLETED CLASSES', id: 'past_header', marginTop: 32 });
+        // Always show past lectures — not just when all classes are done
+        if (pastLectures.length > 0) {
+          const pastTitle = isDoneForToday ? 'COMPLETED CLASSES' : 'EARLIER TODAY';
+          listData.push({ type: 'header', title: pastTitle, id: 'past_header', marginTop: isDoneForToday ? 32 : undefined });
           pastLectures.forEach((lecture, idx) => {
             listData.push({ type: 'lecture', lecture, isFirst: idx === 0, isLast: idx === pastLectures.length - 1, id: `past_${lecture.id}`, opacity: 0.6 });
           });
@@ -341,6 +343,11 @@ export default function TodayScreen() {
           });
         }
 
+        // Swipe hint placed right after the last class section (before deadlines) so it stays close to the cards
+        if (pastLectures.length > 0 || currentLecture || upcomingLectures.length > 0) {
+          listData.push({ type: 'swipe_hint', id: 'swipe_hint' });
+        }
+
         if (upcomingDeadlines.length > 0) {
           let hasAddedHeader = false;
           const visibleDeadlines = upcomingDeadlines.filter(a => !hiddenAssignmentIds.has(a.id));
@@ -354,7 +361,6 @@ export default function TodayScreen() {
           });
         }
 
-        listData.push({ type: 'footer_hint', id: 'footer_hint' });
         listData.push({ type: 'spacer', id: 'bottom_spacer' });
 
         const renderItem = ({ item }: { item: any }) => {
@@ -446,10 +452,10 @@ export default function TodayScreen() {
                   {!item.isLast && <View style={styles.separator} />}
                 </View>
               );
-            case 'footer_hint':
+            case 'swipe_hint':
               return <Text style={styles.swipeHint}>Swipe left on a class to remove it</Text>;
             case 'spacer':
-              return <View style={{ height: 120 }} />;
+              return <View style={{ height: 100 }} />;
             default:
               return null;
           }
@@ -833,8 +839,9 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter_400Regular',
     color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: 28,
+    textAlign: 'left',
+    marginTop: 10,
+    marginBottom: 4,
     opacity: 0.7,
     paddingHorizontal: 20,
   },

@@ -113,7 +113,7 @@ export default function FloatingTabBar({
           <View
             style={[
               styles.bar,
-              { backgroundColor: colors.cardBackground, height: TAB_BAR_CONTENT_HEIGHT },
+              { backgroundColor: colors.cardBackground + "F0", height: TAB_BAR_CONTENT_HEIGHT },
             ]}
           >
             {state.routes.map((route, index) => {
@@ -166,7 +166,7 @@ export default function FloatingTabBar({
                         ? options.tabBarIcon({
                             focused: isFocused,
                             color: iconColor,
-                            size: 24,
+                            size: 22,
                           })
                         : null}
                     </Animated.View>
@@ -233,12 +233,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   label: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: 3,
+    fontSize: 10,
+    fontWeight: "500",
+    marginTop: 2,
     letterSpacing: 0.2,
   },
   labelActive: {
-    fontWeight: "700",
+    fontWeight: "600",
   },
 });

@@ -15,8 +15,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Today",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -24,8 +24,8 @@ export default function TabLayout() {
         name="week"
         options={{
           title: "Schedule",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "calendar" : "calendar-outline"} size={24} color={color} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? "calendar" : "calendar-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -33,8 +33,8 @@ export default function TabLayout() {
         name="exams"
         options={{
           title: "Exams",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "hourglass" : "hourglass-outline"} size={24} color={color} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? "hourglass" : "hourglass-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -42,8 +42,8 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "settings" : "settings-outline"} size={24} color={color} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? "settings" : "settings-outline"} size={size} color={color} />
           ),
         }}
       />

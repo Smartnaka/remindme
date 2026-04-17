@@ -339,12 +339,10 @@ export default function AddLectureScreen() {
 
 
   const handleStartDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") setShowStartDatePicker(false);
     if (selectedDate) setStartDate(selectedDate);
   };
 
   const handleEndDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === "android") setShowEndDatePicker(false);
     if (selectedDate) setEndDate(selectedDate);
   };
 
@@ -387,14 +385,12 @@ export default function AddLectureScreen() {
             <DateTimePicker
                value={startDate}
                mode="date"
-               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+               display="spinner"
                onChange={handleStartDateChange}
             />
-            {Platform.OS === 'ios' && (
-              <TouchableOpacity style={styles.pickerDone} onPress={() => setShowStartDatePicker(false)}>
-                 <Text style={styles.pickerDoneText}>Done</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.pickerDone} onPress={() => setShowStartDatePicker(false)}>
+               <Text style={styles.pickerDoneText}>Done</Text>
+            </TouchableOpacity>
          </View>
       )}
 
@@ -412,14 +408,12 @@ export default function AddLectureScreen() {
             <DateTimePicker
                value={endDate}
                mode="date"
-               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+               display="spinner"
                onChange={handleEndDateChange}
             />
-            {Platform.OS === 'ios' && (
-              <TouchableOpacity style={styles.pickerDone} onPress={() => setShowEndDatePicker(false)}>
-                 <Text style={styles.pickerDoneText}>Done</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.pickerDone} onPress={() => setShowEndDatePicker(false)}>
+               <Text style={styles.pickerDoneText}>Done</Text>
+            </TouchableOpacity>
          </View>
       )}
     </View>

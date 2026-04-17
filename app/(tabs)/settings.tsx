@@ -74,12 +74,10 @@ export default function SettingsScreen() {
     };
 
     const handleSemesterStartChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') setShowSemesterStartPicker(false);
         if (selectedDate) updateSettings({ semesterStart: selectedDate.toISOString() });
     };
 
     const handleSemesterEndChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') setShowSemesterEndPicker(false);
         if (selectedDate) updateSettings({ semesterEnd: selectedDate.toISOString() });
     };
 
@@ -193,14 +191,24 @@ export default function SettingsScreen() {
                 <View style={styles.card}>
                     <SettingRow label="Start Date" value={formatDate(settings.semesterStart)} onPress={() => setShowSemesterStartPicker(true)} />
                     {showSemesterStartPicker && (
-                        <DateTimePicker value={getSemesterDate(settings.semesterStart)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleSemesterStartChange} />
+                        <View style={styles.pickerContainer}>
+                            <DateTimePicker value={getSemesterDate(settings.semesterStart)} mode="date" display="spinner" onChange={handleSemesterStartChange} />
+                            <TouchableOpacity style={styles.pickerDone} onPress={() => setShowSemesterStartPicker(false)}>
+                                <Text style={styles.pickerDoneText}>Done</Text>
+                            </TouchableOpacity>
+                        </View>
                     )}
 
                     <View style={styles.divider} />
 
                     <SettingRow label="End Date" value={formatDate(settings.semesterEnd)} onPress={() => setShowSemesterEndPicker(true)} />
                     {showSemesterEndPicker && (
-                        <DateTimePicker value={getSemesterDate(settings.semesterEnd)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handleSemesterEndChange} />
+                        <View style={styles.pickerContainer}>
+                            <DateTimePicker value={getSemesterDate(settings.semesterEnd)} mode="date" display="spinner" onChange={handleSemesterEndChange} />
+                            <TouchableOpacity style={styles.pickerDone} onPress={() => setShowSemesterEndPicker(false)}>
+                                <Text style={styles.pickerDoneText}>Done</Text>
+                            </TouchableOpacity>
+                        </View>
                     )}
                 </View>
                 <Text style={styles.sectionHint}>Notifications only fire within these dates</Text>
@@ -237,7 +245,12 @@ export default function SettingsScreen() {
                             <View style={styles.divider} />
                             <SettingRow label="Summary Time" value={formatTime(settings.dailySummaryTime || '07:00')} onPress={() => setShowSummaryPicker(true)} />
                             {showSummaryPicker && (
-                                <DateTimePicker value={getSummaryDate()} mode="time" display="spinner" onChange={handleSummaryTimeChange} />
+                                <View style={styles.pickerContainer}>
+                                    <DateTimePicker value={getSummaryDate()} mode="time" display="spinner" onChange={handleSummaryTimeChange} />
+                                    <TouchableOpacity style={styles.pickerDone} onPress={() => setShowSummaryPicker(false)}>
+                                        <Text style={styles.pickerDoneText}>Done</Text>
+                                    </TouchableOpacity>
+                                </View>
                             )}
                         </>
                     )}
@@ -501,5 +514,20 @@ const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet
         fontSize: 16,
         fontFamily: 'Inter_600SemiBold',
         color: colors.textDark,
+    },
+    pickerContainer: {
+        backgroundColor: colors.cardBackground,
+        paddingBottom: 16,
+    },
+    pickerDone: {
+        alignItems: 'center',
+        padding: 12,
+        borderTopWidth: 1,
+        borderTopColor: colors.textMuted + '20',
+    },
+    pickerDoneText: {
+        fontSize: 17,
+        color: colors.primary,
+        fontFamily: 'Inter_600SemiBold',
     },
 });

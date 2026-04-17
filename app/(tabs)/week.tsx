@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -52,94 +52,6 @@ function dateToDayOfWeek(d: Date): DayOfWeek {
   const index = jsDay === 0 ? 6 : jsDay - 1;
   return DAYS_OF_WEEK[index];
 }
-
-// --- Micro-interaction helpers ---
-
-function AnimatedCard({
-  cardStyle,
-  onPress,
-  children,
-}: {
-  cardStyle: object;
-  onPress: () => void;
-  children: React.ReactNode;
-}) {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const onPressIn = () =>
-    Animated.spring(scale, {
-      toValue: 0.97,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 0,
-    }).start();
-
-  const onPressOut = () =>
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 30,
-      bounciness: 5,
-    }).start();
-
-  return (
-    <Animated.View style={[cardStyle, { transform: [{ scale }] }]}>
-      <TouchableOpacity
-        style={{ flex: 1, flexDirection: 'row' }}
-        onPress={onPress}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        activeOpacity={1}
-      >
-        {children}
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
-
-function AnimatedDatePill({
-  pillStyle,
-  onPress,
-  children,
-}: {
-  pillStyle: object | object[];
-  onPress: () => void;
-  children: React.ReactNode;
-}) {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const onPressIn = () =>
-    Animated.spring(scale, {
-      toValue: 0.88,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 0,
-    }).start();
-
-  const onPressOut = () =>
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 30,
-      bounciness: 8,
-    }).start();
-
-  return (
-    <Animated.View style={[pillStyle, { transform: [{ scale }] }]}>
-      <TouchableOpacity
-        style={{ alignItems: 'center', justifyContent: 'center', flex: 1, paddingVertical: 10, paddingHorizontal: 14 }}
-        onPress={onPress}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        activeOpacity={1}
-      >
-        {children}
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
-
-// ---------------------------------
 
 export default function WeeklyScheduleScreen() {
   const router = useRouter();
@@ -223,10 +135,11 @@ export default function WeeklyScheduleScreen() {
           const dateNum = d.getDate();
 
           return (
-            <AnimatedDatePill
+            <TouchableOpacity
               key={iso}
-              pillStyle={[styles.datePill, isSelected && styles.datePillSelected]}
               onPress={() => handleDateSelect(iso)}
+              activeOpacity={0.7}
+              style={[styles.datePill, isSelected && styles.datePillSelected]}
             >
               <Text style={[styles.datePillDay, isSelected && styles.datePillDaySelected]}>
                 {dayAbbrev}
@@ -237,7 +150,7 @@ export default function WeeklyScheduleScreen() {
               {isToday && (
                 <View style={[styles.todayDot, isSelected && styles.todayDotSelected]} />
               )}
-            </AnimatedDatePill>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
@@ -277,9 +190,10 @@ export default function WeeklyScheduleScreen() {
               return (
                 <View key={lecture.id}>
                   <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
-                    <AnimatedCard
-                      cardStyle={styles.card}
+                    <TouchableOpacity
+                      style={styles.card}
                       onPress={() => handleLecturePress(lecture.id)}
+                      activeOpacity={0.75}
                     >
                       <View style={[styles.cardAccent, { backgroundColor: accentColor }]} />
                       <View style={styles.cardBody}>
@@ -302,7 +216,7 @@ export default function WeeklyScheduleScreen() {
                           </View>
                         ) : null}
                       </View>
-                    </AnimatedCard>
+                    </TouchableOpacity>
                   </SwipeableLectureRow>
                   {index < dayLectures.length - 1 && <View style={styles.cardGap} />}
                 </View>
@@ -360,6 +274,8 @@ const createStyles = (colors: ColorTheme) => {
     datePill: {
       alignItems: 'center',
       justifyContent: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 14,
       borderRadius: 16,
       backgroundColor: colors.cardBackground,
       minWidth: 52,

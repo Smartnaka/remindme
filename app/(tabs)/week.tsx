@@ -308,7 +308,7 @@ export default function WeeklyScheduleScreen() {
   );
 
   const selectedMonthYear = useMemo(() => {
-    return selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return selectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   }, [selectedDate]);
 
   return (
@@ -468,6 +468,7 @@ export default function WeeklyScheduleScreen() {
 
 const createStyles = (colors: ColorTheme) => {
   const isDark = colors.background === '#000000';
+  const WHITE_MUTED = 'rgba(255,255,255,0.90)';
 
   return StyleSheet.create({
     container: {
@@ -557,7 +558,7 @@ const createStyles = (colors: ColorTheme) => {
       letterSpacing: 0.8,
     },
     datePillDaySelected: {
-      color: 'rgba(255,255,255,0.90)',
+      color: WHITE_MUTED,
     },
     datePillNum: {
       fontSize: 19,
@@ -576,7 +577,7 @@ const createStyles = (colors: ColorTheme) => {
       marginTop: 4,
     },
     todayDotSelected: {
-      backgroundColor: 'rgba(255,255,255,0.90)',
+      backgroundColor: WHITE_MUTED,
     },
 
     // Day label row

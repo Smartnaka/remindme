@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StyleProp, ViewStyle, TextStyle, LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -65,8 +65,10 @@ interface DatePillProps {
   dayAbbrev: string;
   dateNum: number;
   onPress: () => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
   pillStyle: StyleProp<ViewStyle>;
   pillSelectedStyle: StyleProp<ViewStyle>;
+  pillTodayStyle: StyleProp<ViewStyle>;
   dayTextStyle: StyleProp<TextStyle>;
   dayTextSelectedStyle: StyleProp<TextStyle>;
   numTextStyle: StyleProp<TextStyle>;
@@ -82,8 +84,10 @@ const DatePill = React.memo(({
   dayAbbrev,
   dateNum,
   onPress,
+  onLayout,
   pillStyle,
   pillSelectedStyle,
+  pillTodayStyle,
   dayTextStyle,
   dayTextSelectedStyle,
   numTextStyle,
@@ -92,6 +96,16 @@ const DatePill = React.memo(({
   todayDotSelectedStyle,
 }: DatePillProps) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const selectionScale = useRef(new Animated.Value(isSelected ? 1.07 : 1.0)).current;
+
+  useEffect(() => {
+    Animated.spring(selectionScale, {
+      toValue: isSelected ? 1.07 : 1.0,
+      useNativeDriver: true,
+      tension: 320,
+      friction: 14,
+    }).start();
+  }, [isSelected, selectionScale]);
 
   const handlePressIn = useCallback(() => {
     Animated.timing(scaleAnim, {
@@ -110,13 +124,21 @@ const DatePill = React.memo(({
     }).start();
   }, [scaleAnim]);
 
+  const combinedScale = Animated.multiply(scaleAnim, selectionScale);
+
   return (
     <AnimatedTouchable
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      onLayout={onLayout}
       activeOpacity={1}
-      style={[pillStyle, isSelected && pillSelectedStyle, { transform: [{ scale: scaleAnim }] }]}
+      style={[
+        pillStyle,
+        isToday && !isSelected && pillTodayStyle,
+        isSelected && pillSelectedStyle,
+        { transform: [{ scale: combinedScale }] },
+      ]}
     >
       <Text style={[dayTextStyle, isSelected && dayTextSelectedStyle]}>
         {dayAbbrev}
@@ -181,6 +203,19 @@ export default function WeeklyScheduleScreen() {
   const dateList = useMemo(() => buildDateList(today), [todayISO]);
 
   const [selectedISO, setSelectedISO] = useState<string>(todayISO);
+
+  // Snap-to-center state for horizontal date strip
+  const dateStripRef = useRef<ScrollView>(null);
+  const pillLayoutsRef = useRef<Map<string, { x: number; width: number }>>(new Map());
+  const [dateStripWidth, setDateStripWidth] = useState(0);
+
+  useEffect(() => {
+    const layout = pillLayoutsRef.current.get(selectedISO);
+    if (layout && dateStripWidth > 0) {
+      const scrollX = layout.x - (dateStripWidth - layout.width) / 2;
+      dateStripRef.current?.scrollTo({ x: Math.max(0, scrollX), animated: true });
+    }
+  }, [selectedISO, dateStripWidth]);
 
   // Animation values for class list fade-in + slide-up on date change
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -270,10 +305,12 @@ export default function WeeklyScheduleScreen() {
 
       {/* Horizontal date strip */}
       <ScrollView
+        ref={dateStripRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.dateStripContent}
         style={styles.dateStrip}
+        onLayout={(e) => setDateStripWidth(e.nativeEvent.layout.width)}
       >
         {dateList.map((d) => {
           const iso = toISODate(d);
@@ -291,8 +328,15 @@ export default function WeeklyScheduleScreen() {
               dayAbbrev={dayAbbrev}
               dateNum={dateNum}
               onPress={() => handleDateSelect(iso)}
+              onLayout={(e) => {
+                pillLayoutsRef.current.set(iso, {
+                  x: e.nativeEvent.layout.x,
+                  width: e.nativeEvent.layout.width,
+                });
+              }}
               pillStyle={styles.datePill}
               pillSelectedStyle={styles.datePillSelected}
+              pillTodayStyle={styles.datePillToday}
               dayTextStyle={styles.datePillDay}
               dayTextSelectedStyle={styles.datePillDaySelected}
               numTextStyle={styles.datePillNum}
@@ -417,39 +461,48 @@ const createStyles = (colors: ColorTheme) => {
     },
     dateStripContent: {
       paddingHorizontal: 16,
-      paddingTop: 4,
-      paddingBottom: 12,
-      gap: 8,
+      paddingTop: 6,
+      paddingBottom: 14,
+      gap: 10,
     },
     datePill: {
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 10,
+      paddingVertical: 11,
       paddingHorizontal: 14,
       borderRadius: 16,
       backgroundColor: colors.cardBackground,
-      minWidth: 52,
+      minWidth: 54,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
       ...Platform.select({
         ios: {
           shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: isDark ? 0.25 : 0.06,
-          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDark ? 0.2 : 0.05,
+          shadowRadius: 6,
         },
         android: {
           elevation: 2,
         },
       }),
     },
+    datePillToday: {
+      borderWidth: 1.5,
+      borderColor: colors.primary,
+    },
     datePillSelected: {
       backgroundColor: colors.primary,
+      borderColor: 'transparent',
       ...Platform.select({
         ios: {
-          shadowOpacity: isDark ? 0.4 : 0.2,
-          shadowRadius: 6,
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: isDark ? 0.55 : 0.38,
+          shadowRadius: 10,
         },
         android: {
-          elevation: 4,
+          elevation: 6,
         },
       }),
     },
@@ -457,13 +510,15 @@ const createStyles = (colors: ColorTheme) => {
       fontSize: 11,
       fontFamily: 'Inter_600SemiBold',
       color: colors.textMuted,
-      letterSpacing: 0.5,
+      letterSpacing: 0.8,
+      opacity: 0.75,
     },
     datePillDaySelected: {
       color: '#FFFFFF',
+      opacity: 1,
     },
     datePillNum: {
-      fontSize: 18,
+      fontSize: 20,
       fontFamily: 'Inter_700Bold',
       color: colors.textDark,
       marginTop: 2,
@@ -472,11 +527,11 @@ const createStyles = (colors: ColorTheme) => {
       color: '#FFFFFF',
     },
     todayDot: {
-      width: 5,
-      height: 5,
+      width: 6,
+      height: 6,
       borderRadius: 3,
       backgroundColor: colors.primary,
-      marginTop: 4,
+      marginTop: 5,
     },
     todayDotSelected: {
       backgroundColor: '#FFFFFF',

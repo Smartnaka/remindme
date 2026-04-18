@@ -247,16 +247,28 @@ const isNotificationAllowed = async (triggerDate: Date, cachedSettings?: any): P
       settings = JSON.parse(settingsStr);
     }
 
-    // Check Semester Limits
-    if (settings.semesterStart) {
-      const semStart = new Date(settings.semesterStart);
-      if (triggerDate < semStart) return false;
+    // Check Semester Limits.
+    // Normalize to day boundaries so date-only picker selections don't accidentally
+    // block reminders because of timezone/time-of-day drift.
+    const semStart = settings.semesterStart ? new Date(settings.semesterStart) : null;
+    const semEnd = settings.semesterEnd ? new Date(settings.semesterEnd) : null;
+
+    if (semStart && !isNaN(semStart.getTime())) {
+      semStart.setHours(0, 0, 0, 0);
     }
-    if (settings.semesterEnd) {
-      const semEnd = new Date(settings.semesterEnd);
+    if (semEnd && !isNaN(semEnd.getTime())) {
       semEnd.setHours(23, 59, 59, 999);
-      if (triggerDate > semEnd) return false;
     }
+
+    // If settings are invalid (start after end), fail open instead of silently
+    // blocking every class reminder.
+    if (semStart && semEnd && semStart.getTime() > semEnd.getTime()) {
+      log('[Notifications] Invalid semester range (start > end), skipping semester gating');
+      return true;
+    }
+
+    if (semStart && !isNaN(semStart.getTime()) && triggerDate < semStart) return false;
+    if (semEnd && !isNaN(semEnd.getTime()) && triggerDate > semEnd) return false;
 
     return true;
   } catch (e) {

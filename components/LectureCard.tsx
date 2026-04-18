@@ -56,8 +56,10 @@ export default memo(function LectureCard({ lecture, onPress, showTimeUntil = fal
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        {/* Color accent bar */}
-        <View style={[styles.colorAccent, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
+        {/* Curved accent – glow layer */}
+        <View style={[styles.accentGlow, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
+        {/* Curved accent – solid pill */}
+        <View style={[styles.accentSolid, { backgroundColor: lecture.color || DEFAULT_LECTURE_COLOR }]} />
 
         <View style={styles.cardContent}>
           {isNow && (
@@ -117,14 +119,22 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     shadowColor: colors.primary,
     shadowOpacity: 0.2,
   },
-  colorAccent: {
+  accentGlow: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    left: -1,
+    top: 10,
+    bottom: 10,
+    width: 10,
+    borderRadius: 5,
+    opacity: 0.3,
+  },
+  accentSolid: {
+    position: 'absolute',
+    left: 1,
+    top: 14,
+    bottom: 14,
+    width: 5,
+    borderRadius: 3,
   },
   cardContent: {
     flex: 1,

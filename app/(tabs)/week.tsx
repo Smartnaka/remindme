@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, StyleProp, ViewStyle, TextStyle, LayoutChangeEvent } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, TouchableOpacity, Platform, Animated, Easing, StyleProp, ViewStyle, TextStyle, LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLectures } from '@/contexts/LectureContext';
@@ -106,17 +106,18 @@ const DatePill = React.memo(({
 
   useEffect(() => {
     Animated.spring(selectionScale, {
-      toValue: isSelected ? 1.07 : 1.0,
+      toValue: isSelected ? 1.06 : 1.0,
       useNativeDriver: true,
-      tension: 320,
-      friction: 14,
+      tension: 280,
+      friction: 16,
     }).start();
   }, [isSelected, selectionScale]);
 
   const handlePressIn = useCallback(() => {
     Animated.timing(scaleAnim, {
-      toValue: 0.88,
-      duration: 100,
+      toValue: 0.90,
+      duration: 90,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
   }, [scaleAnim]);
@@ -125,8 +126,8 @@ const DatePill = React.memo(({
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      tension: 200,
-      friction: 10,
+      tension: 240,
+      friction: 12,
     }).start();
   }, [scaleAnim]);
 
@@ -170,8 +171,9 @@ const AnimatedCard = React.memo(({ style, onPress, children }: AnimatedCardProps
 
   const handlePressIn = useCallback(() => {
     Animated.timing(scaleAnim, {
-      toValue: 0.97,
-      duration: 100,
+      toValue: 0.975,
+      duration: 90,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
   }, [scaleAnim]);
@@ -180,8 +182,8 @@ const AnimatedCard = React.memo(({ style, onPress, children }: AnimatedCardProps
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
-      tension: 200,
-      friction: 10,
+      tension: 240,
+      friction: 12,
     }).start();
   }, [scaleAnim]);
 
@@ -234,16 +236,18 @@ export default function WeeklyScheduleScreen() {
       return;
     }
     fadeAnim.setValue(0);
-    slideAnim.setValue(10);
+    slideAnim.setValue(12);
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 220,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 220,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
     ]).start();
@@ -303,10 +307,15 @@ export default function WeeklyScheduleScreen() {
     [fadeAnim, slideAnim],
   );
 
+  const selectedMonthYear = useMemo(() => {
+    return selectedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  }, [selectedDate]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Schedule</Text>
+        <Text style={styles.headerSubtitle}>{selectedMonthYear}</Text>
       </View>
 
       {/* Horizontal date strip */}
@@ -353,6 +362,7 @@ export default function WeeklyScheduleScreen() {
           );
         })}
       </ScrollView>
+      <View style={styles.dateStripSeparator} />
 
       {/* Day label */}
       <View style={styles.dayLabelRow}>
@@ -458,6 +468,7 @@ export default function WeeklyScheduleScreen() {
 
 const createStyles = (colors: ColorTheme) => {
   const isDark = colors.background === '#000000';
+  const WHITE_MUTED = 'rgba(255,255,255,0.90)';
 
   return StyleSheet.create({
     container: {
@@ -467,14 +478,21 @@ const createStyles = (colors: ColorTheme) => {
     header: {
       paddingHorizontal: 20,
       paddingTop: 8,
-      paddingBottom: 12,
+      paddingBottom: 10,
     },
     headerTitle: {
       fontSize: 34,
       fontWeight: '800',
       color: colors.textDark,
-      letterSpacing: -0.5,
+      letterSpacing: -0.8,
       fontFamily: 'Inter_700Bold',
+    },
+    headerSubtitle: {
+      fontSize: 13,
+      fontFamily: 'Inter_400Regular',
+      color: colors.textMuted,
+      letterSpacing: 0.1,
+      marginTop: 2,
     },
 
     // Date strip
@@ -483,26 +501,31 @@ const createStyles = (colors: ColorTheme) => {
     },
     dateStripContent: {
       paddingHorizontal: 16,
-      paddingTop: 6,
+      paddingTop: 8,
       paddingBottom: 14,
-      gap: 10,
+      gap: 8,
+    },
+    dateStripSeparator: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
+      marginHorizontal: 0,
     },
     datePill: {
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 11,
-      paddingHorizontal: 14,
-      borderRadius: 16,
-      backgroundColor: colors.cardBackground,
-      minWidth: 54,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      paddingVertical: 10,
+      paddingHorizontal: 13,
+      borderRadius: 14,
+      backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+      minWidth: 52,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
       ...Platform.select({
         ios: {
           shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDark ? 0.2 : 0.05,
-          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: isDark ? 0.18 : 0.07,
+          shadowRadius: 4,
         },
         android: {
           elevation: 2,
@@ -520,7 +543,7 @@ const createStyles = (colors: ColorTheme) => {
         ios: {
           shadowColor: colors.primary,
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: isDark ? 0.55 : 0.38,
+          shadowOpacity: isDark ? 0.50 : 0.35,
           shadowRadius: 10,
         },
         android: {
@@ -529,18 +552,16 @@ const createStyles = (colors: ColorTheme) => {
       }),
     },
     datePillDay: {
-      fontSize: 11,
+      fontSize: 10,
       fontFamily: 'Inter_600SemiBold',
       color: colors.textMuted,
       letterSpacing: 0.8,
-      opacity: 0.75,
     },
     datePillDaySelected: {
-      color: '#FFFFFF',
-      opacity: 1,
+      color: WHITE_MUTED,
     },
     datePillNum: {
-      fontSize: 20,
+      fontSize: 19,
       fontFamily: 'Inter_700Bold',
       color: colors.textDark,
       marginTop: 2,
@@ -549,14 +570,14 @@ const createStyles = (colors: ColorTheme) => {
       color: '#FFFFFF',
     },
     todayDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
+      width: 5,
+      height: 5,
+      borderRadius: 2.5,
       backgroundColor: colors.primary,
-      marginTop: 5,
+      marginTop: 4,
     },
     todayDotSelected: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: WHITE_MUTED,
     },
 
     // Day label row
@@ -565,19 +586,20 @@ const createStyles = (colors: ColorTheme) => {
       alignItems: 'baseline',
       gap: 8,
       paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: 12,
+      paddingTop: 18,
+      paddingBottom: 14,
     },
     dayLabelText: {
-      fontSize: 22,
+      fontSize: 20,
       fontFamily: 'Inter_700Bold',
       color: colors.textDark,
-      letterSpacing: -0.3,
+      letterSpacing: -0.4,
     },
     classCountText: {
       fontSize: 13,
-      fontFamily: 'Inter_400Regular',
+      fontFamily: 'Inter_500Medium',
       color: colors.textMuted,
+      opacity: 0.8,
     },
 
     // Scroll / content
@@ -586,23 +608,23 @@ const createStyles = (colors: ColorTheme) => {
     },
     content: {
       paddingHorizontal: 16,
-      paddingTop: 8,
+      paddingTop: 4,
     },
 
     // Empty state
     emptyState: {
       alignItems: 'center',
-      paddingTop: 80,
-      gap: 12,
+      paddingTop: 72,
+      gap: 10,
     },
     emptyStateEmoji: {
-      fontSize: 48,
+      fontSize: 44,
     },
     emptyStateTitle: {
-      fontSize: 18,
+      fontSize: 17,
       fontFamily: 'Inter_600SemiBold',
       color: colors.textDark,
-      letterSpacing: -0.2,
+      letterSpacing: -0.3,
     },
     emptyStateSubtitle: {
       fontSize: 14,
@@ -610,6 +632,7 @@ const createStyles = (colors: ColorTheme) => {
       color: colors.textMuted,
       textAlign: 'center',
       lineHeight: 20,
+      opacity: 0.85,
     },
 
     // Timeline layout
@@ -621,86 +644,85 @@ const createStyles = (colors: ColorTheme) => {
       alignItems: 'flex-start',
     },
     timeColumn: {
-      width: 58,
-      paddingTop: 12,
-      paddingRight: 8,
+      width: 56,
+      paddingTop: 14,
+      paddingRight: 6,
       alignItems: 'flex-end',
     },
     timeLabel: {
       fontSize: 12,
       fontFamily: 'Inter_600SemiBold',
-      color: colors.textMuted,
+      color: isDark ? '#AEAEB2' : '#6C6C70',
       lineHeight: 15,
     },
     timePeriod: {
       fontSize: 10,
       fontFamily: 'Inter_400Regular',
       color: colors.textMuted,
-      opacity: 0.65,
+      opacity: 0.60,
       lineHeight: 13,
     },
     timelineTrack: {
-      width: 28,
+      width: 26,
       alignItems: 'center',
-      paddingTop: 13,
+      paddingTop: 15,
     },
     timelineTrackStretch: {
       alignSelf: 'stretch',
     },
     timelineDot: {
-      width: 14,
-      height: 14,
-      borderRadius: 7,
+      width: 12,
+      height: 12,
+      borderRadius: 6,
     },
     timelineDotGlow: {
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.75,
-      shadowRadius: 6,
-      elevation: 6,
+      shadowOpacity: 0.65,
+      shadowRadius: 5,
+      elevation: 5,
     },
     timelineConnector: {
       flex: 1,
-      width: 1.5,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
-      marginTop: 5,
+      width: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
+      marginTop: 4,
     },
     cardColumn: {
       flex: 1,
       paddingLeft: 10,
     },
     cardColumnSpaced: {
-      paddingBottom: 14,
+      paddingBottom: 12,
     },
 
     // Cards
     card: {
       flexDirection: 'row',
-      backgroundColor: colors.cardBackground,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+      backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+      borderRadius: 16,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+      overflow: 'hidden',
       ...Platform.select({
         ios: {
           shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: isDark ? 0.32 : 0.10,
-          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDark ? 0.28 : 0.08,
+          shadowRadius: 8,
         },
         android: {
-          elevation: 5,
+          elevation: 4,
         },
       }),
     },
     cardAccent: {
-      width: 5,
-      borderTopLeftRadius: 18,
-      borderBottomLeftRadius: 18,
+      width: 4,
     },
     cardBody: {
       flex: 1,
-      paddingVertical: 16,
-      paddingHorizontal: 16,
-      gap: 7,
+      paddingVertical: 14,
+      paddingHorizontal: 14,
+      gap: 6,
     },
     cardTop: {
       flexDirection: 'row',
@@ -708,7 +730,7 @@ const createStyles = (colors: ColorTheme) => {
       justifyContent: 'space-between',
     },
     cardCourseName: {
-      fontSize: 16,
+      fontSize: 15,
       fontFamily: 'Inter_700Bold',
       color: colors.textDark,
       flex: 1,
@@ -718,18 +740,18 @@ const createStyles = (colors: ColorTheme) => {
     cardMeta: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 5,
+      gap: 4,
     },
     metaIcon: {
-      opacity: 0.65,
+      opacity: 0.55,
     },
     cardTime: {
-      fontSize: 13,
+      fontSize: 12,
       fontFamily: 'Inter_500Medium',
       color: isDark ? '#AEAEB2' : '#6C6C70',
     },
     cardLocation: {
-      fontSize: 13,
+      fontSize: 12,
       fontFamily: 'Inter_500Medium',
       color: isDark ? '#AEAEB2' : '#6C6C70',
     },

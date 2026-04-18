@@ -381,37 +381,51 @@ export default function WeeklyScheduleScreen() {
           <View style={styles.cardList}>
             {dayLectures.map((lecture, index) => {
               const accentColor = lecture.color ?? colors.primary;
+              const isLast = index === dayLectures.length - 1;
               return (
-                <View key={lecture.id}>
-                  <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
-                    <AnimatedCard
-                      style={styles.card}
-                      onPress={() => handleLecturePress(lecture.id)}
-                    >
-                      <View style={[styles.cardAccent, { backgroundColor: accentColor }]} />
-                      <View style={styles.cardBody}>
-                        <View style={styles.cardTop}>
-                          <Text style={styles.cardCourseName} numberOfLines={1}>
-                            {lecture.courseName}
-                          </Text>
-                          <Ionicons name="chevron-forward" size={14} color={colors.textMuted + '80'} />
-                        </View>
-                        <View style={styles.cardMeta}>
-                          <Ionicons name="time-outline" size={13} color={colors.textMuted} style={styles.metaIcon} />
-                          <Text style={styles.cardTime}>
-                            {formatTimeAMPM(lecture.startTime)} – {formatTimeAMPM(lecture.endTime)}
-                          </Text>
-                        </View>
-                        {lecture.location ? (
-                          <View style={styles.cardMeta}>
-                            <Ionicons name="location-outline" size={13} color={colors.textMuted} style={styles.metaIcon} />
-                            <Text style={styles.cardLocation}>{lecture.location}</Text>
+                <View key={lecture.id} style={styles.timelineRow}>
+                  {/* Time column */}
+                  <View style={styles.timeColumn}>
+                    <Text style={styles.timeLabel}>{formatTimeAMPM(lecture.startTime)}</Text>
+                  </View>
+
+                  {/* Timeline track: dot + vertical connector */}
+                  <View style={[styles.timelineTrack, !isLast && styles.timelineTrackStretch]}>
+                    <View style={[styles.timelineDot, { backgroundColor: accentColor }]} />
+                    {!isLast && <View style={styles.timelineConnector} />}
+                  </View>
+
+                  {/* Card column */}
+                  <View style={[styles.cardColumn, !isLast && styles.cardColumnSpaced]}>
+                    <SwipeableLectureRow onDelete={() => handleDeleteClass(lecture)}>
+                      <AnimatedCard
+                        style={styles.card}
+                        onPress={() => handleLecturePress(lecture.id)}
+                      >
+                        <View style={[styles.cardAccent, { backgroundColor: accentColor }]} />
+                        <View style={styles.cardBody}>
+                          <View style={styles.cardTop}>
+                            <Text style={styles.cardCourseName} numberOfLines={1}>
+                              {lecture.courseName}
+                            </Text>
+                            <Ionicons name="chevron-forward" size={14} color={colors.textMuted + '80'} />
                           </View>
-                        ) : null}
-                      </View>
-                    </AnimatedCard>
-                  </SwipeableLectureRow>
-                  {index < dayLectures.length - 1 && <View style={styles.cardGap} />}
+                          <View style={styles.cardMeta}>
+                            <Ionicons name="time-outline" size={13} color={colors.textMuted} style={styles.metaIcon} />
+                            <Text style={styles.cardTime}>
+                              {formatTimeAMPM(lecture.startTime)} – {formatTimeAMPM(lecture.endTime)}
+                            </Text>
+                          </View>
+                          {lecture.location ? (
+                            <View style={styles.cardMeta}>
+                              <Ionicons name="location-outline" size={13} color={colors.textMuted} style={styles.metaIcon} />
+                              <Text style={styles.cardLocation}>{lecture.location}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </AnimatedCard>
+                    </SwipeableLectureRow>
+                  </View>
                 </View>
               );
             })}
@@ -590,13 +604,54 @@ const createStyles = (colors: ColorTheme) => {
       lineHeight: 20,
     },
 
-    // Cards
+    // Timeline layout
     cardList: {
       gap: 0,
     },
-    cardGap: {
-      height: 14,
+    timelineRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
     },
+    timeColumn: {
+      width: 62,
+      paddingTop: 14,
+      paddingRight: 8,
+      alignItems: 'flex-end',
+    },
+    timeLabel: {
+      fontSize: 12,
+      fontFamily: 'Inter_600SemiBold',
+      color: colors.textMuted,
+      lineHeight: 16,
+    },
+    timelineTrack: {
+      width: 24,
+      alignItems: 'center',
+      paddingTop: 11,
+    },
+    timelineTrackStretch: {
+      alignSelf: 'stretch',
+    },
+    timelineDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    timelineConnector: {
+      flex: 1,
+      width: 2,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
+      marginTop: 4,
+    },
+    cardColumn: {
+      flex: 1,
+      paddingLeft: 8,
+    },
+    cardColumnSpaced: {
+      paddingBottom: 14,
+    },
+
+    // Cards
     card: {
       flexDirection: 'row',
       backgroundColor: colors.cardBackground,

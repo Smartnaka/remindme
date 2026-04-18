@@ -58,6 +58,12 @@ function dateToDayOfWeek(d: Date): DayOfWeek {
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
+/** Splits a formatted time string like "9:15 AM" into ["9:15", "AM"] */
+function splitTimeAMPM(timeStr: string): [string, string] {
+  const spaceIdx = timeStr.lastIndexOf(' ');
+  return [timeStr.slice(0, spaceIdx), timeStr.slice(spaceIdx + 1)];
+}
+
 interface DatePillProps {
   iso: string;
   isSelected: boolean;
@@ -386,12 +392,14 @@ export default function WeeklyScheduleScreen() {
                 <View key={lecture.id} style={styles.timelineRow}>
                   {/* Time column */}
                   <View style={styles.timeColumn}>
-                    <Text style={styles.timeLabel}>{formatTimeAMPM(lecture.startTime)}</Text>
+                    {splitTimeAMPM(formatTimeAMPM(lecture.startTime)).map((part, i) => (
+                      <Text key={i} style={i === 0 ? styles.timeLabel : styles.timePeriod}>{part}</Text>
+                    ))}
                   </View>
 
                   {/* Timeline track: dot + vertical connector */}
                   <View style={[styles.timelineTrack, !isLast && styles.timelineTrackStretch]}>
-                    <View style={[styles.timelineDot, { backgroundColor: accentColor }]} />
+                    <View style={[styles.timelineDot, styles.timelineDotGlow, { backgroundColor: accentColor, shadowColor: accentColor }]} />
                     {!isLast && <View style={styles.timelineConnector} />}
                   </View>
 
@@ -613,8 +621,8 @@ const createStyles = (colors: ColorTheme) => {
       alignItems: 'flex-start',
     },
     timeColumn: {
-      width: 62,
-      paddingTop: 14,
+      width: 58,
+      paddingTop: 12,
       paddingRight: 8,
       alignItems: 'flex-end',
     },
@@ -622,30 +630,43 @@ const createStyles = (colors: ColorTheme) => {
       fontSize: 12,
       fontFamily: 'Inter_600SemiBold',
       color: colors.textMuted,
-      lineHeight: 16,
+      lineHeight: 15,
+    },
+    timePeriod: {
+      fontSize: 10,
+      fontFamily: 'Inter_400Regular',
+      color: colors.textMuted,
+      opacity: 0.65,
+      lineHeight: 13,
     },
     timelineTrack: {
-      width: 24,
+      width: 28,
       alignItems: 'center',
-      paddingTop: 11,
+      paddingTop: 13,
     },
     timelineTrackStretch: {
       alignSelf: 'stretch',
     },
     timelineDot: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+    },
+    timelineDotGlow: {
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.75,
+      shadowRadius: 6,
+      elevation: 6,
     },
     timelineConnector: {
       flex: 1,
-      width: 2,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
-      marginTop: 4,
+      width: 1.5,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
+      marginTop: 5,
     },
     cardColumn: {
       flex: 1,
-      paddingLeft: 8,
+      paddingLeft: 10,
     },
     cardColumnSpaced: {
       paddingBottom: 14,

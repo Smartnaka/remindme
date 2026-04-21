@@ -523,7 +523,7 @@ export default function TodayScreen() {
           >
             <TouchableOpacity
               activeOpacity={1}
-              style={{ backgroundColor: colors.cardBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Math.max(insets.bottom, 24), maxHeight: 500 }}
+              style={{ backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Math.max(insets.bottom, 24), maxHeight: 500 }}
             >
               <View style={{ width: 40, height: 4, backgroundColor: colors.textMuted + '40', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
 
@@ -650,10 +650,10 @@ export default function TodayScreen() {
 const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#F2F2F7",
   },
   headerContainer: {
-    backgroundColor: colors.background,
+    backgroundColor: "#F2F2F7",
     paddingTop: Platform.OS === 'android' ? 10 : 0,
   },
   headerContent: {
@@ -691,7 +691,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: "#FFFFFF",
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -754,7 +754,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   },
   // Grouped card wrapper for lectures/deadlines
   groupedListCard: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: "#FFFFFF",
     overflow: 'hidden',
     marginHorizontal: 16,
     borderWidth: 1,
@@ -787,7 +787,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: "#FFFFFF",
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -837,7 +837,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -938,7 +938,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   deadlineCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.cardBackground,
+    backgroundColor: "#FFFFFF",
     paddingVertical: 13,
     paddingHorizontal: 16,
   },
@@ -991,7 +991,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
   // Legacy / unused stubs kept to avoid TS errors in case of missed refs
   sectionContainer: { marginBottom: 0 },
   groupedList: { borderRadius: 16, overflow: 'hidden' },
-  groupedItem: { backgroundColor: colors.cardBackground, padding: 16 },
+  groupedItem: { backgroundColor: "#FFFFFF", padding: 16 },
   deadlineRow: { flexDirection: 'row', alignItems: 'center' },
   deadlineBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   miniBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },

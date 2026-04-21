@@ -473,7 +473,7 @@ const createStyles = (colors: ColorTheme) => {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? '#000000' : '#F2F2F7',
+      backgroundColor: '#F2F2F7',
     },
     header: {
       paddingHorizontal: 20,

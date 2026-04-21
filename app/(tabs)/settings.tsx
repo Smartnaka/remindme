@@ -19,7 +19,6 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { useLectures } from '@/contexts/LectureContext';
 import { useExams } from '@/contexts/ExamContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ColorTheme } from '@/types/theme';
@@ -62,8 +61,7 @@ export default function SettingsScreen() {
   const { clearLectures, clearAssignments } = useLectures();
   const { clearExams } = useExams();
   const { showAlert } = useCustomAlert();
-  const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
+  const { bottom: bottomInset } = useSafeAreaInsets();
 
   const [manageDataModalVisible, setManageDataModalVisible] = useState(false);
   const [showSummaryPicker, setShowSummaryPicker] = useState(false);
@@ -72,7 +70,7 @@ export default function SettingsScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerType, setPickerType] = useState<PickerType>(null);
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, bottomInset), [colors, bottomInset]);
 
   const handleOffsetChange = (type: 'lecture' | 'assignment' | 'exam', minutes: number) => {
     if (type === 'lecture') updateSettings({ lectureOffset: minutes });
@@ -240,10 +238,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + tabBarHeight }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroHeader}>
           <Text style={styles.heroTitle}>Settings</Text>
           <Text style={styles.heroSubtitle}>Personalize reminders, data, and app behavior.</Text>
@@ -544,16 +539,16 @@ export default function SettingsScreen() {
   );
 }
 
-const createStyles = (colors: ColorTheme) =>
+const createStyles = (colors: ColorTheme, bottomInset: number = 0) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: "#F2F2F7",
+      backgroundColor: colors.background,
     },
     content: {
       paddingHorizontal: 16,
       paddingTop: 8,
-      paddingBottom: 36,
+      paddingBottom: Math.max(bottomInset + 20, 36),
     },
     heroHeader: {
       paddingHorizontal: 6,
@@ -592,7 +587,7 @@ const createStyles = (colors: ColorTheme) =>
       marginLeft: 6,
     },
     card: {
-      backgroundColor: "#FFFFFF",
+      backgroundColor: colors.cardBackground,
       borderRadius: 18,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: `${colors.textMuted}20`,
@@ -750,7 +745,7 @@ const createStyles = (colors: ColorTheme) =>
       borderTopRightRadius: 24,
       paddingHorizontal: 18,
       paddingTop: 20,
-      paddingBottom: Platform.OS === 'ios' ? 36 : 22,
+      paddingBottom: Math.max(bottomInset, Platform.OS === 'ios' ? 36 : 22),
       borderTopWidth: StyleSheet.hairlineWidth,
       borderColor: `${colors.textMuted}35`,
     },

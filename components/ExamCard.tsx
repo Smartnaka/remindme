@@ -108,7 +108,7 @@ export default memo(function ExamCard({ exam }: ExamCardProps) {
 
 const createStyles = (colors: ColorTheme) => StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,

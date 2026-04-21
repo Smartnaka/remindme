@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
-  Platform,
   Animated,
 } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -16,9 +15,6 @@ const TAB_BAR_CONTENT_HEIGHT = 56;
 
 // Horizontal margin so the bar floats inset from screen edges
 const TAB_BAR_HORIZONTAL_MARGIN = 16;
-
-// Gap between the bottom of the bar and the safe-area boundary
-const TAB_BAR_BOTTOM_MARGIN = 10;
 
 // Opacity for inactive tab items
 const INACTIVE_TAB_OPACITY = 0.55;
@@ -72,50 +68,20 @@ export default function FloatingTabBar({
     });
   };
 
-  // Total reserved height = bar + bottom margin + safe-area inset.
-  // This spacer is transparent but occupies layout space so that
-  // React Navigation adds the correct paddingBottom to each screen.
-  const totalSpacerHeight =
-    TAB_BAR_CONTENT_HEIGHT + TAB_BAR_BOTTOM_MARGIN + insets.bottom;
-
   return (
-    // Transparent spacer – tells React Navigation how much room to reserve.
-    <View style={{ height: totalSpacerHeight }} pointerEvents="box-none">
-      {/* Visually floating bar sits inside the spacer, flush to its top */}
-      <View
-        pointerEvents="box-none"
-        style={[
-          styles.floatContainer,
-          {
-            left: TAB_BAR_HORIZONTAL_MARGIN,
-            right: TAB_BAR_HORIZONTAL_MARGIN,
-          },
-        ]}
-      >
-        {/* Shadow layer (iOS) / elevation container (Android) */}
-        <View
-          style={[
-            styles.shadowContainer,
-            Platform.select({
-              ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.15,
-                shadowRadius: 20,
-              },
-              android: {
-                elevation: 14,
-              },
-            }),
-          ]}
-        >
-          {/* Pill background */}
-          <View
-            style={[
-              styles.bar,
-              { backgroundColor: colors.cardBackground + "F0", height: TAB_BAR_CONTENT_HEIGHT },
-            ]}
-          >
+    <View
+      style={[
+        styles.container,
+        {
+          paddingBottom: insets.bottom,
+          borderTopWidth: 0.5,
+          borderTopColor: "#E0E0E0",
+          backgroundColor: "#FFFFFF",
+          height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
+        },
+      ]}
+    >
+      <View style={[styles.bar, { height: TAB_BAR_CONTENT_HEIGHT, marginHorizontal: TAB_BAR_HORIZONTAL_MARGIN }]}>
             {state.routes.map((route, index) => {
               const { options } = descriptors[route.key];
               const isFocused = state.index === index;
@@ -186,29 +152,21 @@ export default function FloatingTabBar({
                 </TouchableOpacity>
               );
             })}
-          </View>
-        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Sits at the top of the spacer; the bar itself floats by being offset
-  // from the screen bottom, leaving a gap equal to TAB_BAR_BOTTOM_MARGIN.
-  floatContainer: {
-    position: "absolute",
-    top: 0,
-  },
-  shadowContainer: {
-    borderRadius: 24,
-    overflow: Platform.OS === "android" ? "hidden" : "visible",
+  container: {
+    justifyContent: "flex-start",
   },
   bar: {
     borderRadius: 24,
     flexDirection: "row",
     alignItems: "center",
     overflow: "hidden",
+    backgroundColor: "#FFFFFF",
   },
   touchable: {
     flex: 1,

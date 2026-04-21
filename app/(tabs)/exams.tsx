@@ -68,10 +68,10 @@ export default function ExamsScreen() {
 const createStyles = (colors: ColorTheme, bottomInset: number = 0) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
+    backgroundColor: colors.background,
   },
   headerContainer: {
-    backgroundColor: "#F2F2F7",
+    backgroundColor: colors.background,
     paddingTop: 10,
   },
   headerContent: {

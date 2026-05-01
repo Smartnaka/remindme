@@ -113,7 +113,7 @@ export default function FloatingTabBar({
           <View
             style={[
               styles.bar,
-              { backgroundColor: colors.cardBackground + "F0", height: TAB_BAR_CONTENT_HEIGHT },
+              { backgroundColor: colors.cardBackground, height: TAB_BAR_CONTENT_HEIGHT },
             ]}
           >
             {state.routes.map((route, index) => {

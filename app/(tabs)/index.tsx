@@ -761,15 +761,15 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     borderColor: colors.textMuted + CARD_BORDER_ALPHA,
   },
   groupedCardTop: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   groupedCardMiddle: {
     borderRadius: 0,
   },
   groupedCardBottom: {
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
     marginBottom: 8,
   },
   separator: {
@@ -838,7 +838,7 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
+    borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     width: '100%',

@@ -79,8 +79,8 @@ const createStyles = (colors: ColorTheme) => StyleSheet.create({
         marginBottom: 2,
     },
     courseName: {
-        fontSize: 16,
-        fontFamily: 'Inter_700Bold',
+        fontSize: 15,
+        fontFamily: 'Inter_600SemiBold',
         color: colors.textDark,
         flex: 1,
         marginRight: 8,

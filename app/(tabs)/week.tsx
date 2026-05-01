@@ -473,7 +473,7 @@ const createStyles = (colors: ColorTheme) => {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: isDark ? '#000000' : '#F2F2F7',
     },
     header: {
       paddingHorizontal: 20,
@@ -609,7 +609,6 @@ const createStyles = (colors: ColorTheme) => {
     content: {
       paddingHorizontal: 16,
       paddingTop: 4,
-      paddingBottom: 100,
     },
 
     // Empty state
@@ -700,7 +699,7 @@ const createStyles = (colors: ColorTheme) => {
     card: {
       flexDirection: 'row',
       backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-      borderRadius: 12,
+      borderRadius: 16,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
       overflow: 'hidden',
@@ -731,7 +730,7 @@ const createStyles = (colors: ColorTheme) => {
       justifyContent: 'space-between',
     },
     cardCourseName: {
-      fontSize: 16,
+      fontSize: 15,
       fontFamily: 'Inter_700Bold',
       color: colors.textDark,
       flex: 1,

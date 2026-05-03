@@ -7,16 +7,16 @@ const textMuted = "#8B8B8B";
 const cardBackground = "#F8F9FA";
 
 export const LightColors: ColorTheme = {
-  primary: "#00C896",
-  primaryLight: "#E8F8F4",
+  primary: "#00C896", // Mint Green (Brand Primary)
+  primaryLight: "#E8F8F4", // Light Mint tint
   textDark: "#1A1A1A",
   textMuted: "#8B8B8B",
   cardBackground: "#F8F9FA",
   background: "#FFFFFF",
-  success: "#00C896",
+  success: "#00C896", // Mint Green
   error: "#FF6B6B",
   warning: "#FFB946",
-  tint: "#00C896",
+  tint: "#00C896", // Mint Green
 };
 
 export const DarkColors: ColorTheme = {
@@ -26,10 +26,10 @@ export const DarkColors: ColorTheme = {
   textMuted: "#8E8E93", // iOS System Gray
   cardBackground: "#1C1C1E", // System Gray 6
   background: "#000000", // Pure Black
-  success: "#30D158",
+  success: "#30D158", // iOS Green (Success)
   error: "#FF453A", // iOS Red
   warning: "#FF9F0A",
-  tint: "#34C759",
+  tint: "#34C759", // iOS Green
 };
 
 export default LightColors; // Default backward compatibility if needed, but we should migrate
